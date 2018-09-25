@@ -12,13 +12,15 @@ namespace Egodystonic.Atomics {
 		void Set(T newValue);
 		void SetUnsafe(T newValue);
 
+		void SpinWaitForValue(T targetValue);
+
 		T Exchange(T newValue);
-		(bool ValueWasSet, T PreviousValue) Exchange(T newValue, T comparand);
-		(bool ValueWasSet, T PreviousValue) Exchange(T newValue, Func<T, bool> predicate);
-		(bool ValueWasSet, T PreviousValue) Exchange(T newValue, Func<T, T, bool> predicate);
+		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand);
+		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate);
+		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate);
 		(T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc);
-		(bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, T comparand);
-		(bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, Func<T, bool> predicate);
-		(bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, Func<T, T, bool> predicate);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate);
 	}
 }

@@ -30,15 +30,23 @@ namespace Egodystonic.Atomics.Numerics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(long newValue) => _value = newValue;
 
+		public void SpinWaitForValue(long targetValue) {
+			var spinner = new SpinWait();
+			while (true) {
+				if (Get() == targetValue) return;
+				spinner.SpinOnce();
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long Exchange(long newValue) => Interlocked.Exchange(ref _value, newValue);
 
-		public (bool ValueWasSet, long PreviousValue) Exchange(long newValue, long comparand) {
+		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, long comparand) {
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			return (oldValue == comparand, oldValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue) Exchange(long newValue, Func<long, bool> predicate) {
+		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, Func<long, bool> predicate) {
 			bool trySetValue;
 			long curValue;
 
@@ -55,7 +63,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue) Exchange(long newValue, Func<long, long, bool> predicate) {
+		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, Func<long, long, bool> predicate) {
 			bool trySetValue;
 			long curValue;
 
@@ -89,7 +97,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (curValue, newValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long NewValue) Exchange(Func<long, long> mapFunc, long comparand) {
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, long comparand) {
 			bool trySetValue;
 			long curValue;
 			long newValue = default;
@@ -111,7 +119,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long NewValue) Exchange(Func<long, long> mapFunc, Func<long, bool> predicate) {
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, Func<long, bool> predicate) {
 			bool trySetValue;
 			long curValue;
 			long newValue = default;
@@ -133,7 +141,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long NewValue) Exchange(Func<long, long> mapFunc, Func<long, long, bool> predicate) {
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, Func<long, long, bool> predicate) {
 			bool trySetValue;
 			long curValue;
 			long newValue;

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicDouble : INumericAtomic<double> {
+	public sealed class AtomicDouble : IFloatingPointAtomic<double> {
 		double _value;
 
 		public double Value {
@@ -38,15 +38,23 @@ namespace Egodystonic.Atomics.Numerics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(double newValue) => _value = newValue;
 
+		public void SpinWaitForValue(double targetValue) {
+			var spinner = new SpinWait();
+			while (true) {
+				if (Get() == targetValue) return;
+				spinner.SpinOnce();
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public double Exchange(double newValue) => Interlocked.Exchange(ref _value, newValue);
 
-		public (bool ValueWasSet, double PreviousValue) Exchange(double newValue, double comparand) {
+		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, double comparand) {
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			return (oldValue == comparand, oldValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue) Exchange(double newValue, Func<double, bool> predicate) {
+		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, Func<double, bool> predicate) {
 			bool trySetValue;
 			double curValue;
 
@@ -63,7 +71,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue) Exchange(double newValue, Func<double, double, bool> predicate) {
+		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, Func<double, double, bool> predicate) {
 			bool trySetValue;
 			double curValue;
 
@@ -97,7 +105,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (curValue, newValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue, double NewValue) Exchange(Func<double, double> mapFunc, double comparand) {
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(Func<double, double> mapFunc, double comparand) {
 			bool trySetValue;
 			double curValue;
 			double newValue = default;
@@ -119,7 +127,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue, double NewValue) Exchange(Func<double, double> mapFunc, Func<double, bool> predicate) {
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(Func<double, double> mapFunc, Func<double, bool> predicate) {
 			bool trySetValue;
 			double curValue;
 			double newValue = default;
@@ -141,7 +149,7 @@ namespace Egodystonic.Atomics.Numerics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue, double NewValue) Exchange(Func<double, double> mapFunc, Func<double, double, bool> predicate) {
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(Func<double, double> mapFunc, Func<double, double, bool> predicate) {
 			bool trySetValue;
 			double curValue;
 			double newValue;
@@ -236,6 +244,55 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 
 			return (curValue, newValue);
+		}
+
+		// ============================ Floating-Point API ============================
+
+		public void SpinWaitForValue(double targetValue, double maxDelta) {
+			var spinner = new SpinWait();
+			while (true) {
+				if (Math.Abs(Get() - targetValue) <= maxDelta) return;
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, double comparand, double maxDelta) {
+			bool trySetValue;
+			double curValue;
+
+			var spinner = new SpinWait();
+
+			while (true) {
+				curValue = Get();
+				trySetValue = Math.Abs(Get() - comparand) <= maxDelta;
+
+				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				spinner.SpinOnce();
+			}
+
+			return (trySetValue, curValue);
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(Func<double, double> mapFunc, double comparand, double maxDelta) {
+			bool trySetValue;
+			double curValue;
+			double newValue = default;
+
+			var spinner = new SpinWait();
+
+			while (true) {
+				curValue = Get();
+				trySetValue = Math.Abs(Get() - comparand) <= maxDelta;
+
+				if (!trySetValue) break;
+
+				newValue = mapFunc(curValue);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				spinner.SpinOnce();
+			}
+
+			return (trySetValue, curValue, newValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

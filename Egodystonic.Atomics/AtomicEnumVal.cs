@@ -23,12 +23,12 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T Get() {
-			var valueCopy = GetValueAsLong();
+			var valueCopy = GetLong();
 			return *(T*)&valueCopy;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		long GetValueAsLong() => Interlocked.Read(ref _valueAsLong);
+		long GetLong() => Interlocked.Read(ref _valueAsLong);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() {
@@ -38,15 +38,24 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(T newValue) {
-			SetValueAsLong(*(long*)&newValue);
+			SetLong(*(long*)&newValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetValueAsLong(long newValueAsLong) => Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+		void SetLong(long newValueAsLong) => Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) {
 			_valueAsLong = *(long*)&newValue;
+		}
+
+		public void SpinWaitForValue(T targetValue) {
+			var targetValueAsLong = *(long*)&targetValue;
+			var spinner = new SpinWait();
+			while (true) {
+				if (GetLong() == targetValueAsLong) return;
+				spinner.SpinOnce();
+			}
 		}
 
 		public T Exchange(T newValue) {
@@ -55,7 +64,7 @@ namespace Egodystonic.Atomics {
 			return *(T*)&previousValueAsLong;
 		}
 
-		public (bool ValueWasSet, T PreviousValue) Exchange(T newValue, T comparand) {
+		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
 			var newValueAsLong = *(long*)&newValue;
 			var comparandAsLong = *(long*)&comparand;
 			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
@@ -63,7 +72,7 @@ namespace Egodystonic.Atomics {
 			return (previousValueAsLong == comparandAsLong, *(T*)&previousValueAsLong);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) Exchange(T newValue, Func<T, bool> predicate) {
+		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) {
 			bool trySetValue;
 			T curValue;
 			var newValueAsLong = *(long*)&newValue;
@@ -82,7 +91,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) Exchange(T newValue, Func<T, T, bool> predicate) {
+		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
 			bool trySetValue;
 			T curValue;
 			var newValueAsLong = *(long*)&newValue;
@@ -120,7 +129,7 @@ namespace Egodystonic.Atomics {
 			return (curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, T comparand) {
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) {
 			bool trySetValue;
 			T curValue;
 			T newValue = default;
@@ -145,7 +154,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
 			bool trySetValue;
 			T curValue;
 			T newValue = default;
@@ -169,7 +178,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {
 			bool trySetValue;
 			T curValue;
 			T newValue;
@@ -374,7 +383,7 @@ namespace Egodystonic.Atomics {
 
 		public bool HasFlag(T operand) {
 			var operandAsLong = *(long*)&operand;
-			return (GetValueAsLong() & operandAsLong) == operandAsLong;
+			return (GetLong() & operandAsLong) == operandAsLong;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

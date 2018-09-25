@@ -16,4 +16,11 @@ namespace Egodystonic.Atomics.Numerics {
 		(T PreviousValue, T NewValue) MultiplyBy(T operand);
 		(T PreviousValue, T NewValue) DivideBy(T operand);
 	}
+
+	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {
+		void SpinWaitForValue(T targetValue, T maxDelta);
+
+		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand, T maxDelta);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand, T maxDelta);
+	}
 }
