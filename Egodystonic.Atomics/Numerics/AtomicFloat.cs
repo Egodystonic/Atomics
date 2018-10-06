@@ -31,14 +31,6 @@ namespace Egodystonic.Atomics.Numerics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(float newValue) => _value = newValue;
 
-		public void SpinWaitForValue(float targetValue) {
-			var spinner = new SpinWait();
-			while (true) {
-				if (Get() == targetValue) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public float Exchange(float newValue) => Interlocked.Exchange(ref _value, newValue);
 

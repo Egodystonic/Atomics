@@ -34,16 +34,6 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) => _value = newValue;
 
-		public void SpinWaitForValue(T targetValue) {
-			var spinner = new SpinWait();
-			while (true) {
-				var val = Get();
-				if (TargetTypeIsEquatable ? ((IEquatable<T>) targetValue).Equals(val) : targetValue == val) return;
-				if (Get() == targetValue) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T Exchange(T newValue) => Interlocked.Exchange(ref _value, newValue);
 

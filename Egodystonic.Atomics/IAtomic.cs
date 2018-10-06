@@ -12,8 +12,6 @@ namespace Egodystonic.Atomics {
 		void Set(T newValue);
 		void SetUnsafe(T newValue);
 
-		void SpinWaitForValue(T targetValue);
-
 		T Exchange(T newValue);
 		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand);
 		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate);

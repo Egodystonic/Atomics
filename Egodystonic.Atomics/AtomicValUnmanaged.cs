@@ -56,15 +56,6 @@ namespace Egodystonic.Atomics {
 			_valueAsLong = *(long*)&newValue;
 		}
 
-		public void SpinWaitForValue(T targetValue) {
-			var targetValueAsLong = *(long*)&targetValue;
-			var spinner = new SpinWait();
-			while (true) {
-				if (GetLong() == targetValueAsLong) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		public T Exchange(T newValue) {
 			var newValueAsLong = *(long*)&newValue;
 			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, newValueAsLong);

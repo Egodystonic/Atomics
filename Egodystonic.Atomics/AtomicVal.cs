@@ -40,14 +40,6 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) => _value = newValue;
 
-		public void SpinWaitForValue(T targetValue) {
-			var spinner = new SpinWait();
-			while (true) {
-				if (Get().Equals(targetValue)) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		public T Exchange(T newValue) {
 			EnterLockAsWriter();
 			var oldValue = _value;

@@ -30,14 +30,6 @@ namespace Egodystonic.Atomics.Numerics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(long newValue) => _value = newValue;
 
-		public void SpinWaitForValue(long targetValue) {
-			var spinner = new SpinWait();
-			while (true) {
-				if (Get() == targetValue) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long Exchange(long newValue) => Interlocked.Exchange(ref _value, newValue);
 

@@ -37,14 +37,6 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(bool newValue) => _value = Convert(newValue);
 
-		public void SpinWaitForValue(bool targetValue) {
-			var spinner = new SpinWait();
-			while (true) {
-				if (Get() == targetValue) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Exchange(bool newValue) => Convert(Interlocked.Exchange(ref _value, Convert(newValue)));
 
