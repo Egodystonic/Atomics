@@ -6,8 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed class AtomicRef<T> : IAtomic<T> where T : class {
+	public sealed class CopyOnReadRef<T> : IAtomic<T> where T : class {
 		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
+		readonly Func<T, T> _copyFunc;
 		T _value;
 
 		public T Value {
@@ -15,11 +16,17 @@ namespace Egodystonic.Atomics {
 			[MethodImpl(MethodImplOptions.AggressiveInlining)] set => Set(value);
 		}
 
-		public AtomicRef() : this(default) { }
-		public AtomicRef(T initialValue) => Set(initialValue);
+		public CopyOnReadRef(Func<T, T> copyFunc) : this(copyFunc, default) { }
+		public CopyOnReadRef(Func<T, T> copyFunc, T initialValue) {
+			_copyFunc = copyFunc;
+			Set(initialValue);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Get() => Volatile.Read(ref _value); // fence is useless on its own but will synchronize with other operations
+		public T Get() => _copyFunc(Volatile.Read(ref _value)); // fence is useless on its own but will synchronize with other operations
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T GetWithoutCopy() => Volatile.Read(ref _value); // fence is useless on its own but will synchronize with other operations
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() => _value;
@@ -31,13 +38,14 @@ namespace Egodystonic.Atomics {
 		public void SetUnsafe(T newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Exchange(T newValue) => Interlocked.Exchange(ref _value, newValue);
+		public T Exchange(T newValue) => _copyFunc(Interlocked.Exchange(ref _value, newValue));
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
 			if (TargetTypeIsEquatable) return TryExchange(newValue, (cur, @new) => ((IEquatable<T>)cur).Equals(@new));
 
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
-			return (oldValue == comparand, oldValue);
+			if (oldValue == comparand) return (true, _copyFunc(oldValue));
+			else return (false, default);
 		}
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) {
@@ -47,14 +55,15 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				trySetValue = predicate(curValue);
 
 				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue);
+			if (trySetValue) return (true, _copyFunc(curValue));
+			else return (false, default);
 		}
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
@@ -64,14 +73,15 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				trySetValue = predicate(curValue, newValue);
 
 				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue);
+			if (trySetValue) return (true, _copyFunc(curValue));
+			else return (false, default);
 		}
 
 		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) {
@@ -81,14 +91,14 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				newValue = mapFunc(curValue);
 
 				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, newValue);
+			return (_copyFunc(curValue), newValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) {
@@ -99,7 +109,7 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				trySetValue = TargetTypeIsEquatable ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
 
 				if (!trySetValue) break;
@@ -110,7 +120,8 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			if (trySetValue) return (true, _copyFunc(curValue), newValue);
+			else return (false, default, newValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
@@ -121,7 +132,7 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				trySetValue = predicate(curValue);
 
 				if (!trySetValue) break;
@@ -132,7 +143,8 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			if (trySetValue) return (true, _copyFunc(curValue), newValue);
+			else return (false, default, newValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {
@@ -143,7 +155,7 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
+				curValue = GetWithoutCopy();
 				newValue = mapFunc(curValue);
 				trySetValue = predicate(curValue, newValue);
 
@@ -153,10 +165,11 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			if (trySetValue) return (true, _copyFunc(curValue), newValue);
+			else return (false, default, newValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator T(AtomicRef<T> operand) => operand.Get();
+		public static implicit operator T(CopyOnReadRef<T> operand) => operand.Get();
 	}
 }

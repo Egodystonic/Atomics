@@ -7,9 +7,29 @@ using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
+		public readonly struct ScopedRefToken : IDisposable, IEquatable<ScopedRefToken> {
+			readonly AtomicVal<T> _owner;
+			public ref T Value => ref _owner._value;
+			internal ScopedRefToken(AtomicVal<T> owner) {
+				_owner = owner;
+				owner.EnterLockAsReader();
+			}
+
+			public void Dispose() => _owner.ExitLockAsReader();
+			public bool Equals(ScopedRefToken other) => Equals(_owner, other._owner);
+			public override bool Equals(object obj) {
+				if (ReferenceEquals(null, obj)) return false;
+				return obj is ScopedRefToken other && Equals(other);
+			}
+			public override int GetHashCode() => _owner.GetHashCode();
+			public static bool operator ==(ScopedRefToken left, ScopedRefToken right) => left.Equals(right);
+			public static bool operator !=(ScopedRefToken left, ScopedRefToken right) => !left.Equals(right);
+		}
+
 		// Use this strategy rather than a RWLS because:
 		// > RWLS implements IDisposable() and I didn't want to have to make this class also implement IDisposable()
-		// > RWLS has some extra stuff we don't need, such as upgrading from a s/pinwait to a proper lock when enough time has passed, timeout tracking, optional re-entrancy support, etc.
+		// > RWLS has some extra stuff we don't want, such as upgrading from a spinwait to a proper lock when enough time has passed, timeout tracking, optional re-entrancy support, etc.
+		// TODO that being said, benchmark against a RWLS
 		int _readerCount = 0; // 0 = no ongoing access, positive = N readers, -1 = 1 writer
 		T _value;
 
@@ -20,6 +40,8 @@ namespace Egodystonic.Atomics {
 
 		public AtomicVal() : this(default) { }
 		public AtomicVal(T initialValue) => Set(initialValue);
+
+		public ScopedRefToken GetNewScopedRef() => new ScopedRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that you can not write a new value inside this scope
 
 		public T Get() { // TODO inline?
 			EnterLockAsReader();

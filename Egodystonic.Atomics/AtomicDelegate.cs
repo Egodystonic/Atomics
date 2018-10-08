@@ -210,6 +210,19 @@ namespace Egodystonic.Atomics {
 			else return (true, curValue.DynamicInvoke(args));
 		}
 
+		public (bool DelegateWasInvoked, TOut Result) TryInvoke<TOut>(Func<T, TOut> invocationWrapper) {
+			var curValue = Get();
+			if (curValue is null) return (false, default);
+			else return (true, invocationWrapper(curValue));
+		}
+
+		public bool TryInvoke(Action<T> invocationWrapper) {
+			var curValue = Get();
+			if (curValue is null) return false;
+			invocationWrapper(curValue);
+			return true;
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicDelegate<T> operand) => operand.Get();
 	}
