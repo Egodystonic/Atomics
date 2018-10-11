@@ -2,10 +2,8 @@
 
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace Egodystonic.Atomics.Tests.Dummies {
+namespace Egodystonic.Atomics.Tests.DummyObjects {
 	class DummyImmutableRef {
 		public string StringProp { get; }
 		public int IntProp { get; }

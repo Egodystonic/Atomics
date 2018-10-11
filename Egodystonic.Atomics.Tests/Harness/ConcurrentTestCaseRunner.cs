@@ -10,9 +10,18 @@ using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.Harness {
 	sealed partial class ConcurrentTestCaseRunner<T> {
-		const int MaxThreadJoinTimeMillis = 2000;
+		const int DefaultMaxThreadJoinTimeMillis = 2000;
+		readonly TimeSpan _maxThreadJoinTime;
+		Func<T> _contextFactoryFunc;
 
-		public Func<T> ContextFactoryFunc { get; set; }
+		public TimeSpan MaxSetUpWaitTime { get; set; } = TestCaseRunnerDefaults.DefaultSetUpTimeLimit;
+		public TimeSpan MaxExecutionWaitTime { get; set; } = TestCaseRunnerDefaults.DefaultExecutionTimeLimit;
+		public TimeSpan MaxTearDownWaitTime { get; set; } = TestCaseRunnerDefaults.DefaultTearDownTimeLimit;
+
+		public Func<T> ContextFactoryFunc {
+			get => _contextFactoryFunc;
+			set => _contextFactoryFunc = value ?? throw new ArgumentNullException(nameof(value));
+		}
 		public Action<T> GlobalSetUp { get; set; }
 
 		public Action<T> AllThreadsSetUp { get; set; }
@@ -23,68 +32,67 @@ namespace Egodystonic.Atomics.Tests.Harness {
 		public Action<T> WriterThreadTearDown { get; set; }
 		public Action<T> ReaderThreadTearDown { get; set; }
 
-		void ExecuteTestCase(IConcurrentTestCase<T> testCase) {
-			Console.WriteLine($"STARTING TEST CASE: {testCase.Description}");
+		public ConcurrentTestCaseRunner(Func<T> contextFactoryFunc) : this(contextFactoryFunc, TimeSpan.FromMilliseconds(DefaultMaxThreadJoinTimeMillis)) { }
 
-			var targetThreadConfigs = testCase.GetAllTargetThreadConfigs().ToArray();
+		public ConcurrentTestCaseRunner(Func<T> contextFactoryFunc, TimeSpan maxThreadJoinTime) {
+			ContextFactoryFunc = contextFactoryFunc;
+			_maxThreadJoinTime = maxThreadJoinTime;
+		}
 
-			for (var iterationIndex = 0; iterationIndex < targetThreadConfigs.Length; ++iterationIndex) {
-				var threadConfig = targetThreadConfigs[iterationIndex];
-				Console.WriteLine($"Starting '{testCase.Description}' iteration {iterationIndex + 1}/{targetThreadConfigs.Length}: " +
-								  $"{threadConfig.WriterThreadCount} writers, {threadConfig.ReaderThreadCount} readers...");
-				var collectedErrors = new ConcurrentBag<Exception>();
-				Action<Exception> errorHandleFunc = e => collectedErrors.Add(e);
-				var cancellationTokSource = new CancellationTokenSource();
-				var createdThreads = new Thread[threadConfig.TotalThreadCount];
+		public void ExecuteCustomTestCase(IConcurrentTestCase<T> testCase) {
+			Console.WriteLine($"Starting case: {testCase.Description}");
 
-				try {
-					var contextObject = ContextFactoryFunc != null ? ContextFactoryFunc() : default;
-					GlobalSetUp?.Invoke(contextObject);
-					var barrier = new Barrier(threadConfig.TotalThreadCount + 1);
+			var threadConfig = testCase.ThreadConfig;
+			var collectedErrors = new ConcurrentBag<Exception>();
+			Action<Exception> errorHandleFunc = e => collectedErrors.Add(e);
+			var cancellationTokSource = new CancellationTokenSource();
+			var createdThreads = new Thread[threadConfig.TotalThreadCount];
 
-					for (var i = 0; i < threadConfig.TotalThreadCount; ++i) {
-						var threadType = i < threadConfig.WriterThreadCount ? ThreadType.WriterThread : ThreadType.ReaderThread;
-						var threadNumOfThisType = (threadType == ThreadType.WriterThread ? i : threadConfig.WriterThreadCount - i);
-						var setupAction = AllThreadsSetUp + (threadType == ThreadType.WriterThread ? WriterThreadSetUp : ReaderThreadSetUp);
-						var executionAction = testCase.GetExecutionAction(threadType, threadNumOfThisType, threadConfig);
-						var teardownAction = AllThreadsTearDown + (threadType == ThreadType.WriterThread ? WriterThreadTearDown : ReaderThreadTearDown);
-						var threadName = threadType == ThreadType.WriterThread ? $"Writer {threadNumOfThisType + 1}/{threadConfig.WriterThreadCount}" : $"Reader {threadNumOfThisType + 1}/{threadConfig.ReaderThreadCount}";
-						createdThreads[i] = new Thread(ThreadEntryPoint) { IsBackground = true, Name = threadName };
-						createdThreads[i].Start(new ThreadEntryPointParametersWrapper(
-							threadName,
-							contextObject,
-							setupAction,
-							executionAction,
-							teardownAction,
-							barrier,
-							cancellationTokSource.Token,
-							errorHandleFunc
-						));
-					}
+			try {
+				var contextObject = ContextFactoryFunc();
+				GlobalSetUp?.Invoke(contextObject);
+				var barrier = new Barrier(threadConfig.TotalThreadCount + 1);
 
-					if (!barrier.SignalAndWait(testCase.MaxSetUpWaitTime)) throw new TimeoutException($"Setup did not completion within the specified time limit ({testCase.MaxSetUpWaitTime}).");
-					if (!barrier.SignalAndWait(testCase.MaxExecutionWaitTime)) throw new TimeoutException($"Execution did not completion within the specified time limit ({testCase.MaxExecutionWaitTime}).");
-					if (!barrier.SignalAndWait(testCase.MaxTearDownWaitTime)) throw new TimeoutException($"Teardown did not completion within the specified time limit ({testCase.MaxTearDownWaitTime}).");
+				for (var i = 0; i < threadConfig.TotalThreadCount; ++i) {
+					var threadType = i < threadConfig.WriterThreadCount ? ThreadType.WriterThread : ThreadType.ReaderThread;
+					var threadNumOfThisType = (threadType == ThreadType.WriterThread ? i : threadConfig.WriterThreadCount - i);
+					var setupAction = AllThreadsSetUp + (threadType == ThreadType.WriterThread ? WriterThreadSetUp : ReaderThreadSetUp);
+					var executionAction = testCase.GetExecutionAction(threadType, threadNumOfThisType);
+					var teardownAction = AllThreadsTearDown + (threadType == ThreadType.WriterThread ? WriterThreadTearDown : ReaderThreadTearDown);
+					var threadName = threadType == ThreadType.WriterThread ? $"Writer {threadNumOfThisType + 1}/{threadConfig.WriterThreadCount}" : $"Reader {threadNumOfThisType + 1}/{threadConfig.ReaderThreadCount}";
+					createdThreads[i] = new Thread(ThreadEntryPoint) { IsBackground = true, Name = threadName };
+					createdThreads[i].Start(new ThreadEntryPointParametersWrapper(
+						threadName,
+						contextObject,
+						setupAction,
+						executionAction,
+						teardownAction,
+						barrier,
+						cancellationTokSource.Token,
+						errorHandleFunc
+					));
 				}
-				catch (Exception e) {
-					collectedErrors.Add(e);
-				}
-				finally {
-					foreach (var thread in createdThreads) {
-						var joinSuccess = thread.ThreadState == ThreadState.Unstarted || thread.Join(MaxThreadJoinTimeMillis);
-						if (!joinSuccess) Console.WriteLine($"Warning: \"{thread.Name}\" can not be joined.");
-					}
 
-					if (collectedErrors.Any()) {
-						foreach (var collectedError in collectedErrors.Where(err => err.Data.Contains(ThreadEntryPointParametersWrapper.ExceptionSourceKey))) {
-							Console.WriteLine($"{collectedError.Data[ThreadEntryPointParametersWrapper.ExceptionSourceKey]} reported error: {Environment.NewLine}{collectedError.Message}{Environment.NewLine}"); 
-						}
-						throw new AggregateException(collectedErrors);
+				if (!barrier.SignalAndWait(MaxSetUpWaitTime)) throw new TimeoutException($"Setup did not completion within the specified time limit ({MaxSetUpWaitTime}).");
+				if (!barrier.SignalAndWait(MaxExecutionWaitTime)) throw new TimeoutException($"Execution did not completion within the specified time limit ({MaxExecutionWaitTime}).");
+				if (!barrier.SignalAndWait(MaxTearDownWaitTime)) throw new TimeoutException($"Teardown did not completion within the specified time limit ({MaxTearDownWaitTime}).");
+			}
+			catch (Exception e) {
+				collectedErrors.Add(e);
+			}
+			finally {
+				foreach (var thread in createdThreads) {
+					var joinSuccess = thread.ThreadState == ThreadState.Unstarted || thread.Join(_maxThreadJoinTime);
+					if (!joinSuccess) Console.WriteLine($"Warning: \"{thread.Name}\" can not be joined.");
+				}
+
+				if (collectedErrors.Any()) {
+					foreach (var collectedError in collectedErrors.Where(err => err.Data.Contains(ThreadEntryPointParametersWrapper.ExceptionSourceKey))) {
+						Console.WriteLine($"{collectedError.Data[ThreadEntryPointParametersWrapper.ExceptionSourceKey]} reported error: {Environment.NewLine}{collectedError.Message}{Environment.NewLine}");
 					}
+					throw new AggregateException(collectedErrors);
 				}
 			}
-
-			Console.WriteLine($"TEST CASE ENDED: {testCase.Description}");
 		}
 
 		static void ThreadEntryPoint(object parametersAsObject) => ((ThreadEntryPointParametersWrapper)parametersAsObject).Execute();

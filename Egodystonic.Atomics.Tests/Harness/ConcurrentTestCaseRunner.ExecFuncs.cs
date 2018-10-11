@@ -67,95 +67,74 @@ namespace Egodystonic.Atomics.Tests.Harness {
 	}
 
 	sealed partial class ConcurrentTestCaseRunner<T> {
-		public void ExecuteFreeThreadedTest(Action<T> execFunction) {
-			ExecuteFreeThreadedTest(execFunction, DefaultSetUpTimeLimit, DefaultExecutionTimeLimit, DefaultTearDownTimeLimit);
-		}
-		public void ExecuteFreeThreadedTest(Action<T> execFunction, TimeSpan setUpTimeLimit, TimeSpan execTimeLimit, TimeSpan tearDownTimeLimit) {
-			var testCase = new StandardConcurrentTestCase<T>(
-				"Free-Threaded",
-				execFunction,
-				null,
-				DefaultFreeThreadedThreadConfigs,
-				setUpTimeLimit,
-				execTimeLimit,
-				tearDownTimeLimit
-			);
-
-			ExecuteTestCase(testCase);
+		public void ExecuteFreeThreadedTests(Action<T> execFunction) {
+			foreach (var threadConfig in DefaultFreeThreadedThreadConfigs) {
+				ExecuteCustomTestCase(new StandardConcurrentTestCase<T>(
+					$"Free-Threaded; {threadConfig.TotalThreadCount} threads",
+					execFunction,
+					null,
+					threadConfig
+				));
+			}
 		}
 
-		public void ExecuteFreeThreadedTest(Action<T> execFunctionSingleIteration, int totalIterationCount) {
-			ExecuteFreeThreadedTest(execFunctionSingleIteration, totalIterationCount, DefaultSetUpTimeLimit, DefaultExecutionTimeLimit, DefaultTearDownTimeLimit);
-		}
-		public void ExecuteFreeThreadedTest(Action<T> execFunctionSingleIteration, int totalIterationCount, TimeSpan setUpTimeLimit, TimeSpan execTimeLimit, TimeSpan tearDownTimeLimit) {
-			var testCase = new IterativeConcurrentTestCase<T>(
-				$"Iterated Free-Threaded (n = {totalIterationCount})",
-				execFunctionSingleIteration,
-				null,
-				DefaultFreeThreadedThreadConfigs,
-				totalIterationCount,
-				iterateWriters: true,
-				iterateReaders: false,
-				setUpTimeLimit,
-				execTimeLimit,
-				tearDownTimeLimit
-			);
-
-			ExecuteTestCase(testCase);
+		public void ExecuteFreeThreadedTests(Action<T> execFunctionSingleIteration, int totalIterationCount) {
+			foreach (var threadConfig in DefaultFreeThreadedThreadConfigs) {
+				ExecuteCustomTestCase(new IterativeConcurrentTestCase<T>(
+					$"Iterated Free-Threaded (n = {totalIterationCount}); {threadConfig.TotalThreadCount} threads",
+					execFunctionSingleIteration,
+					null,
+					threadConfig,
+					totalIterationCount,
+					iterateWriters: true,
+					iterateReaders: false
+				));
+			}
 		}
 
-		public void ExecuteContinuousCoherencyTest<U>(Action<T> execFunction, Func<T, U> valueExtractionFunc, Action<U, U> coherencyAssertionAction, Func<U, bool> readerCompletionPredicate, TimeSpan setUpTimeLimit, TimeSpan execTimeLimit, TimeSpan tearDownTimeLimit) {
-			var testCase = new StandardConcurrentTestCase<T>(
-				$"Continuous Coherency",
-				execFunction,
-				ctx => {
-					var spinner = new SpinWait();
-					var prevValue = valueExtractionFunc(ctx);
-					while (true) {
-						var curValue = valueExtractionFunc(ctx);
-						coherencyAssertionAction(prevValue, curValue);
-						if (readerCompletionPredicate(curValue)) break;
-						prevValue = curValue;
-						spinner.SpinOnce();
-					}
-				},
-				DefaultReaderWriterThreadConfigs,
-				setUpTimeLimit,
-				execTimeLimit,
-				tearDownTimeLimit
-			);
-
-			ExecuteTestCase(testCase);
+		public void ExecuteContinuousCoherencyTests<U>(Action<T> execFunction, Func<T, U> valueExtractionFunc, Action<U, U> coherencyAssertionAction, Func<U, bool> readerCompletionPredicate, TimeSpan setUpTimeLimit, TimeSpan execTimeLimit, TimeSpan tearDownTimeLimit) {
+			foreach (var threadConfig in DefaultReaderWriterThreadConfigs) {
+				ExecuteCustomTestCase(new StandardConcurrentTestCase<T>(
+					$"Continuous Coherency; {threadConfig.WriterThreadCount} writers, {threadConfig.ReaderThreadCount} coherency spinners",
+					execFunction,
+					ctx => {
+						var spinner = new SpinWait();
+						var prevValue = valueExtractionFunc(ctx);
+						while (true) {
+							var curValue = valueExtractionFunc(ctx);
+							coherencyAssertionAction(prevValue, curValue);
+							if (readerCompletionPredicate(curValue)) break;
+							prevValue = curValue;
+							spinner.SpinOnce();
+						}
+					},
+					threadConfig
+				));
+			}
 		}
 
-		public void ExecuteContinuousCoherencyTest<U>(Action<T> execFunctionSingleIteration, int totalIterationCount, Func<T, U> valueExtractionFunc, Action<U, U> coherencyAssertionAction, Func<U, bool> readerCompletionPredicate) {
-			ExecuteContinuousCoherencyTest(execFunctionSingleIteration, totalIterationCount, valueExtractionFunc, coherencyAssertionAction, readerCompletionPredicate, DefaultSetUpTimeLimit, DefaultExecutionTimeLimit, DefaultTearDownTimeLimit);
-		}
-		public void ExecuteContinuousCoherencyTest<U>(Action<T> execFunctionSingleIteration, int totalIterationCount, Func<T, U> valueExtractionFunc, Action<U, U> coherencyAssertionAction, Func<U, bool> readerCompletionPredicate, TimeSpan setUpTimeLimit, TimeSpan execTimeLimit, TimeSpan tearDownTimeLimit) {
-			var testCase = new IterativeConcurrentTestCase<T>(
-				$"Iterated Continuous Coherency (n = {totalIterationCount})",
-				execFunctionSingleIteration,
-				ctx => {
-					var spinner = new SpinWait();
-					var prevValue = valueExtractionFunc(ctx);
-					while (true) {
-						var curValue = valueExtractionFunc(ctx);
-						coherencyAssertionAction(prevValue, curValue);
-						if (readerCompletionPredicate(curValue)) break;
-						prevValue = curValue;
-						spinner.SpinOnce();
-					}
-				},
-				DefaultReaderWriterThreadConfigs,
-				totalIterationCount,
-				iterateWriters: true,
-				iterateReaders: false,
-				setUpTimeLimit,
-				execTimeLimit,
-				tearDownTimeLimit
-			);
-
-			ExecuteTestCase(testCase);
+		public void ExecuteContinuousCoherencyTests<U>(Action<T> execFunctionSingleIteration, int totalIterationCount, Func<T, U> valueExtractionFunc, Action<U, U> coherencyAssertionAction, Func<U, bool> readerCompletionPredicate) {
+			foreach (var threadConfig in DefaultReaderWriterThreadConfigs) {
+				ExecuteCustomTestCase(new IterativeConcurrentTestCase<T>(
+					$"Iterated Continuous Coherency (n = {totalIterationCount}); {threadConfig.WriterThreadCount} writers, {threadConfig.ReaderThreadCount} coherency spinners",
+					execFunctionSingleIteration,
+					ctx => {
+						var spinner = new SpinWait();
+						var prevValue = valueExtractionFunc(ctx);
+						while (true) {
+							var curValue = valueExtractionFunc(ctx);
+							coherencyAssertionAction(prevValue, curValue);
+							if (readerCompletionPredicate(curValue)) break;
+							prevValue = curValue;
+							spinner.SpinOnce();
+						}
+					},
+					threadConfig,
+					totalIterationCount,
+					iterateWriters: true,
+					iterateReaders: false
+				));
+			}
 		}
 	}
 }

@@ -13,10 +13,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 
 	interface IConcurrentTestCase<T> {
 		string Description { get; }
-		TimeSpan MaxSetUpWaitTime { get; }
-		TimeSpan MaxExecutionWaitTime { get; }
-		TimeSpan MaxTearDownWaitTime { get; }
-		Action<T> GetExecutionAction(ThreadType threadType, int threadNumber, ConcurrentTestCaseThreadConfig threadConfig);
-		IEnumerable<ConcurrentTestCaseThreadConfig> GetAllTargetThreadConfigs();
+		ConcurrentTestCaseThreadConfig ThreadConfig { get; }
+		Action<T> GetExecutionAction(ThreadType threadType, int threadNumber);
 	}
 }
