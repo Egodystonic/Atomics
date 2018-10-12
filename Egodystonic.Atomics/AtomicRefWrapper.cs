@@ -26,10 +26,26 @@ namespace Egodystonic.Atomics {
 		public T Exchange(ref T @ref, T newValue) => Interlocked.Exchange(ref @ref, newValue);
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(ref T @ref, T newValue, T comparand) {
-			if (TargetTypeIsEquatable) return TryExchange(ref @ref, newValue, (cur, @new) => ((IEquatable<T>)cur).Equals(@new));
+			if (!TargetTypeIsEquatable) {
+				var oldValue = Interlocked.CompareExchange(ref @ref, newValue, comparand);
+				return (oldValue == comparand, oldValue);
+			}
 
-			var oldValue = Interlocked.CompareExchange(ref @ref, newValue, comparand);
-			return (oldValue == comparand, oldValue);
+			var comparandAsIEquatable = (IEquatable<T>)comparand;
+			bool trySetValue;
+			T curValue;
+
+			var spinner = new SpinWait();
+
+			while (true) {
+				curValue = Get(ref @ref);
+				trySetValue = comparandAsIEquatable.Equals(curValue);
+
+				if (!trySetValue || Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				spinner.SpinOnce();
+			}
+
+			return (trySetValue, curValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(ref T @ref, T newValue, Func<T, bool> predicate) {

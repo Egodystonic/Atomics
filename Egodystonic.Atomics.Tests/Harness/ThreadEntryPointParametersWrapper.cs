@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace Egodystonic.Atomics.Tests.Harness {
 	sealed partial class ConcurrentTestCaseRunner<T> {
-		class ThreadEntryPointParametersWrapper {
+		class TestThreadContext {
 			public const string ExceptionSourceKey = "Exception Source";
 			readonly string _threadDescription;
 			readonly T _contextObject;
@@ -17,7 +17,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 			readonly CancellationToken _cancellationToken;
 			readonly Action<Exception> _errorReportAction;
 
-			public ThreadEntryPointParametersWrapper(string threadDescription, T contextObject, Action<T> setUpAction, Action<T> executionAction, Action<T> tearDownAction, Barrier stageSyncBarrier, CancellationToken cancellationToken, Action<Exception> errorReportAction) {
+			public TestThreadContext(string threadDescription, T contextObject, Action<T> setUpAction, Action<T> executionAction, Action<T> tearDownAction, Barrier stageSyncBarrier, CancellationToken cancellationToken, Action<Exception> errorReportAction) {
 				_threadDescription = threadDescription;
 				_contextObject = contextObject;
 				_setUpAction = setUpAction;
@@ -35,7 +35,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 						_setUpAction?.Invoke(_contextObject);
 					}
 					catch (Exception e) {
-						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' during setup");
+						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' encountered error during setup");
 						_errorReportAction(e);
 						continueExecution = false;
 					}
@@ -47,7 +47,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 						if (continueExecution) _executionAction?.Invoke(_contextObject);
 					}
 					catch (Exception e) {
-						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' during execution");
+						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' encountered error during execution");
 						_errorReportAction(e);
 						continueExecution = false;
 					}
@@ -59,7 +59,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 						if (continueExecution) _tearDownAction?.Invoke(_contextObject);
 					}
 					catch (Exception e) {
-						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' during teardown");
+						e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' encountered error during teardown");
 						_errorReportAction(e);
 					}
 					finally {
@@ -68,7 +68,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 				}
 				catch (OperationCanceledException) { }
 				catch (Exception e) {
-					e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' during unknown time");
+					e.Data.Add(ExceptionSourceKey, $"Thread '{_threadDescription}' encountered error during unknown time");
 					_errorReportAction(e);
 				}
 			}

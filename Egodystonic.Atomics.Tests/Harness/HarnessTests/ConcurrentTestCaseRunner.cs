@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
 using NUnit.Framework;
@@ -188,7 +189,70 @@ namespace Egodystonic.Atomics.Tests.Harness.HarnessTests {
 
 		[Test]
 		public void ShouldCorrectlySerializeTestCase() {
-			
+			var setUpThreadBag = new ConcurrentBag<Thread>();
+			var execThreadBag = new ConcurrentBag<Thread>();
+			var tearDownThreadBag = new ConcurrentBag<Thread>();
+
+			var setUpEvent = new ManualResetEvent(false);
+			var execEvent = new ManualResetEvent(false);
+
+			var threadConfig = new ConcurrentTestCaseThreadConfig(16, 0);
+			_runner.AllThreadsSetUp = _ => {
+				setUpThreadBag.Add(Thread.CurrentThread);
+				// Force one thread (#11) to wait for the sake of the test
+				if (Thread.CurrentThread.Name?.Contains("11", StringComparison.InvariantCultureIgnoreCase) ?? false) setUpEvent.WaitOne();
+			};
+			var testCase = CreateNewTestCase(
+				_ => {
+					execThreadBag.Add(Thread.CurrentThread);
+					// Force one thread (#11) to wait for the sake of the test
+					if (Thread.CurrentThread.Name?.Contains("11", StringComparison.InvariantCultureIgnoreCase) ?? false) execEvent.WaitOne();
+				}, 
+				null, 
+				threadConfig
+			);
+			_runner.AllThreadsTearDown = _ => {
+				tearDownThreadBag.Add(Thread.CurrentThread);
+			};
+
+			var runTask = Task.Run(() => _runner.ExecuteCustomTestCase(testCase));
+
+			SpinWait.SpinUntil(() => setUpThreadBag.Count == threadConfig.TotalThreadCount);
+			Thread.Sleep(250); // Just to make sure we're not getting a false positive by beating other threads to adding themselves to the bag
+			Assert.AreEqual(0, execThreadBag.Count);
+			setUpEvent.Set();
+
+			SpinWait.SpinUntil(() => execThreadBag.Count == threadConfig.TotalThreadCount);
+			Thread.Sleep(250); // Just to make sure we're not getting a false positive by beating other threads to adding themselves to the bag
+			Assert.AreEqual(0, tearDownThreadBag.Count);
+			execEvent.Set();
+
+			runTask.Wait();
+			Assert.AreEqual(threadConfig.TotalThreadCount, tearDownThreadBag.Count);
+		}
+
+		[Test]
+		public void ShouldCorrectlyAggregateAndCollectExceptions() {
+			var threadConfig = new ConcurrentTestCaseThreadConfig(16, 16);
+			var testCase = new MockConcurrentTestCase<DummyImmutableRef> {
+				ThreadConfig = threadConfig,
+				OnGetExecutionAction = (threadType, threadIndex) => _ => throw new ApplicationException(threadType.ToString() + threadIndex + "/")
+			};
+
+			try {
+				_runner.ExecuteCustomTestCase(testCase);
+				Assert.Fail("No exception was thrown.");
+			}
+			catch (AggregateException e) {
+				Assert.GreaterOrEqual(e.InnerExceptions.Count, threadConfig.TotalThreadCount);
+
+				for (var w = 0; w < threadConfig.WriterThreadCount; ++w) {
+					Assert.True(e.InnerExceptions.Count(ex => ex.ToString().Contains(ThreadType.WriterThread.ToString() + w + "/", StringComparison.InvariantCultureIgnoreCase)) == 1);
+				}
+				for (var r = 0; r < threadConfig.ReaderThreadCount; ++r) {
+					Assert.True(e.InnerExceptions.Count(ex => ex.ToString().Contains(ThreadType.ReaderThread.ToString() + r + "/", StringComparison.InvariantCultureIgnoreCase)) == 1);
+				}
+			}
 		}
 		#endregion Tests
 	}

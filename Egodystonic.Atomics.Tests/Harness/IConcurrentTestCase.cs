@@ -14,6 +14,6 @@ namespace Egodystonic.Atomics.Tests.Harness {
 	interface IConcurrentTestCase<T> {
 		string Description { get; }
 		ConcurrentTestCaseThreadConfig ThreadConfig { get; }
-		Action<T> GetExecutionAction(ThreadType threadType, int threadNumber);
+		Action<T> GetExecutionAction(ThreadType threadType, int threadIndex);
 	}
 }

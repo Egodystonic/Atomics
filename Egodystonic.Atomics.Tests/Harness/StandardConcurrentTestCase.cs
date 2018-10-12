@@ -12,7 +12,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 
 		public string Description { get; }
 		public ConcurrentTestCaseThreadConfig ThreadConfig { get; }
-		public Action<T> GetExecutionAction(ThreadType threadType, int threadNumber) => threadType == ThreadType.WriterThread ? _writerThreadExecAction : _readerThreadExecAction;
+		public Action<T> GetExecutionAction(ThreadType threadType, int threadIndex) => threadType == ThreadType.WriterThread ? _writerThreadExecAction : _readerThreadExecAction;
 
 		public StandardConcurrentTestCase(string description, Action<T> writerThreadExecAction, Action<T> readerThreadExecAction, ConcurrentTestCaseThreadConfig threadConfig) {
 			Description = description;

@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.Harness {
@@ -55,13 +56,13 @@ namespace Egodystonic.Atomics.Tests.Harness {
 
 				for (var i = 0; i < threadConfig.TotalThreadCount; ++i) {
 					var threadType = i < threadConfig.WriterThreadCount ? ThreadType.WriterThread : ThreadType.ReaderThread;
-					var threadNumOfThisType = (threadType == ThreadType.WriterThread ? i : threadConfig.WriterThreadCount - i);
+					var threadIndexForThreadType = (threadType == ThreadType.WriterThread ? i : i - threadConfig.WriterThreadCount);
 					var setupAction = AllThreadsSetUp + (threadType == ThreadType.WriterThread ? WriterThreadSetUp : ReaderThreadSetUp);
-					var executionAction = testCase.GetExecutionAction(threadType, threadNumOfThisType);
+					var executionAction = testCase.GetExecutionAction(threadType, threadIndexForThreadType);
 					var teardownAction = AllThreadsTearDown + (threadType == ThreadType.WriterThread ? WriterThreadTearDown : ReaderThreadTearDown);
-					var threadName = threadType == ThreadType.WriterThread ? $"Writer {threadNumOfThisType + 1}/{threadConfig.WriterThreadCount}" : $"Reader {threadNumOfThisType + 1}/{threadConfig.ReaderThreadCount}";
+					var threadName = threadType == ThreadType.WriterThread ? $"Writer {threadIndexForThreadType + 1}/{threadConfig.WriterThreadCount}" : $"Reader {threadIndexForThreadType + 1}/{threadConfig.ReaderThreadCount}";
 					createdThreads[i] = new Thread(ThreadEntryPoint) { IsBackground = true, Name = threadName };
-					createdThreads[i].Start(new ThreadEntryPointParametersWrapper(
+					createdThreads[i].Start(new TestThreadContext(
 						threadName,
 						contextObject,
 						setupAction,
@@ -81,20 +82,31 @@ namespace Egodystonic.Atomics.Tests.Harness {
 				collectedErrors.Add(e);
 			}
 			finally {
+				var joinTasks = new List<Task>();
 				foreach (var thread in createdThreads) {
-					var joinSuccess = thread.ThreadState == ThreadState.Unstarted || thread.Join(_maxThreadJoinTime);
-					if (!joinSuccess) Console.WriteLine($"Warning: \"{thread.Name}\" can not be joined.");
+					if (thread == null) continue;
+					joinTasks.Add(Task.Run(() => {
+						var joinSuccess = thread.ThreadState != ThreadState.Unstarted && thread.Join(_maxThreadJoinTime);
+						if (!joinSuccess) throw new TimeoutException($"Thread \"{thread.Name}\" could not be joined.");
+					}));
+				}
+
+				foreach (var task in joinTasks) {
+					task.Wait();
+					if (!task.IsFaulted) continue;
+
+					foreach (var innerExc in task.Exception.InnerExceptions) collectedErrors.Add(innerExc);
 				}
 
 				if (collectedErrors.Any()) {
-					foreach (var collectedError in collectedErrors.Where(err => err.Data.Contains(ThreadEntryPointParametersWrapper.ExceptionSourceKey))) {
-						Console.WriteLine($"{collectedError.Data[ThreadEntryPointParametersWrapper.ExceptionSourceKey]} reported error: {Environment.NewLine}{collectedError.Message}{Environment.NewLine}");
+					foreach (var collectedError in collectedErrors.Where(err => err.Data.Contains(TestThreadContext.ExceptionSourceKey))) {
+						Console.WriteLine($"{collectedError.Data[TestThreadContext.ExceptionSourceKey]}: {Environment.NewLine}{collectedError}{Environment.NewLine}");
 					}
 					throw new AggregateException(collectedErrors);
 				}
 			}
 		}
 
-		static void ThreadEntryPoint(object parametersAsObject) => ((ThreadEntryPointParametersWrapper)parametersAsObject).Execute();
+		static void ThreadEntryPoint(object parametersAsObject) => ((TestThreadContext)parametersAsObject).Execute();
 	}
 }
