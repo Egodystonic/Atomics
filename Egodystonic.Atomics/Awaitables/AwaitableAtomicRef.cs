@@ -13,8 +13,10 @@ namespace Egodystonic.Atomics.Awaitables {
 	/// <typeparam name="T"></typeparam>
 	public class AwaitableAtomicRef<T> : IAwaitableAtomic<T> where T : class {
 		public const int RecommendedDefaultBufferSize = 128;
-		// ReSharper disable once StaticMemberInGenericType The value will be the same for each independent reification
+		// ReSharper disable StaticMemberInGenericType The value will be the same for each independent reification
 		static readonly double NumStopwatchTicksPerSec = Stopwatch.Frequency;
+		static readonly TimeSpan InfiniteMaxWaitTime = TimeSpan.MaxValue;
+		// ReSharper restore StaticMemberInGenericType
 		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
 		readonly AtomicRef<T> _value;
 		readonly AwaitableConsumerValueQueuePool<T> _consumerQueuePool;
@@ -99,143 +101,151 @@ namespace Egodystonic.Atomics.Awaitables {
 		}
 
 		// ============================ Waiter API ============================
-		public (bool ValueAcquired, T Value) WaitForNext(CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+		public T WaitForNext() {
 			var queue = GetConsumerQueue();
-			var result = queue.Dequeue(cancellationToken, maxWaitTime);
+			var result = queue.Dequeue(CancellationToken.None, InfiniteMaxWaitTime);
 			RelinquishConsumerQueue(queue);
-			return result;
+			return result.Value;
 		}
 
-		public (bool ValueAcquired, T Value) WaitForValue(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
 
-			do {
-				var dequeueStartTime = GetTimestamp();
-				var dequeueResult = queue.Dequeue(cancellationToken, maxWaitTime);
-				if (!dequeueResult.ValueAcquired) break;
-
-				if (ValueMatchesTarget(dequeueResult.Value, targetValue)) {
-					RelinquishConsumerQueue(queue);
-					return (true, dequeueResult.Value);
-				}
-
-				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
-			} while (maxWaitTime > TimeSpan.Zero);
-
-			RelinquishConsumerQueue(queue);
-			return (false, default);
-		}
-
-		public (bool ValueAcquired, T Value) WaitForValue(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-
-			do {
-				var dequeueStartTime = GetTimestamp();
-				var dequeueResult = queue.Dequeue(cancellationToken, maxWaitTime);
-				if (!dequeueResult.ValueAcquired) break;
-
-				if (ValueSatisfiesPredicate(dequeueResult.Value, predicate)) {
-					RelinquishConsumerQueue(queue);
-					return (true, dequeueResult.Value);
-				}
-
-				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
-			} while (maxWaitTime > TimeSpan.Zero);
-
-			RelinquishConsumerQueue(queue);
-			return (false, default);
-		}
-
-		public async Task<(bool ValueAcquired, T Value)> WaitForNextAsync(CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-			var result = await queue.DequeueAsync(cancellationToken, maxWaitTime);
-			RelinquishConsumerQueue(queue);
-			return result;
-		}
-
-		public async Task<(bool ValueAcquired, T Value)> WaitForValueAsync(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-
-			do {
-				var dequeueStartTime = GetTimestamp();
-				var dequeueResult = await queue.DequeueAsync(cancellationToken, maxWaitTime);
-				if (!dequeueResult.ValueAcquired) break;
-
-				if (ValueMatchesTarget(dequeueResult.Value, targetValue)) {
-					RelinquishConsumerQueue(queue);
-					return (true, dequeueResult.Value);
-				}
-
-				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
-			} while (maxWaitTime > TimeSpan.Zero);
-
-			RelinquishConsumerQueue(queue);
-			return (false, default);
-		}
-
-		public async Task<(bool ValueAcquired, T Value)> WaitForValueAsync(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-
-			do {
-				var dequeueStartTime = GetTimestamp();
-				var dequeueResult = await queue.DequeueAsync(cancellationToken, maxWaitTime);
-				if (!dequeueResult.ValueAcquired) break;
-
-				if (ValueSatisfiesPredicate(dequeueResult.Value, predicate)) {
-					RelinquishConsumerQueue(queue);
-					return (true, dequeueResult.Value);
-				}
-
-				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
-			} while (maxWaitTime > TimeSpan.Zero);
-
-			RelinquishConsumerQueue(queue);
-			return (false, default);
-		}
-
-		public ValueTask<T> WaitForExpectedValueAsync(T targetValue) {
-			var queue = GetConsumerQueue();
-			var quickReadResult = queue.AttemptQuickRead();
-			RelinquishConsumerQueue(queue);
-
-			if (quickReadResult.ValueAcquired && ValueMatchesTarget(quickReadResult.Value, targetValue)) {
-				return new ValueTask<T>(quickReadResult.Value);
-			}
-			else return new ValueTask<T>(this.WaitForValueAsync(targetValue));
-		}
-
-		public ValueTask<T> WaitForExpectedValueAsync(Func<T, bool> predicate) {
-			var queue = GetConsumerQueue();
-			var quickReadResult = queue.AttemptQuickRead();
-			RelinquishConsumerQueue(queue);
-
-			if (quickReadResult.ValueAcquired && ValueSatisfiesPredicate(quickReadResult.Value, predicate)) {
-				return new ValueTask<T>(quickReadResult.Value);
-			}
-			else return new ValueTask<T>(this.WaitForValueAsync(predicate));
-		}
-
-		public ValueTask<(bool ValueAcquired, T Value)> WaitForExpectedValueAsync(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-			var quickReadResult = queue.AttemptQuickRead();
-			RelinquishConsumerQueue(queue);
-
-			if (quickReadResult.ValueAcquired && ValueMatchesTarget(quickReadResult.Value, targetValue)) {
-				return new ValueTask<(bool ValueAcquired, T Value)>((true, quickReadResult.Value));
-			}
-			else return new ValueTask<(bool ValueAcquired, T Value)>(WaitForValueAsync(targetValue, cancellationToken, maxWaitTime));
-		}
-
-		public ValueTask<(bool ValueAcquired, T Value)> WaitForExpectedValueAsync(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
-			var queue = GetConsumerQueue();
-			var quickReadResult = queue.AttemptQuickRead();
-			RelinquishConsumerQueue(queue);
-
-			if (quickReadResult.ValueAcquired && ValueSatisfiesPredicate(quickReadResult.Value, predicate)) {
-				return new ValueTask<(bool ValueAcquired, T Value)>((true, quickReadResult.Value));
-			}
-			else return new ValueTask<(bool ValueAcquired, T Value)>(WaitForValueAsync(predicate, cancellationToken, maxWaitTime));
-		}
+//		public (bool ValueAcquired, T Value) WaitForNext(CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//			var result = queue.Dequeue(cancellationToken, maxWaitTime);
+//			RelinquishConsumerQueue(queue);
+//			return result;
+//		}
+//
+//		public (bool ValueAcquired, T Value) WaitForValue(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//
+//			do {
+//				var dequeueStartTime = GetTimestamp();
+//				var dequeueResult = queue.Dequeue(cancellationToken, maxWaitTime);
+//				if (!dequeueResult.ValueAcquired) break;
+//
+//				if (ValueMatchesTarget(dequeueResult.Value, targetValue)) {
+//					RelinquishConsumerQueue(queue);
+//					return (true, dequeueResult.Value);
+//				}
+//
+//				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
+//			} while (maxWaitTime > TimeSpan.Zero);
+//
+//			RelinquishConsumerQueue(queue);
+//			return (false, default);
+//		}
+//
+//		public (bool ValueAcquired, T Value) WaitForValue(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//
+//			do {
+//				var dequeueStartTime = GetTimestamp();
+//				var dequeueResult = queue.Dequeue(cancellationToken, maxWaitTime);
+//				if (!dequeueResult.ValueAcquired) break;
+//
+//				if (ValueSatisfiesPredicate(dequeueResult.Value, predicate)) {
+//					RelinquishConsumerQueue(queue);
+//					return (true, dequeueResult.Value);
+//				}
+//
+//				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
+//			} while (maxWaitTime > TimeSpan.Zero);
+//
+//			RelinquishConsumerQueue(queue);
+//			return (false, default);
+//		}
+//
+//		public async Task<(bool ValueAcquired, T Value)> WaitForNextAsync(CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//			var result = await queue.DequeueAsync(cancellationToken, maxWaitTime);
+//			RelinquishConsumerQueue(queue);
+//			return result;
+//		}
+//
+//		public async Task<(bool ValueAcquired, T Value)> WaitForValueAsync(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//
+//			do {
+//				var dequeueStartTime = GetTimestamp();
+//				var dequeueResult = await queue.DequeueAsync(cancellationToken, maxWaitTime);
+//				if (!dequeueResult.ValueAcquired) break;
+//
+//				if (ValueMatchesTarget(dequeueResult.Value, targetValue)) {
+//					RelinquishConsumerQueue(queue);
+//					return (true, dequeueResult.Value);
+//				}
+//
+//				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
+//			} while (maxWaitTime > TimeSpan.Zero);
+//
+//			RelinquishConsumerQueue(queue);
+//			return (false, default);
+//		}
+//
+//		public async Task<(bool ValueAcquired, T Value)> WaitForValueAsync(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//
+//			do {
+//				var dequeueStartTime = GetTimestamp();
+//				var dequeueResult = await queue.DequeueAsync(cancellationToken, maxWaitTime);
+//				if (!dequeueResult.ValueAcquired) break;
+//
+//				if (ValueSatisfiesPredicate(dequeueResult.Value, predicate)) {
+//					RelinquishConsumerQueue(queue);
+//					return (true, dequeueResult.Value);
+//				}
+//
+//				maxWaitTime -= GetTimeSinceTimestamp(dequeueStartTime);
+//			} while (maxWaitTime > TimeSpan.Zero);
+//
+//			RelinquishConsumerQueue(queue);
+//			return (false, default);
+//		}
+//
+//		public ValueTask<T> WaitForExpectedValueAsync(T targetValue) {
+//			var queue = GetConsumerQueue();
+//			var quickReadResult = queue.AttemptQuickRead();
+//			RelinquishConsumerQueue(queue);
+//
+//			if (quickReadResult.ValueAcquired && ValueMatchesTarget(quickReadResult.Value, targetValue)) {
+//				return new ValueTask<T>(quickReadResult.Value);
+//			}
+//			else return new ValueTask<T>(this.WaitForValueAsync(targetValue));
+//		}
+//
+//		public ValueTask<T> WaitForExpectedValueAsync(Func<T, bool> predicate) {
+//			var queue = GetConsumerQueue();
+//			var quickReadResult = queue.AttemptQuickRead();
+//			RelinquishConsumerQueue(queue);
+//
+//			if (quickReadResult.ValueAcquired && ValueSatisfiesPredicate(quickReadResult.Value, predicate)) {
+//				return new ValueTask<T>(quickReadResult.Value);
+//			}
+//			else return new ValueTask<T>(this.WaitForValueAsync(predicate));
+//		}
+//
+//		public ValueTask<(bool ValueAcquired, T Value)> WaitForExpectedValueAsync(T targetValue, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//			var quickReadResult = queue.AttemptQuickRead();
+//			RelinquishConsumerQueue(queue);
+//
+//			if (quickReadResult.ValueAcquired && ValueMatchesTarget(quickReadResult.Value, targetValue)) {
+//				return new ValueTask<(bool ValueAcquired, T Value)>((true, quickReadResult.Value));
+//			}
+//			else return new ValueTask<(bool ValueAcquired, T Value)>(WaitForValueAsync(targetValue, cancellationToken, maxWaitTime));
+//		}
+//
+//		public ValueTask<(bool ValueAcquired, T Value)> WaitForExpectedValueAsync(Func<T, bool> predicate, CancellationToken cancellationToken, TimeSpan maxWaitTime) {
+//			var queue = GetConsumerQueue();
+//			var quickReadResult = queue.AttemptQuickRead();
+//			RelinquishConsumerQueue(queue);
+//
+//			if (quickReadResult.ValueAcquired && ValueSatisfiesPredicate(quickReadResult.Value, predicate)) {
+//				return new ValueTask<(bool ValueAcquired, T Value)>((true, quickReadResult.Value));
+//			}
+//			else return new ValueTask<(bool ValueAcquired, T Value)>(WaitForValueAsync(predicate, cancellationToken, maxWaitTime));
+//		}
 
 		void PublishNewValue(T newValue) {
 			foreach (var queue in _activeConsumerQueues) queue.Enqueue(newValue);

@@ -7,15 +7,34 @@ using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
-		public readonly struct ScopedRefToken : IDisposable, IEquatable<ScopedRefToken> {
+		public readonly struct ScopedReadonlyRefToken : IDisposable, IEquatable<ScopedReadonlyRefToken> {
 			readonly AtomicVal<T> _owner;
-			public ref T Value => ref _owner._value;
-			internal ScopedRefToken(AtomicVal<T> owner) {
+			public ref readonly T Value => ref _owner._value;
+			internal ScopedReadonlyRefToken(AtomicVal<T> owner) {
 				_owner = owner;
 				owner.EnterLockAsReader();
 			}
 
 			public void Dispose() => _owner.ExitLockAsReader();
+			public bool Equals(ScopedReadonlyRefToken other) => Equals(_owner, other._owner);
+			public override bool Equals(object obj) {
+				if (ReferenceEquals(null, obj)) return false;
+				return obj is ScopedReadonlyRefToken other && Equals(other);
+			}
+			public override int GetHashCode() => _owner.GetHashCode();
+			public static bool operator ==(ScopedReadonlyRefToken left, ScopedReadonlyRefToken right) => left.Equals(right);
+			public static bool operator !=(ScopedReadonlyRefToken left, ScopedReadonlyRefToken right) => !left.Equals(right);
+		}
+
+		public readonly struct ScopedRefToken : IDisposable, IEquatable<ScopedRefToken> {
+			readonly AtomicVal<T> _owner;
+			public ref T Value => ref _owner._value;
+			internal ScopedRefToken(AtomicVal<T> owner) {
+				_owner = owner;
+				owner.EnterLockAsWriter();
+			}
+
+			public void Dispose() => _owner.ExitLockAsWriter();
 			public bool Equals(ScopedRefToken other) => Equals(_owner, other._owner);
 			public override bool Equals(object obj) {
 				if (ReferenceEquals(null, obj)) return false;
@@ -41,7 +60,8 @@ namespace Egodystonic.Atomics {
 		public AtomicVal() : this(default) { }
 		public AtomicVal(T initialValue) => Set(initialValue);
 
-		public ScopedRefToken GetNewScopedRef() => new ScopedRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that you can not write a new value inside this scope
+		public ScopedReadonlyRefToken NewScopedReadonlyRef() => new ScopedReadonlyRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that you can not write a new value inside this scope (readonly ref helps though)
+		public ScopedRefToken NewScopedRef() => new ScopedRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that the readonly variant is preferable if no mutations required
 
 		public T Get() { // TODO inline?
 			EnterLockAsReader();
