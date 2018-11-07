@@ -23,7 +23,7 @@ namespace Egodystonic.Atomics {
 
 //		(bool ValueWasSet, T PreviousValue) TryExchange<TContext>(T newValue, Func<T, TContext, bool> predicate, TContext context);
 //		(bool ValueWasSet, T PreviousValue) TryExchange<TContext>(T newValue, Func<T, T, TContext, bool> predicate, TContext context);
-//		(T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc);
+//		(T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context);
 //		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context);
 //		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, Func<T, bool> predicate, TContext context);
 //		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, Func<T, T, bool> predicate, TContext context);

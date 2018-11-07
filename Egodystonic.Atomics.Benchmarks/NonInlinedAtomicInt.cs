@@ -1,36 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Egodystonic.Atomics.Numerics;
 
-namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicInt : INumericAtomic<int> {
+namespace Egodystonic.Atomics.Benchmarks {
+	public sealed class NonInlinedAtomicInt : INumericAtomic<int> {
 		int _value;
 
 		public int Value {
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get();
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			set => Set(value);
 		}
 
-		public AtomicInt() : this(default) { }
-		public AtomicInt(int initialValue) => Set(initialValue);
+		public NonInlinedAtomicInt() : this(default) { }
+		public NonInlinedAtomicInt(int initialValue) => Set(initialValue);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Get() => Volatile.Read(ref _value);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int GetUnsafe() => _value;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(int newValue) => Volatile.Write(ref _value, newValue);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(int newValue) => _value = newValue;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Exchange(int newValue) => Interlocked.Exchange(ref _value, newValue);
 
 		public (bool ValueWasSet, int PreviousValue) TryExchange(int newValue, int comparand) {
@@ -156,25 +148,21 @@ namespace Egodystonic.Atomics.Numerics {
 
 		// ============================ Numeric API ============================
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Increment() {
 			var newValue = Interlocked.Increment(ref _value);
 			return (newValue - 1, newValue);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Decrement() {
 			var newValue = Interlocked.Decrement(ref _value);
 			return (newValue + 1, newValue);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Add(int operand) {
 			var newValue = Interlocked.Add(ref _value, operand);
 			return (newValue - operand, newValue);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Subtract(int operand) {
 			var newValue = Interlocked.Add(ref _value, -operand);
 			return (newValue + operand, newValue);
@@ -214,7 +202,6 @@ namespace Egodystonic.Atomics.Numerics {
 			return (curValue, newValue);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator int(AtomicInt operand) => operand.Get();
+		public static implicit operator int(NonInlinedAtomicInt operand) => operand.Get();
 	}
 }

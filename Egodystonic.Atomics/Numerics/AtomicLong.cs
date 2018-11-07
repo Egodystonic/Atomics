@@ -156,21 +156,25 @@ namespace Egodystonic.Atomics.Numerics {
 
 		// ============================ Numeric API ============================
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long NewValue) Increment() {
 			var newValue = Interlocked.Increment(ref _value);
 			return (newValue - 1L, newValue);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long NewValue) Decrement() {
 			var newValue = Interlocked.Decrement(ref _value);
 			return (newValue + 1L, newValue);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long NewValue) Add(long operand) {
 			var newValue = Interlocked.Add(ref _value, operand);
 			return (newValue - operand, newValue);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long NewValue) Subtract(long operand) {
 			var newValue = Interlocked.Add(ref _value, -operand);
 			return (newValue + operand, newValue);
