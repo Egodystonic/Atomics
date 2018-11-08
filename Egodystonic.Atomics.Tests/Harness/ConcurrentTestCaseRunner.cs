@@ -10,6 +10,17 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.Harness {
+	static class ConcurrentTestCaseRunner {
+		public struct RunnerFactory<T, TTarget> where TTarget : IAtomic<T>, new() {
+			public ConcurrentTestCaseRunner<TTarget> NewRunner() => new ConcurrentTestCaseRunner<TTarget>(() => new TTarget());
+			public ConcurrentTestCaseRunner<TTarget> NewRunner(T initialVal) => new ConcurrentTestCaseRunner<TTarget>(() => {
+				var result = new TTarget();
+				result.Set(initialVal);
+				return result;
+			});
+		}
+	}
+
 	sealed partial class ConcurrentTestCaseRunner<T> {
 		const int DefaultMaxThreadJoinTimeMillis = 2000;
 		readonly TimeSpan _maxThreadJoinTime;

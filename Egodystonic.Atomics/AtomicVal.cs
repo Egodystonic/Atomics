@@ -60,8 +60,8 @@ namespace Egodystonic.Atomics {
 		public AtomicVal() : this(default) { }
 		public AtomicVal(T initialValue) => Set(initialValue);
 
-		public ScopedReadonlyRefToken NewScopedReadonlyRef() => new ScopedReadonlyRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that you can not write a new value inside this scope (readonly ref helps though)
-		public ScopedRefToken NewScopedRef() => new ScopedRefToken(this); // TODO document that this can only be used from a single thread (no async/await), and that the readonly variant is preferable if no mutations required
+		public ScopedReadonlyRefToken NewScopedReadonlyRef() => new ScopedReadonlyRefToken(this); // TODO document that this can only be used from a single thread (no async/await), that you can not access other fields on this object while using it, and that you can not write a new value inside this scope (readonly ref helps though)
+		public ScopedRefToken NewScopedRef() => new ScopedRefToken(this); // TODO document that this can only be used from a single thread (no async/await), that you can not access other fields on this object while using it, and that the readonly variant is preferable if no mutations required
 
 		public T Get() { // TODO inline?
 			EnterLockAsReader();
