@@ -11,7 +11,7 @@ namespace Egodystonic.Atomics {
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	public sealed unsafe class AtomicValUnmanaged<T> : IAtomic<T> where T : unmanaged {
-		internal long _valueAsLong;
+		long _valueAsLong;
 
 		public T Value {
 			[MethodImpl(MethodImplOptions.AggressiveInlining)] get => Get();
@@ -70,7 +70,7 @@ namespace Egodystonic.Atomics {
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
 			long newValueAsLong, comparandAsLong;
 			WriteToLong(&newValueAsLong, newValue);
-			WriteToLong(&comparandAsLong, newValue);
+			WriteToLong(&comparandAsLong, comparand);
 			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
 
 			return (previousValueAsLong == comparandAsLong, ReadFromLong(&previousValueAsLong));
@@ -132,7 +132,7 @@ namespace Egodystonic.Atomics {
 				long newValueAsLong;
 				WriteToLong(&newValueAsLong, newValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, curValueAsLong, newValueAsLong) == curValueAsLong) break;
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) break;
 				spinner.SpinOnce();
 			}
 

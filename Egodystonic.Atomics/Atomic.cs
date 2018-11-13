@@ -6,27 +6,25 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed class AtomicRefWrapper<T> where T : class {
-		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
+	public static class Atomic {
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T Get<T>(ref T @ref) where T : class => Volatile.Read(ref @ref); // fence is useless on its own but will synchronize with other operations
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Get(ref T @ref) => Volatile.Read(ref @ref); // fence is useless on its own but will synchronize with other operations
+		public static T GetUnsafe<T>(ref T @ref) where T : class => @ref;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T GetUnsafe(ref T @ref) => @ref;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(ref T @ref, T newValue) => Volatile.Write(ref @ref, newValue); // fence is useless on its own but will synchronize with other operations
+		public static void Set<T>(ref T @ref, T newValue) where T : class => Volatile.Write(ref @ref, newValue); // fence is useless on its own but will synchronize with other operations
 
 		// ReSharper disable once RedundantAssignment It doesn't realise it's a ref field
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(ref T @ref, T newValue) => @ref = newValue;
+		public static void SetUnsafe<T>(ref T @ref, T newValue) where T : class => @ref = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Exchange(ref T @ref, T newValue) => Interlocked.Exchange(ref @ref, newValue);
+		public static T Exchange<T>(ref T @ref, T newValue) where T : class => Interlocked.Exchange(ref @ref, newValue);
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(ref T @ref, T newValue, T comparand) {
-			if (!TargetTypeIsEquatable) {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, T comparand) where T : class {
+			if (!TargetTypeIsEquatable<T>()) {
 				var oldValue = Interlocked.CompareExchange(ref @ref, newValue, comparand);
 				return (oldValue == comparand, oldValue);
 			}
@@ -48,7 +46,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(ref T @ref, T newValue, Func<T, bool> predicate) {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, Func<T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 
@@ -65,7 +63,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(ref T @ref, T newValue, Func<T, T, bool> predicate) {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, Func<T, T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 
@@ -82,7 +80,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue);
 		}
 
-		public (T PreviousValue, T NewValue) Exchange(ref T @ref, Func<T, T> mapFunc) {
+		public static (T PreviousValue, T NewValue) Exchange<T>(ref T @ref, Func<T, T> mapFunc) where T : class {
 			T curValue;
 			T newValue;
 
@@ -99,7 +97,7 @@ namespace Egodystonic.Atomics {
 			return (curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(ref T @ref, Func<T, T> mapFunc, T comparand) {
+		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, T comparand) where T : class {
 			bool trySetValue;
 			T curValue;
 			T newValue = default;
@@ -108,7 +106,7 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				curValue = Get(ref @ref);
-				trySetValue = TargetTypeIsEquatable ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
+				trySetValue = TargetTypeIsEquatable<T>() ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
 
 				if (!trySetValue) break;
 
@@ -121,7 +119,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(ref T @ref, Func<T, T> mapFunc, Func<T, bool> predicate) {
+		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 			T newValue = default;
@@ -143,7 +141,7 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(ref T @ref, Func<T, T> mapFunc, Func<T, T, bool> predicate) {
+		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 			T newValue;
@@ -163,5 +161,8 @@ namespace Egodystonic.Atomics {
 
 			return (trySetValue, curValue, newValue);
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static bool TargetTypeIsEquatable<T>() where T : class => typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
 	}
 }

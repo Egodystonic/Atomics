@@ -343,7 +343,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				(prev, cur) => {
 					Assert.LessOrEqual(prev.Length, cur.Length);
 					if (cur.Length > 26) Assert.AreEqual(cur[cur.Length - 1], cur[cur.Length - 27]);
-				}
+				},
+				str => str.Length == 26 + NumCoherencyIterations
 			);
 		}
 		#endregion Tests
