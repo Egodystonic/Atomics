@@ -233,14 +233,6 @@ namespace Egodystonic.Atomics.Numerics {
 
 		// ============================ Floating-Point API ============================
 
-		public void SpinWaitForValue(float targetValue, float maxDelta) {
-			var spinner = new SpinWait();
-			while (true) {
-				if (Math.Abs(Get() - targetValue) <= maxDelta) return;
-				spinner.SpinOnce();
-			}
-		}
-
 		public (bool ValueWasSet, float PreviousValue) TryExchange(float newValue, float comparand, float maxDelta) {
 			bool trySetValue;
 			float curValue;

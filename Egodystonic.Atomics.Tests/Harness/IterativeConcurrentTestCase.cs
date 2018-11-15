@@ -18,7 +18,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 		public string Description { get; }
 		public ConcurrentTestCaseThreadConfig ThreadConfig { get; }
 		public Action<T> GetExecutionAction(ThreadType threadType, int threadIndex) {
-			if ((threadType == ThreadType.WriterThread && !_iterateWriters) || (threadType == ThreadType.ReaderThread && _iterateReaders)) {
+			if ((threadType == ThreadType.WriterThread && !_iterateWriters) || (threadType == ThreadType.ReaderThread && !_iterateReaders)) {
 				return threadType == ThreadType.WriterThread ? _writerThreadExecAction : _readerThreadExecAction;
 			}
 

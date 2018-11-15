@@ -12,7 +12,7 @@ using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.Harness.HarnessTests {
 	[TestFixture]
-	class ConcurrentTestCaseRunnerTest {
+	class ConcurrentTestCaseRunnerTest { // I heard you like tests so we put tests in your tests
 		#region Test Fields
 		readonly TimeSpan MaxThreadJoinTime = TimeSpan.FromMilliseconds(50);
 		ConcurrentTestCaseRunner<DummyImmutableRef> _runner;

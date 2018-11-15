@@ -10,11 +10,14 @@ using Egodystonic.Atomics.Tests.DummyObjects;
 using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.UnitTests.Common {
-	abstract class CommonAtomicNumericTestSuite<T, TTarget> : CommonAtomicTestSuite<T, TTarget> where TTarget : IAtomic<T>, new() where T : IComparable<T>, IComparable, IEquatable<T> {
+	abstract class CommonAtomicNumericTestSuite<T, TTarget> : CommonAtomicTestSuite<T, TTarget> where TTarget : INumericAtomic<T>, new() where T : IComparable<T>, IComparable, IEquatable<T> {
 		protected abstract T Zero { get; }
+		protected abstract T One { get; }
 		protected abstract T Convert(int operand);
-		protected abstract T Add(T lhs, int rhs);
-		protected abstract T Sub(T lhs, int rhs);
+		protected abstract T Add(T lhs, T rhs);
+		protected abstract T Sub(T lhs, T rhs);
+		protected abstract T Mul(T lhs, T rhs);
+		protected abstract T Div(T lhs, T rhs);
 
 		[Test]
 		public void GetAndSet() {
@@ -49,7 +52,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var newValue = Convert(atomicInt.Increment().NewValue);
 					var prev = target.Exchange(newValue);
-					Assert.AreEqual(prev, Sub(newValue, 1));
+					Assert.AreEqual(prev, Sub(newValue, One));
 				},
 				NumIterations,
 				target => target.Value,
@@ -62,17 +65,14 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		[Test]
 		public void TryExchange() {
 			const int NumIterations = 100_000;
-			Assert.True((NumIterations & 1) == 0); // Need NumIterations to be an even number for the teardown assertions
 
-			var runner = NewRunner(new DummyImmutableVal(0, 0));
+			var runner = NewRunner(Convert(NumIterations));
 
 			// Test: Return value of method is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = curValue.Bravo < curValue.Alpha
-						? new DummyImmutableVal(curValue.Alpha, curValue.Bravo + 1)
-						: new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo);
+					var newValue = Add(curValue, curValue);
 					var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
 					if (wasSet) Assert.AreEqual(curValue, prevValue);
 					else Assert.AreNotEqual(curValue, prevValue);
@@ -82,13 +82,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = null;
 
 			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.Alpha);
+			runner.AllThreadsTearDown = target => Assert.AreEqual(0, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations) return;
-						var newValue = new DummyImmutableVal(curValue.Alpha + 1, 0);
+						if (curValue.Equals(Zero)) return;
+						var newValue = Sub(curValue, One);
 						var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
 						if (wasSet) Assert.AreEqual(curValue, prevValue);
 						else Assert.AreNotEqual(curValue, prevValue);
@@ -101,12 +101,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = new DummyImmutableVal(0, curValue.Bravo + 1);
+					var newValue = Sub(curValue, One);
 					target.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.True(cur.Bravo >= prev.Bravo)
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
 			);
 		}
 
@@ -114,15 +114,18 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		public void PredicatedTryExchange() {
 			const int NumIterations = 100_000;
 
-			var runner = NewRunner(new DummyImmutableVal(1, 1));
+			var runner = NewRunner(Zero);
 
 			// Test: Return value of TryExchange is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = new DummyImmutableVal(curValue.Alpha + curValue.Bravo, curValue.Alpha);
-					var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Alpha == newValue.Bravo);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
+					var newValue = Add(curValue, One);
+					var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Equals(Sub(newValue, One)));
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(Add(prevValue, One), newValue);
+					}
 					else Assert.AreNotEqual(curValue, prevValue);
 				},
 				NumIterations
@@ -130,16 +133,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// Test: Method does what is expected and is safe from race conditions
 			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations + 1, target.Value.Alpha);
-				Assert.AreEqual(-1 * NumIterations + 1, target.Value.Bravo);
+				Assert.AreEqual(NumIterations * -1, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations + 1) return;
-						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
-						var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Alpha + 1 == newValue.Alpha && c.Bravo - 1 == newValue.Bravo);
+						if (curValue.Equals(Convert(NumIterations * -1))) return;
+						var newValue = Sub(curValue, One);
+						var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Equals(Add(newValue, One)));
 						if (wasSet) Assert.AreEqual(curValue, prevValue);
 						else Assert.AreNotEqual(curValue, prevValue);
 					}
@@ -151,9 +153,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = new DummyImmutableVal(curValue.Alpha + curValue.Bravo, curValue.Alpha);
-					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Alpha == n.Bravo);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
+					var newValue = Add(curValue, One);
+					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Equals(Sub(n, One)));
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(Add(prevValue, One), newValue);
+					}
 					else Assert.AreNotEqual(curValue, prevValue);
 				},
 				NumIterations
@@ -162,16 +167,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// Test: Method does what is expected and is safe from race conditions
 			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations + 1, target.Value.Alpha);
-				Assert.AreEqual(-1 * NumIterations + 1, target.Value.Bravo);
+				Assert.AreEqual(NumIterations * -1, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations + 1) return;
-						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
-						var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
+						if (curValue.Equals(Convert(NumIterations * -1))) return;
+						var newValue = Sub(curValue, One);
+						var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Equals(Add(n, One)));
 						if (wasSet) Assert.AreEqual(curValue, prevValue);
 						else Assert.AreNotEqual(curValue, prevValue);
 					}
@@ -184,34 +188,30 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					checked {
 						var curValue = target.Value;
-						var newValue = new DummyImmutableVal(curValue.Alpha + 64, curValue.Bravo + 32);
-						target.TryExchange(newValue, c => c.Alpha == newValue.Alpha + 64);
+						var newValue = Sub(curValue, Convert(3));
+						target.TryExchange(newValue, c => c.Equals(Add(newValue, Convert(3))));
 					}
 				},
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					Assert.GreaterOrEqual(cur.Alpha, prev.Alpha);
-					Assert.GreaterOrEqual(cur.Bravo, prev.Bravo);
-					Assert.AreEqual(1, cur.Alpha & 0b111111);
-					Assert.AreEqual(1, cur.Bravo & 0b11111);
+					Assert.LessOrEqual(cur, prev);
+					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
 				}
 			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					checked {
 						var curValue = target.Value;
-						var newValue = new DummyImmutableVal(curValue.Alpha + 64, curValue.Bravo + 32);
-						target.TryExchange(newValue, (c, n) => c.Alpha == n.Alpha + 64);
+						var newValue = Sub(curValue, Convert(3));
+						target.TryExchange(newValue, (c, n) => c.Equals(Add(n, Convert(3))));
 					}
 				},
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					Assert.GreaterOrEqual(cur.Alpha, prev.Alpha);
-					Assert.GreaterOrEqual(cur.Bravo, prev.Bravo);
-					Assert.AreEqual(1, cur.Alpha & 0b111111);
-					Assert.AreEqual(1, cur.Bravo & 0b11111);
+					Assert.LessOrEqual(cur, prev);
+					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
 				}
 			);
 		}
@@ -220,25 +220,21 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		public void MappedExchange() {
 			const int NumIterations = 300_000;
 
-
-			var runner = NewRunner(new DummyImmutableVal(0, 0));
+			var runner = NewRunner(Zero);
 			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations, target.Value.Alpha);
-				Assert.AreEqual(NumIterations * 2, target.Value.Bravo);
+				Assert.AreEqual(Convert(NumIterations), target.Value);
 			};
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					var res = target.Exchange(curValue => new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo + 2));
-					Assert.AreEqual(res.NewValue.Alpha, res.PreviousValue.Alpha + 1);
-					Assert.AreEqual(res.NewValue.Bravo, res.PreviousValue.Bravo + 2);
+					var (prevValue, newValue) = target.Exchange(c => Add(c, One));
+					Assert.AreEqual(prevValue, Sub(newValue, One));
 				},
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					Assert.LessOrEqual(prev.Alpha, cur.Alpha);
-					Assert.LessOrEqual(prev.Bravo, cur.Bravo);
+					Assert.LessOrEqual(prev, cur);
 				}
 			);
 		}
@@ -246,43 +242,35 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		[Test]
 		public void MappedTryExchange() {
 			const int NumIterations = 100_000;
-			Assert.True((NumIterations & 1) == 0); // Need NumIterations to be an even number for the teardown assertions
 
-			var runner = NewRunner(new DummyImmutableVal(0, 0));
+			var runner = NewRunner(Convert(NumIterations));
 
 			// Test: Return value of method is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					
-					var (wasSet, prevValue, newValue) = target.TryExchange(
-						c => c.Bravo < c.Alpha
-							? new DummyImmutableVal(c.Alpha, c.Bravo + 1)
-							: new DummyImmutableVal(c.Alpha + 1, c.Bravo), 
-						curValue
-					);
-
+					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, c), curValue);
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(prevValue.Bravo < prevValue.Alpha ? new DummyImmutableVal(prevValue.Alpha, prevValue.Bravo + 1) : new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo), newValue);
+						Assert.AreEqual(Add(prevValue, prevValue), newValue);
 					}
-
 					else Assert.AreNotEqual(curValue, prevValue);
 				},
 				NumIterations
 			);
+			runner.AllThreadsTearDown = null;
 
 			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.Alpha);
+			runner.AllThreadsTearDown = target => Assert.AreEqual(0, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + 1, 0), curValue);
+						if (curValue.Equals(Zero)) return;
+						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), curValue);
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(new DummyImmutableVal(prevValue.Alpha + 1, 0), newValue);
+							Assert.AreEqual(Sub(prevValue, One), newValue);
 						}
 						else Assert.AreNotEqual(curValue, prevValue);
 					}
@@ -294,11 +282,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					target.TryExchange(c => new DummyImmutableVal(0, c.Bravo + 1), curValue);
+					target.TryExchange(c => Sub(c, One), curValue);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.True(cur.Bravo >= prev.Bravo)
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
 			);
 		}
 
@@ -306,16 +294,16 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		public void MappedPredicatedTryExchange() {
 			const int NumIterations = 100_000;
 
-			var runner = NewRunner(new DummyImmutableVal(1, 1));
+			var runner = NewRunner(Zero);
 
 			// Test: Return value of TryExchange is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + c.Bravo, c.Alpha), c => c.Alpha == curValue.Alpha);
+					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, One), c => c.Equals(curValue));
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(new DummyImmutableVal(prevValue.Alpha + prevValue.Bravo, prevValue.Alpha), newValue);
+						Assert.AreEqual(Add(prevValue, One), newValue);
 					}
 					else Assert.AreNotEqual(curValue, prevValue);
 				},
@@ -324,18 +312,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// Test: Method does what is expected and is safe from race conditions
 			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations + 1, target.Value.Alpha);
-				Assert.AreEqual(-1 * NumIterations + 1, target.Value.Bravo);
+				Assert.AreEqual(NumIterations * -1, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations + 1) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + 1, c.Bravo - 1), c => c.Alpha == curValue.Alpha && c.Bravo == curValue.Bravo);
+						if (curValue.Equals(Convert(NumIterations * -1))) return;
+						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), c => c.Equals(curValue));
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), newValue);
+							Assert.AreEqual(Sub(prevValue, One), newValue);
 						}
 						else Assert.AreNotEqual(curValue, prevValue);
 					}
@@ -346,12 +333,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// Test: Return value of TryExchange is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + c.Bravo, c.Alpha), (c, n) => c.Alpha == n.Bravo);
-					if (wasSet) {
-						Assert.AreEqual(new DummyImmutableVal(prevValue.Alpha + prevValue.Bravo, prevValue.Alpha), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, One), (c, n) => c.Equals(Sub(n, One)));
+					if (wasSet) Assert.AreEqual(Add(prevValue, One), newValue);
 				},
 				NumIterations
 			);
@@ -359,19 +342,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// Test: Method does what is expected and is safe from race conditions
 			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations + 1, target.Value.Alpha);
-				Assert.AreEqual(-1 * NumIterations + 1, target.Value.Bravo);
+				Assert.AreEqual(NumIterations * -1, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Alpha == NumIterations + 1) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + 1, c.Bravo - 1), (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha <= NumIterations);
-						if (wasSet) {
-							Assert.AreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), newValue);
-						}
-						else Assert.AreNotEqual(curValue, prevValue);
+						if (curValue.Equals(Convert(NumIterations * -1))) return;
+						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), (c, n) => c.Equals(Add(n, One)) && !c.Equals(Convert(NumIterations * -1)));
+						if (wasSet) Assert.AreEqual(Sub(prevValue, One), newValue);
 					}
 				}
 			);
@@ -380,30 +359,179 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// Test: Method always exhibits coherency for consecutive reads from external threads
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var curValue = target.Value;
-					target.TryExchange(c => new DummyImmutableVal(c.Alpha + 64, c.Bravo + 32), c => c.Alpha + 64 == curValue.Alpha);
+					checked {
+						var curValue = target.Value;
+						target.TryExchange(c => Sub(c, Convert(3)), c => c.Equals(curValue));
+					}
 				},
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					Assert.GreaterOrEqual(cur.Alpha, prev.Alpha);
-					Assert.GreaterOrEqual(cur.Bravo, prev.Bravo);
-					Assert.AreEqual(1, cur.Alpha & 0b111111);
-					Assert.AreEqual(1, cur.Bravo & 0b11111);
+					Assert.LessOrEqual(cur, prev);
+					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
 				}
 			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					target.TryExchange(c => new DummyImmutableVal(c.Alpha + 64, c.Bravo + 32), (c, n) => c.Alpha + 64 == n.Alpha);
+					checked {
+						target.TryExchange(c => Sub(c, Convert(3)), (c, n) => c.Equals(Add(n, Convert(3))));
+					}
 				},
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					Assert.GreaterOrEqual(cur.Alpha, prev.Alpha);
-					Assert.GreaterOrEqual(cur.Bravo, prev.Bravo);
-					Assert.AreEqual(1, cur.Alpha & 0b111111);
-					Assert.AreEqual(1, cur.Bravo & 0b11111);
+					Assert.LessOrEqual(cur, prev);
+					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
 				}
+			);
+		}
+
+		[Test]
+		public void IncrementDecrement() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(Zero);
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (prevValue, newValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (prevValue, newValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Zero, target.Value);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					var (prevValue, newValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), newValue);
+				},
+				target => {
+					var (prevValue, newValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var (prevValue, newValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), newValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.GreaterOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var (prevValue, newValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), newValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void AddSub() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(Zero);
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations * 7), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (prevValue, newValue) = target.Add(Convert(7));
+					Assert.AreEqual(Add(prevValue, Convert(7)), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations * 7), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (prevValue, newValue) = target.Subtract(Convert(7));
+					Assert.AreEqual(Sub(prevValue, Convert(7)), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Zero, target.Value);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					var (prevValue, newValue) = target.Add(Convert(3));
+					Assert.AreEqual(Add(prevValue, Convert(3)), newValue);
+				},
+				target => {
+					var (prevValue, newValue) = target.Subtract(Convert(3));
+					Assert.AreEqual(Sub(prevValue, Convert(3)), newValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations * 9), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var (prevValue, newValue) = target.Add(Convert(9));
+					Assert.AreEqual(Add(prevValue, Convert(9)), newValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.GreaterOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations * 9), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var (prevValue, newValue) = target.Subtract(Convert(9));
+					Assert.AreEqual(Sub(prevValue, Convert(9)), newValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void MulDiv() {
+			const int NumIterations = 300_000;
+
+			var runner = NewRunner(Convert(32768));
+
+			runner.ExecuteWriterReaderTests(
+				target => {
+					var (prevValue, newValue) = target.MultiplyBy(Convert(7));
+					Assert.AreEqual(Mul(prevValue, Convert(7)), newValue);
+				},
+				target => {
+					var (prevValue, newValue) = target.DivideBy(Convert(3));
+					Assert.AreEqual(Div(prevValue, Convert(3)), newValue);
+				},
+				NumIterations
 			);
 		}
 	}

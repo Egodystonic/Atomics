@@ -18,8 +18,6 @@ namespace Egodystonic.Atomics.Numerics {
 	}
 
 	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {
-		void SpinWaitForValue(T targetValue, T maxDelta);
-
 		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand, T maxDelta);
 		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand, T maxDelta);
 //		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);

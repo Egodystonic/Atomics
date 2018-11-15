@@ -10,14 +10,14 @@ using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicBoolTest {
+	class AtomicFloatTest : CommonAtomicFloatingPointTestSuite<float, AtomicFloat> {
 		#region Test Fields
-		RunnerFactory<bool, AtomicBool> _runnerFactory;
+
 		#endregion
 
 		#region Test Setup
 		[OneTimeSetUp]
-		public void SetUpClass() => _runnerFactory = new RunnerFactory<bool, AtomicBool>();
+		public void SetUpClass() { }
 
 		[OneTimeTearDown]
 		public void TearDownClass() { }
@@ -30,7 +30,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#endregion
 
 		#region Tests
-		
+		protected override float Zero { get; } = 0f;
+		protected override float One { get; } = 1f;
+		protected override float Convert(int operand) => operand;
+		protected override float Add(float lhs, float rhs) => lhs + rhs;
+		protected override float Sub(float lhs, float rhs) => lhs - rhs;
+		protected override float Mul(float lhs, float rhs) => lhs * rhs;
+		protected override float Div(float lhs, float rhs) => lhs / rhs;
+		protected override float Convert(float operand) => operand;
+		protected override float Abs(float operand) => MathF.Abs(operand);
 		#endregion Tests
 	}
 }
