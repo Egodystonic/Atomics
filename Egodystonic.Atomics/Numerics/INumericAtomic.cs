@@ -8,6 +8,14 @@ using System.Linq;
 
 namespace Egodystonic.Atomics.Numerics {
 	public interface INumericAtomic<T> : IAtomic<T> {
+//		T SpinWaitForBounds(T lowerBound, T upperBound);
+//		T SpinWaitForLowerBound(T lowerBound);
+//		T SpinWaitForUpperBound(T upperBound);
+//
+//		T SpinWaitForExchange(T newValue, T lowerBound, T upperBound);
+//		(T PreviousValue, T NewValue) SpinWaitForExchange(Func<T, T> mapFunc, T lowerBound, T upperBound);
+		// TODO context version of this
+
 		(T PreviousValue, T NewValue) Increment();
 		(T PreviousValue, T NewValue) Decrement();
 

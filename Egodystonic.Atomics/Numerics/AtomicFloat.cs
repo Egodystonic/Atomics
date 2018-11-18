@@ -241,7 +241,7 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				curValue = Get();
-				trySetValue = Math.Abs(Get() - comparand) <= maxDelta;
+				trySetValue = Math.Abs(curValue - comparand) <= maxDelta;
 
 				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
@@ -259,7 +259,7 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				curValue = Get();
-				trySetValue = Math.Abs(Get() - comparand) <= maxDelta;
+				trySetValue = Math.Abs(curValue - comparand) <= maxDelta;
 
 				if (!trySetValue) break;
 

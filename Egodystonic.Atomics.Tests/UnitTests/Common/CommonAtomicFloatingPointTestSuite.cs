@@ -27,9 +27,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
 						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue) = target.TryExchange(newValue, Sub(curValue, One), Convert(1.5f));
-						if (wasSet) Assert.LessOrEqual(Abs(Sub(curValue, prevValue)), Convert(1.5f));
-						else Assert.Greater(Abs(Sub(curValue, prevValue)), Convert(1.5f));
+						var (wasSet, prevValue) = target.TryExchange(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+						if (wasSet) Assert.AreEqual(prevValue, curValue);
+						else Assert.AreNotEqual(prevValue, curValue);
 					}
 				}
 			);
@@ -40,7 +40,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = Sub(curValue, One);
-					target.TryExchange(newValue, Sub(curValue, One), Convert(1.5f));
+					target.TryExchange(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 				},
 				NumIterations,
 				target => target.Value,
@@ -71,13 +71,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
-						var curValLessOne = Sub(curValue, One);
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), curValLessOne, Convert(1.5f));
+						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), Add(curValue, Convert(0.25f)), Convert(0.5f));
 						if (wasSet) {
-							Assert.LessOrEqual(Abs(Sub(curValLessOne, prevValue)), Convert(1.5f));
 							Assert.AreEqual(Add(newValue, One), prevValue);
+							Assert.AreEqual(prevValue, curValue);
 						}
-						else Assert.Greater(Abs(Sub(curValLessOne, prevValue)), Convert(1.5f));
+						else Assert.AreNotEqual(prevValue, curValue);
 					}
 				}
 			);
