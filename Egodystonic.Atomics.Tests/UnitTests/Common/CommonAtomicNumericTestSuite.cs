@@ -121,39 +121,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = Add(curValue, One);
-					var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Equals(Sub(newValue, One)));
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(Add(prevValue, One), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations * -1, target.Value);
-			};
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.Equals(Convert(NumIterations * -1))) return;
-						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue) = target.TryExchange(newValue, c => c.Equals(Add(newValue, One)));
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = Add(curValue, One);
 					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Equals(Sub(n, One)));
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
@@ -184,21 +151,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = null;
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					checked {
-						var curValue = target.Value;
-						var newValue = Sub(curValue, Convert(3));
-						target.TryExchange(newValue, c => c.Equals(Add(newValue, Convert(3))));
-					}
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => {
-					Assert.LessOrEqual(cur, prev);
-					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
-				}
-			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					checked {
@@ -299,40 +251,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// Test: Return value of TryExchange is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, One), c => c.Equals(curValue));
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(Add(prevValue, One), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations * -1, target.Value);
-			};
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.Equals(Convert(NumIterations * -1))) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), c => c.Equals(curValue));
-						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(Sub(prevValue, One), newValue);
-						}
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
 					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, One), (c, n) => c.Equals(Sub(n, One)));
 					if (wasSet) Assert.AreEqual(Add(prevValue, One), newValue);
 				},
@@ -357,20 +275,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = null;
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					checked {
-						var curValue = target.Value;
-						target.TryExchange(c => Sub(c, Convert(3)), c => c.Equals(curValue));
-					}
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => {
-					Assert.LessOrEqual(cur, prev);
-					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
-				}
-			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					checked {

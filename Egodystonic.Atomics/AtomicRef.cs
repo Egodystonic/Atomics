@@ -34,7 +34,7 @@ namespace Egodystonic.Atomics {
 		public T Exchange(T newValue) => Interlocked.Exchange(ref _value, newValue);
 
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
-			if (!TargetTypeIsEquatable) {
+			if (!TargetTypeIsEquatable) { // It's unfortunate having a branch here; but I'm banking on the branch predictor taking away the hit most of the time
 				var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 				return (oldValue == comparand, oldValue);
 			}
@@ -48,23 +48,6 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				curValue = Get();
 				trySetValue = comparandAsIEquatable.Equals(curValue);
-
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, curValue);
-		}
-
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = Get();
-				trySetValue = predicate(curValue);
 
 				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
@@ -117,28 +100,6 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				curValue = Get();
 				trySetValue = TargetTypeIsEquatable ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
-
-				if (!trySetValue) break;
-
-				newValue = mapFunc(curValue);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, curValue, newValue);
-		}
-
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-			T newValue = default;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = Get();
-				trySetValue = predicate(curValue);
 
 				if (!trySetValue) break;
 

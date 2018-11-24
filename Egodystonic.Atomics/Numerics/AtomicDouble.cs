@@ -46,23 +46,6 @@ namespace Egodystonic.Atomics.Numerics {
 			return (oldValue == comparand, oldValue);
 		}
 
-		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, Func<double, bool> predicate) {
-			bool trySetValue;
-			double curValue;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = Get();
-				trySetValue = predicate(curValue);
-
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, curValue);
-		}
-
 		public (bool ValueWasSet, double PreviousValue) TryExchange(double newValue, Func<double, double, bool> predicate) {
 			bool trySetValue;
 			double curValue;
@@ -107,28 +90,6 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				curValue = Get();
 				trySetValue = comparand == curValue;
-
-				if (!trySetValue) break;
-
-				newValue = mapFunc(curValue);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, curValue, newValue);
-		}
-
-		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(Func<double, double> mapFunc, Func<double, bool> predicate) {
-			bool trySetValue;
-			double curValue;
-			double newValue = default;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = Get();
-				trySetValue = predicate(curValue);
 
 				if (!trySetValue) break;
 

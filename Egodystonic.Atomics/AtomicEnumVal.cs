@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed unsafe class AtomicEnumVal<T> : IAtomic<T> where T : unmanaged, Enum {
+	public sealed class AtomicEnumVal<T> : IAtomic<T> where T : unmanaged, Enum {
 		struct OperandAndRequisiteFlagsPair : IEquatable<OperandAndRequisiteFlagsPair> {
 			public readonly T Operand;
 			public readonly T RequisiteFlags;
@@ -47,40 +47,34 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Get() { return _asUnmanaged.Get(); }
+		public T Get() => _asUnmanaged.Get();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T GetUnsafe() { return _asUnmanaged.GetUnsafe(); }
+		public T GetUnsafe() => _asUnmanaged.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T newValue) { _asUnmanaged.Set(newValue); }
+		public void Set(T newValue) => _asUnmanaged.Set(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T newValue) { _asUnmanaged.SetUnsafe(newValue); }
+		public void SetUnsafe(T newValue) => _asUnmanaged.SetUnsafe(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Exchange(T newValue) { return _asUnmanaged.Exchange(newValue); }
+		public T Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) { return _asUnmanaged.TryExchange(newValue, comparand); }
+		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) { return _asUnmanaged.TryExchange(newValue, predicate); }
+		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) => _asUnmanaged.TryExchange(newValue, predicate);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) { return _asUnmanaged.TryExchange(newValue, predicate); }
+		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) => _asUnmanaged.Exchange(mapFunc);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) { return _asUnmanaged.Exchange(mapFunc); }
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) => _asUnmanaged.TryExchange(mapFunc, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) { return _asUnmanaged.TryExchange(mapFunc, comparand); }
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) { return _asUnmanaged.TryExchange(mapFunc, predicate); }
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) { return _asUnmanaged.TryExchange(mapFunc, predicate); }
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) => _asUnmanaged.TryExchange(mapFunc, predicate);
 
 //		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 //		public (T PreviousValue, T NewValue) AddFlag(T operand) => Exchange((curVar, context) => curVar | context, operand);

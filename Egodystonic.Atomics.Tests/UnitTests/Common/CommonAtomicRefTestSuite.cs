@@ -103,34 +103,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = target.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.LongProp == NumIterations) return;
-						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = target.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
 					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 					if (wasSet) Assert.AreEqual(curValue, prevValue);
 					else Assert.AreNotEqual(curValue, prevValue);
@@ -155,16 +127,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = null;
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
@@ -262,38 +224,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// Test: Return value of method is always consistent
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.LongProp == NumIterations) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-						}
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Return value of method is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
 					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
 					if (wasSet) Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
 					else Assert.AreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
@@ -316,15 +246,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = null;
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					var curValue = target.Value;
-					target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);

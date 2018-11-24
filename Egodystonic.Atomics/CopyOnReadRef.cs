@@ -63,23 +63,6 @@ namespace Egodystonic.Atomics {
 			return (trySetValue, _copyFunc(curValue));
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = GetWithoutCopy();
-				trySetValue = predicate(curValue);
-
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, _copyFunc(curValue));
-		}
-
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
 			bool trySetValue;
 			T curValue;
@@ -124,28 +107,6 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				curValue = GetWithoutCopy();
 				trySetValue = TargetTypeIsEquatable ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
-
-				if (!trySetValue) break;
-
-				newValue = mapFunc(curValue);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, _copyFunc(curValue), _copyFunc(newValue));
-		}
-
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-			T newValue = default;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = GetWithoutCopy();
-				trySetValue = predicate(curValue);
 
 				if (!trySetValue) break;
 

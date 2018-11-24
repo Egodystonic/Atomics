@@ -9,6 +9,9 @@ using BenchmarkDotNet.Attributes;
 using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.API {
+	/// <summary>
+	/// Demonstration of AtomicRef speed for simple exchange/read versus standard lock and ReaderWriterLockSlim.
+	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class RefTypeConcurrentReadWrite {
 		#region Parameters

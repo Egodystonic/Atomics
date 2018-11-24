@@ -40,11 +40,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			return (res.ValueWasSet, (long) res.PreviousValue);
 		}
 
-		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, Func<long, bool> predicate) {
-			var res = _ptr.TryExchange((IntPtr) newValue, ptr => predicate((long) ptr));
-			return (res.ValueWasSet, (long) res.PreviousValue);
-		}
-
 		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, Func<long, long, bool> predicate) {
 			var res = _ptr.TryExchange((IntPtr) newValue, (c, n) => predicate((long) c, (long) n));
 			return (res.ValueWasSet, (long) res.PreviousValue);
@@ -52,11 +47,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, long comparand) {
 			var res = _ptr.TryExchange(ptr => (IntPtr) mapFunc((long) ptr), (IntPtr) comparand);
-			return (res.ValueWasSet, (long) res.PreviousValue, (long) res.NewValue);
-		}
-
-		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, Func<long, bool> predicate) {
-			var res = _ptr.TryExchange(ptr => (IntPtr) mapFunc((long) ptr), ptr => predicate((long) ptr));
 			return (res.ValueWasSet, (long) res.PreviousValue, (long) res.NewValue);
 		}
 

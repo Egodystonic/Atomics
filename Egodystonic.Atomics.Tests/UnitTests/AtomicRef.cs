@@ -101,34 +101,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				atomicRef => {
 					var curValue = atomicRef.Value;
 					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = atomicRef.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			equatableRunner.AllThreadsTearDown = atomicRef => Assert.AreEqual(NumIterations, atomicRef.Value.LongProp);
-			equatableRunner.ExecuteFreeThreadedTests(
-				atomicRef => {
-					while (true) {
-						var curValue = atomicRef.Value;
-						if (curValue.LongProp == NumIterations) return;
-						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = atomicRef.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			equatableRunner.AllThreadsTearDown = null;
-
-			// Test: Return value of TryExchange is always consistent
-			equatableRunner.ExecuteFreeThreadedTests(
-				atomicRef => {
-					var curValue = atomicRef.Value;
-					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
 					var (wasSet, prevValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 					if (wasSet) Assert.AreEqual(curValue, prevValue);
 					else Assert.AreNotEqual(curValue, prevValue);
@@ -153,16 +125,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			equatableRunner.AllThreadsTearDown = null;
 
 			// Test: Method always exhibits coherency for consecutive reads from external threads
-			equatableRunner.ExecuteContinuousCoherencyTests(
-				atomicRef => {
-					var curValue = atomicRef.Value;
-					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					atomicRef.TryExchange(newValue, c => c.LongProp == newValue.LongProp - 1L);
-				},
-				NumIterations,
-				atomicRef => atomicRef.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
 			equatableRunner.ExecuteContinuousCoherencyTests(
 				atomicRef => {
 					var curValue = atomicRef.Value;
@@ -247,38 +209,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			// Test: Return value of method is always consistent
 			equatableRunner.ExecuteFreeThreadedTests(
 				atomicRef => {
-					var curValue = atomicRef.Value;
-					var (wasSet, prevValue, newValue) = atomicRef.TryExchange(c => new DummyEquatableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(new DummyEquatableRef(prevValue.LongProp + 1L), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			equatableRunner.AllThreadsTearDown = atomicRef => Assert.AreEqual(NumIterations, atomicRef.Value.LongProp);
-			equatableRunner.ExecuteFreeThreadedTests(
-				atomicRef => {
-					while (true) {
-						var curValue = atomicRef.Value;
-						if (curValue.LongProp == NumIterations) return;
-						var (wasSet, prevValue, newValue) = atomicRef.TryExchange(c => new DummyEquatableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(new DummyEquatableRef(prevValue.LongProp + 1L), newValue);
-						}
-						else Assert.AreNotEqual(curValue, prevValue);
-					}
-				}
-			);
-			equatableRunner.AllThreadsTearDown = null;
-
-			// Test: Return value of method is always consistent
-			equatableRunner.ExecuteFreeThreadedTests(
-				atomicRef => {
 					var (wasSet, prevValue, newValue) = atomicRef.TryExchange(c => new DummyEquatableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
 					if (wasSet) Assert.AreEqual(new DummyEquatableRef(prevValue.LongProp + 1L), newValue);
 					else Assert.AreNotEqual(new DummyEquatableRef(prevValue.LongProp + 1L), newValue);
@@ -303,15 +233,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			// Test: Method always exhibits coherency for consecutive reads from external threads
 			equatableRunner.ExecuteContinuousCoherencyTests(
 				atomicRef => {
-					var curValue = atomicRef.Value;
-					atomicRef.TryExchange(c => new DummyEquatableRef(c.LongProp + 1L), c => c.LongProp == curValue.LongProp);
-				},
-				NumIterations,
-				atomicRef => atomicRef.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
-			equatableRunner.ExecuteContinuousCoherencyTests(
-				atomicRef => {
 					atomicRef.TryExchange(c => new DummyEquatableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
 				},
 				NumIterations,
@@ -329,7 +250,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			runner.ExecuteFreeThreadedTests(
 				ar => {
-					var tryExchangeRes = ar.TryExchange(str => str, str => str.Length == 26);
+					var tryExchangeRes = ar.TryExchange(str => str, (_, str) => str.Length == 26);
 					Assert.True(tryExchangeRes.ValueWasSet);
 					Assert.AreEqual(tryExchangeRes.PreviousValue, tryExchangeRes.NewValue);
 				},

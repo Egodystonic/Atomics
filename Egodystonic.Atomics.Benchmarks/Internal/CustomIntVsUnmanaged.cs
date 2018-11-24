@@ -10,6 +10,10 @@ using Egodystonic.Atomics.Numerics;
 using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {
+	/// <summary>
+	/// Benchmark used to justify custom implementation for AtomicInt and other numeric types; as opposed to delegation/deferral to
+	/// an AtomicValUnmanaged.
+	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class CustomIntVsUnmanaged {
 		#region Parameters

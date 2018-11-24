@@ -10,6 +10,9 @@ using Egodystonic.Atomics.Numerics;
 using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {
+	/// <summary>
+	/// Benchmark used to justify inlining on various methods.
+	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class InlinedVsNonInlinedInt {
 		#region Parameters

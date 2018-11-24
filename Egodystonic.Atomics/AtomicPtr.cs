@@ -113,9 +113,8 @@ namespace Egodystonic.Atomics {
 			public static bool operator !=(TypedPtrExchangeRes left, TypedPtrExchangeRes right) { return !left.Equals(right); }
 		}
 
-		public delegate bool AtomicPtrUnaryPredicate(T* curValue);
-		public delegate bool AtomicPtrContextualUnaryPredicate<in TContext>(T* curValue, TContext context);
-		public delegate bool AtomicPtrBinaryPredicate(T* curValue, T* newValue);
+		public delegate bool AtomicPtrPredicate(T* curValue, T* newValue);
+		public delegate bool AtomicPtrPredicateContextual<in TContext>(T* curValue, T* newValue, TContext context);
 		public delegate T* AtomicPtrMapper(T* curValue);
 
 		IntPtr _value;
@@ -151,24 +150,7 @@ namespace Egodystonic.Atomics {
 			return new TypedPtrTryExchangeRes((T*) oldValue == comparand, (T*) oldValue);
 		}
 
-		public TypedPtrTryExchangeRes TryExchange(T* newValue, AtomicPtrUnaryPredicate predicate) {
-			bool trySetValue;
-			IntPtr curValueAsIntPtr;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValueAsIntPtr = GetAsIntPtr();
-				trySetValue = predicate((T*) curValueAsIntPtr);
-
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, (IntPtr) newValue, curValueAsIntPtr) == curValueAsIntPtr) break;
-				spinner.SpinOnce();
-			}
-
-			return new TypedPtrTryExchangeRes(trySetValue, (T*) curValueAsIntPtr);
-		}
-
-		public TypedPtrTryExchangeRes TryExchange(T* newValue, AtomicPtrBinaryPredicate predicate) {
+		public TypedPtrTryExchangeRes TryExchange(T* newValue, AtomicPtrPredicate predicate) {
 			bool trySetValue;
 			IntPtr curValueAsIntPtr;
 
@@ -224,29 +206,7 @@ namespace Egodystonic.Atomics {
 			return new TypedPtrTryExchangeMappedRes(trySetValue, (T*) curValueAsIntPtr, (T*) newValueAsIntPtr);
 		}
 
-		public TypedPtrTryExchangeMappedRes TryExchange(AtomicPtrMapper mapFunc, AtomicPtrUnaryPredicate predicate) {
-			bool trySetValue;
-			IntPtr curValueAsIntPtr;
-			IntPtr newValueAsIntPtr = default;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValueAsIntPtr = GetAsIntPtr();
-				trySetValue = predicate((T*) curValueAsIntPtr);
-
-				if (!trySetValue) break;
-
-				newValueAsIntPtr = (IntPtr) mapFunc((T*) curValueAsIntPtr);
-
-				if (Interlocked.CompareExchange(ref _value, newValueAsIntPtr, curValueAsIntPtr) == curValueAsIntPtr) break;
-				spinner.SpinOnce();
-			}
-
-			return new TypedPtrTryExchangeMappedRes(trySetValue, (T*) curValueAsIntPtr, (T*) newValueAsIntPtr);
-		}
-
-		public TypedPtrTryExchangeMappedRes TryExchange(AtomicPtrMapper mapFunc, AtomicPtrBinaryPredicate predicate) {
+		public TypedPtrTryExchangeMappedRes TryExchange(AtomicPtrMapper mapFunc, AtomicPtrPredicate predicate) {
 			bool trySetValue;
 			IntPtr curValueAsIntPtr;
 			IntPtr newValueAsIntPtr;
@@ -386,11 +346,6 @@ namespace Egodystonic.Atomics {
 			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
 		}
 
-		(bool ValueWasSet, IntPtr PreviousValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, Func<IntPtr, bool> predicate) {
-			var res = TryExchange((T*) newValue, ptr => predicate((IntPtr) ptr));
-			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
-		}
-
 		(bool ValueWasSet, IntPtr PreviousValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, Func<IntPtr, IntPtr, bool> predicate) {
 			var res = TryExchange((T*) newValue, (curPtr, newPtr) => predicate((IntPtr) curPtr, (IntPtr) newPtr));
 			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
@@ -403,11 +358,6 @@ namespace Egodystonic.Atomics {
 
 		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, IntPtr comparand) {
 			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), (T*) comparand);
-			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
-		}
-
-		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, Func<IntPtr, bool> predicate) {
-			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), ptr => predicate((IntPtr) ptr));
 			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
 		}
 

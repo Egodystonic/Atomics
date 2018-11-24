@@ -99,15 +99,6 @@ namespace Egodystonic.Atomics {
 			return (oldValueEqualsComparand, oldValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, bool> predicate) {
-			EnterLockAsWriter();
-			var oldValue = _value;
-			var predicatePassed = predicate(oldValue);
-			if (predicatePassed) _value = newValue;
-			ExitLockAsWriter();
-			return (predicatePassed, oldValue);
-		}
-
 		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
 			EnterLockAsWriter();
 			var oldValue = _value;
@@ -137,19 +128,6 @@ namespace Egodystonic.Atomics {
 			}
 			ExitLockAsWriter();
 			return (oldValueEqualsComparand, oldValue, newValue);
-		}
-
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, bool> predicate) {
-			T newValue = default;
-			EnterLockAsWriter();
-			var oldValue = _value;
-			var predicatePassed = predicate(oldValue);
-			if (predicatePassed) {
-				newValue = mapFunc(oldValue);
-				_value = newValue;
-			}
-			ExitLockAsWriter();
-			return (predicatePassed, oldValue, newValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {

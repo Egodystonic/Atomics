@@ -95,16 +95,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var curValue = target.Value;
-					var res = target.TryExchange(!curValue, c => c == curValue);
-					if (res.ValueWasSet) Assert.AreEqual(curValue, res.PreviousValue);
-					else Assert.AreNotEqual(curValue, res.PreviousValue);
-				},
-				NumIterations
-			);
-
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
 					var res = target.TryExchange(!curValue, (c, n) => n != c);
 					if (res.ValueWasSet) Assert.AreEqual(curValue, res.PreviousValue);
 					else Assert.AreNotEqual(curValue, res.PreviousValue);
@@ -151,16 +141,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void MappedPredicatedTryExchange() {
 			const int NumIterations = 300_000;
 			var runner = _runnerFactory.NewRunner(false);
-
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var res = target.TryExchange(c => !c, c => c == curValue);
-					if (res.ValueWasSet) Assert.AreEqual(curValue, res.PreviousValue);
-					else Assert.AreNotEqual(curValue, res.PreviousValue);
-				},
-				NumIterations
-			);
 
 			runner.ExecuteFreeThreadedTests(
 				target => {
