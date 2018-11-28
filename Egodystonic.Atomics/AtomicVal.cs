@@ -48,7 +48,6 @@ namespace Egodystonic.Atomics {
 		// Use this strategy rather than a RWLS because:
 		// > RWLS implements IDisposable() and I didn't want to have to make this class also implement IDisposable()
 		// > RWLS has some extra stuff we don't want, such as upgrading from a spinwait to a proper lock when enough time has passed, timeout tracking, optional re-entrancy support, etc.
-		// TODO that being said, benchmark against a RWLS
 		int _readerCount = 0; // 0 = no ongoing access, positive = N readers, -1 = 1 writer
 		T _value;
 
@@ -82,62 +81,132 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) => _value = newValue;
 
-		public T Exchange(T newValue) {
-			EnterLockAsWriter();
-			var oldValue = _value;
-			_value = newValue;
-			ExitLockAsWriter();
-			return oldValue;
+		public T SpinWaitForValue(T targetValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue.Equals(targetValue)) return curValue;
+				spinner.SpinOnce();
+			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
+		public (T PreviousValue, T NewValue) Exchange(T newValue) {
 			EnterLockAsWriter();
 			var oldValue = _value;
-			var oldValueEqualsComparand = oldValue.Equals(comparand);
-			if (oldValueEqualsComparand) _value = newValue;
-			ExitLockAsWriter();
-			return (oldValueEqualsComparand, oldValue);
-		}
-
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
-			EnterLockAsWriter();
-			var oldValue = _value;
-			var predicatePassed = predicate(oldValue, newValue);
-			if (predicatePassed) _value = newValue;
-			ExitLockAsWriter();
-			return (predicatePassed, oldValue);
-		}
-
-		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) {
-			EnterLockAsWriter();
-			var oldValue = _value;
-			var newValue = mapFunc(oldValue);
 			_value = newValue;
 			ExitLockAsWriter();
 			return (oldValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) {
-			T newValue = default;
-			EnterLockAsWriter();
-			var oldValue = _value;
-			var oldValueEqualsComparand = oldValue.Equals(comparand);
-			if (oldValueEqualsComparand) {
-				newValue = mapFunc(oldValue);
+		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
+			try {
+				EnterLockAsWriter();
+				var oldValue = _value;
+				var newValue = mapFunc(oldValue, context);
 				_value = newValue;
+				return (oldValue, newValue);
 			}
-			ExitLockAsWriter();
-			return (oldValueEqualsComparand, oldValue, newValue);
+			finally { // Necessary in case map func throws exception
+				ExitLockAsWriter();
+			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {
+		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (!curValue.Equals(comparand)) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				EnterLockAsWriter();
+				if (!_value.Equals(curValue)) {
+					ExitLockAsWriter();
+					spinner.SpinOnce();
+					continue;
+				}
+
+				_value = newValue;
+				ExitLockAsWriter();
+				return (curValue, newValue);
+			}
+		}
+
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+			return SpinWaitForExchange(mapFunc, (curVal, _, ctx) => curVal.Equals(ctx), context, comparand);
+		}
+
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				EnterLockAsWriter();
+				if (!_value.Equals(curValue)) {
+					ExitLockAsWriter();
+					spinner.SpinOnce();
+					continue;
+				}
+
+				_value = newValue;
+				ExitLockAsWriter();
+				return (curValue, newValue);
+			}
+		}
+
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
 			EnterLockAsWriter();
 			var oldValue = _value;
-			var newValue = mapFunc(oldValue);
-			var predicatePassed = predicate(oldValue, newValue);
-			if (predicatePassed) _value = newValue;
-			ExitLockAsWriter();
-			return (predicatePassed, oldValue, newValue);
+			if (oldValue.Equals(comparand)) {
+				_value = newValue;
+				ExitLockAsWriter();
+				return (true, oldValue, newValue);
+			}
+			else {
+				ExitLockAsWriter();
+				return (false, oldValue, oldValue);
+			}
+		}
+
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+			EnterLockAsWriter();
+			try {
+				var oldValue = _value;
+				var newValue = mapFunc(oldValue, context);
+				if (oldValue.Equals(comparand)) {
+					_value = newValue;
+					return (true, oldValue, newValue);
+				}
+				else return (false, oldValue, oldValue);
+			}
+			finally { // Necessary in case map func throws exception
+				ExitLockAsWriter();
+			}
+		}
+
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+			EnterLockAsWriter();
+			try {
+				var oldValue = _value;
+				var newValue = mapFunc(oldValue, mapContext);
+				if (predicate(oldValue, newValue, predicateContext)) {
+					_value = newValue;
+					return (true, oldValue, newValue);
+				}
+				else return (false, oldValue, oldValue);
+			}
+			finally { // Necessary in case map/predicate funcs throw exceptions
+				ExitLockAsWriter();
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

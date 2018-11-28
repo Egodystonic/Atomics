@@ -14,7 +14,7 @@ using Egodystonic.Atomics.Benchmarks.Internal;
 namespace Egodystonic.Atomics.Benchmarks {
 	static class EntryPoint {
 		public static void Main(string[] args) {
-			BenchmarkRunner.Run<DelegatedTryExchangeVsDirect>();
+			BenchmarkRunner.Run<ExtensionVsInstanceVsInherit>();
 			//BenchmarkRunner.Run<InlinedVsNonInlinedInt>();
 			//BenchmarkRunner.Run<CustomIntVsUnmanaged>();
 			//BenchmarkRunner.Run<RefTypeConcurrentReadWrite>();

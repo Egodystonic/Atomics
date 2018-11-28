@@ -8,11 +8,11 @@ using System.Linq;
 
 namespace Egodystonic.Atomics.Numerics {
 	public interface INumericAtomic<T> : IAtomic<T> {
-//		T SpinWaitForBoundedValue(T lowerBound, T upperBound);
+		T SpinWaitForBoundedValue(T lowerBound, T upperBound);
 
-//		T SpinWaitForBoundedExchange(T newValue, T lowerBound, T upperBound);
-//		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange(Func<T, T> mapFunc, T lowerBound, T upperBound);
-		// TODO context version of this
+		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange(T newValue, T lowerBound, T upperBound);
+		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange(Func<T, T> mapFunc, T lowerBound, T upperBound);
+		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBound, T upperBound, TContext context);
 
 		(T PreviousValue, T NewValue) Increment();
 		(T PreviousValue, T NewValue) Decrement();
@@ -24,8 +24,8 @@ namespace Egodystonic.Atomics.Numerics {
 	}
 
 	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {
-		(bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand, T maxDelta);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand, T maxDelta);
-//		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta(T newValue, T comparand, T maxDelta);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
+		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
 	}
 }

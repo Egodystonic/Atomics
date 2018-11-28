@@ -346,25 +346,25 @@ namespace Egodystonic.Atomics {
 			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
 		}
 
-		(bool ValueWasSet, IntPtr PreviousValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, Func<IntPtr, IntPtr, bool> predicate) {
-			var res = TryExchange((T*) newValue, (curPtr, newPtr) => predicate((IntPtr) curPtr, (IntPtr) newPtr));
-			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
-		}
-
-		(IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.Exchange(Func<IntPtr, IntPtr> mapFunc) {
-			var res = Exchange(ptr => (T*) mapFunc((IntPtr) ptr));
-			return ((IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
-		}
-
-		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, IntPtr comparand) {
-			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), (T*) comparand);
-			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
-		}
-
-		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, Func<IntPtr, IntPtr, bool> predicate) {
-			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), (curPtr, newPtr) => predicate((IntPtr) curPtr, (IntPtr) newPtr));
-			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
-		}
+//		(bool ValueWasSet, IntPtr PreviousValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, Func<IntPtr, IntPtr, bool> predicate) {
+//			var res = TryExchange((T*) newValue, (curPtr, newPtr) => predicate((IntPtr) curPtr, (IntPtr) newPtr));
+//			return (res.ValueWasSet, (IntPtr) res.PreviousValue);
+//		}
+//
+//		(IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.Exchange(Func<IntPtr, IntPtr> mapFunc) {
+//			var res = Exchange(ptr => (T*) mapFunc((IntPtr) ptr));
+//			return ((IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
+//		}
+//
+//		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, IntPtr comparand) {
+//			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), (T*) comparand);
+//			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
+//		}
+//
+//		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(Func<IntPtr, IntPtr> mapFunc, Func<IntPtr, IntPtr, bool> predicate) {
+//			var res = TryExchange(ptr => (T*) mapFunc((IntPtr) ptr), (curPtr, newPtr) => predicate((IntPtr) curPtr, (IntPtr) newPtr));
+//			return (res.ValueWasSet, (IntPtr) res.PreviousValue, (IntPtr) res.NewValue);
+//		}
 
 		(IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.Increment() {
 			var res = Increment();

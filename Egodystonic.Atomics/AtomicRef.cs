@@ -19,119 +19,130 @@ namespace Egodystonic.Atomics {
 		public AtomicRef(T initialValue) => Set(initialValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Get() => Volatile.Read(ref _value); // fence is useless on its own but will synchronize with other operations
+		public T Get() => Volatile.Read(ref _value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T newValue) => Volatile.Write(ref _value, newValue); // fence is useless on its own but will synchronize with other operations
+		public void Set(T newValue) => Volatile.Write(ref _value, newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Exchange(T newValue) => Interlocked.Exchange(ref _value, newValue);
+		public (T PreviousValue, T NewValue) Exchange(T newValue) => (Interlocked.Exchange(ref _value, newValue), newValue);
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) {
-			if (!TargetTypeIsEquatable) { // It's unfortunate having a branch here; but I'm banking on the branch predictor taking away the hit most of the time
-				var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
-				return (oldValue == comparand, oldValue);
-			}
-
-			var comparandAsIEquatable = (IEquatable<T>)comparand;
-			bool trySetValue;
-			T curValue;
-
+		public T SpinWaitForValue(T targetValue) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
-				trySetValue = comparandAsIEquatable.Equals(curValue);
-
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				var curValue = Get();
+				if (ValuesAreEqual(curValue, targetValue)) return curValue;
 				spinner.SpinOnce();
 			}
-
-			return (trySetValue, curValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-
+		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
-				trySetValue = predicate(curValue, newValue);
+				var curValue = Get();
+				var newValue = mapFunc(curValue, context);
 
-				if (!trySetValue || Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
-
-			return (trySetValue, curValue);
 		}
 
-		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) {
-			T curValue;
-			T newValue;
+		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) {
+			var spinner = new SpinWait();
 
+			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
+			if (TargetTypeIsEquatable) return SpinWaitForExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand, comparand);
+
+			while (true) {
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+			var spinner = new SpinWait();
+
+			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
+			if (TargetTypeIsEquatable) return SpinWaitForExchange(mapFunc, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), context, comparand);
+
+			while (true) {
+				var curValue = Get();
+				if (curValue != comparand) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue, context);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
-				newValue = mapFunc(curValue);
+				var curValue = Get();
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
+					spinner.SpinOnce();
+					continue;
+				}
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
-
-			return (curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) {
-			bool trySetValue;
-			T curValue;
-			T newValue = default;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
+			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			var wasSet = oldValue == comparand;
+			return (wasSet, oldValue, wasSet ? newValue : oldValue);
+		}
 
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+			var spinner = new SpinWait();
+
+			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
+			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand, comparand);
+
+			while (true) {
+				var curValue = Get();
+				if (curValue != comparand) return (false, curValue, curValue);
+
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				curValue = Get();
-				trySetValue = TargetTypeIsEquatable ? ((IEquatable<T>) comparand).Equals(curValue) : comparand == curValue;
+				var curValue = Get();
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (!trySetValue) break;
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 
-				newValue = mapFunc(curValue);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
-
-			return (trySetValue, curValue, newValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) {
-			bool trySetValue;
-			T curValue;
-			T newValue;
-
-			var spinner = new SpinWait();
-
-			while (true) {
-				curValue = Get();
-				newValue = mapFunc(curValue);
-				trySetValue = predicate(curValue, newValue);
-
-				if (!trySetValue) break;
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
-				spinner.SpinOnce();
-			}
-
-			return (trySetValue, curValue, newValue);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static bool ValuesAreEqual(T lhs, T rhs) => TargetTypeIsEquatable ? ((IEquatable<T>) lhs).Equals(rhs) : lhs == rhs;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicRef<T> operand) => operand.Get();

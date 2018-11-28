@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public static class Atomic {
+	public static class Atomic { // TODO update this to latest IAtomic<T> API
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T Get<T>(ref T @ref) where T : class => Volatile.Read(ref @ref); // fence is useless on its own but will synchronize with other operations
 
