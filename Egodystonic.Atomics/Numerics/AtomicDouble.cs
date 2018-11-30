@@ -71,17 +71,10 @@ namespace Egodystonic.Atomics.Numerics {
 
 		public (double PreviousValue, double NewValue) SpinWaitForExchange<TContext>(Func<double, TContext, double> mapFunc, double comparand, TContext context) {
 			var spinner = new SpinWait();
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				var curValue = Get();
-				if (curValue != comparand) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				var newValue = mapFunc(curValue, context);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}		
 		}
@@ -110,17 +103,10 @@ namespace Egodystonic.Atomics.Numerics {
 		}
 
 		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange<TContext>(Func<double, TContext, double> mapFunc, double comparand, TContext context) {
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				if (curValue != comparand) return (false, curValue, curValue);
-
-				var newValue = mapFunc(curValue, context);
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
-
-				spinner.SpinOnce();
-			}
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			if (prevValue == comparand) return (true, prevValue, newValue);
+			else return (false, prevValue, prevValue);
 		}
 
 		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange<TMapContext, TPredicateContext>(Func<double, TMapContext, double> mapFunc, Func<double, double, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {

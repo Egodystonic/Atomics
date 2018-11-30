@@ -68,21 +68,14 @@ namespace Egodystonic.Atomics {
 		}
 
 		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
-			var spinner = new SpinWait();
-
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
 			if (TargetTypeIsEquatable) return SpinWaitForExchange(mapFunc, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), context, comparand);
 
+			var spinner = new SpinWait();
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+
 			while (true) {
-				var curValue = Get();
-				if (curValue != comparand) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				var newValue = mapFunc(curValue, context);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -111,20 +104,13 @@ namespace Egodystonic.Atomics {
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
-			var spinner = new SpinWait();
-
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
 			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand, comparand);
 
-			while (true) {
-				var curValue = Get();
-				if (curValue != comparand) return (false, curValue, curValue);
-
-				var newValue = mapFunc(curValue, context);
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
-
-				spinner.SpinOnce();
-			}
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			if (prevValue == comparand) return (true, prevValue, newValue);
+			else return (false, prevValue, prevValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {

@@ -29,9 +29,10 @@ namespace Egodystonic.Atomics {
 	}
 
 	// TODO C# 8- replace these with default interface implementations that we redeclare in each class.
-	// TODO We can provide a default impl for pretty much all functions (via static interface methods),
-	// TODO which will remove the need for delegation; and it will also allow polymorphic specialization
-	// TODO for cases where we can provide better implementations. Assuming performance is superior (which it should be).
+	// TODO We can provide a default impl for pretty much all functions, using internal interface methods to provide
+	// TODO impls for things like CompareExchange, Equality, etc., which will remove the need for delegation.
+	// TODO It will also allow polymorphic specialization for cases where we can provide better implementations.
+	// TODO Assuming performance is superior (which it should be).
 	public static class AtomicExtensions {
 		#region SpinWaitForValue
 		public static T SpinWaitForValue<T>(this IAtomic<T> @this, Func<T, bool> predicate) {
