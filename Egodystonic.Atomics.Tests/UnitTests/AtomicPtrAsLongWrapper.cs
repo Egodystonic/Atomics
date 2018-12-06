@@ -28,61 +28,77 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void SetUnsafe(long newValue) => _ptr.SetUnsafe((IntPtr) newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public long Exchange(long newValue) => (long) _ptr.Exchange((IntPtr) newValue);
+		public (long PreviousValue, long NewValue) Exchange(long newValue) => Cast(_ptr.Exchange((IntPtr) newValue));
 
-		public (long PreviousValue, long NewValue) Exchange(Func<long, long> mapFunc) {
-			var res = _ptr.Exchange(ptr => (IntPtr) mapFunc((long) ptr));
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(long newValue, long comparand) => Cast(_ptr.TryExchange((IntPtr) newValue, (IntPtr) comparand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long SpinWaitForValue(long targetValue) => (long) _ptr.SpinWaitForValue((IntPtr) targetValue);
+
+		public (long PreviousValue, long NewValue) Exchange<TContext>(Func<long, TContext, long> mapFunc, TContext context) {
+			return Cast(_ptr.Exchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), context));
 		}
 
-		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, long comparand) {
-			var res = _ptr.TryExchange((IntPtr) newValue, (IntPtr) comparand);
-			return (res.ValueWasSet, (long) res.PreviousValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) SpinWaitForExchange(long newValue, long comparand) {
+			return Cast(_ptr.SpinWaitForExchange((IntPtr) newValue, (IntPtr) comparand));
 		}
 
-		public (bool ValueWasSet, long PreviousValue) TryExchange(long newValue, Func<long, long, bool> predicate) {
-			var res = _ptr.TryExchange((IntPtr) newValue, (c, n) => predicate((long) c, (long) n));
-			return (res.ValueWasSet, (long) res.PreviousValue);
+		public (long PreviousValue, long NewValue) SpinWaitForExchange<TContext>(Func<long, TContext, long> mapFunc, long comparand, TContext context) {
+			return Cast(_ptr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), (IntPtr) comparand, context));
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, long comparand) {
-			var res = _ptr.TryExchange(ptr => (IntPtr) mapFunc((long) ptr), (IntPtr) comparand);
-			return (res.ValueWasSet, (long) res.PreviousValue, (long) res.NewValue);
+		public (long PreviousValue, long NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<long, TMapContext, long> mapFunc, Func<long, long, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+			return Cast(_ptr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), (c, n, ctx) => predicate((long) c, (long) n, ctx), mapContext, predicateContext));
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange(Func<long, long> mapFunc, Func<long, long, bool> predicate) {
-			var res = _ptr.TryExchange(ptr => (IntPtr) mapFunc((long) ptr), (c, n) => predicate((long) c, (long) n));
-			return (res.ValueWasSet, (long) res.PreviousValue, (long) res.NewValue);
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange<TContext>(Func<long, TContext, long> mapFunc, long comparand, TContext context) {
+			return Cast(_ptr.TryExchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), (IntPtr) comparand, context));
 		}
 
-		public (long PreviousValue, long NewValue) Increment() {
-			var res = _ptr.Increment();
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		public (bool ValueWasSet, long PreviousValue, long NewValue) TryExchange<TMapContext, TPredicateContext>(Func<long, TMapContext, long> mapFunc, Func<long, long, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+			return Cast(_ptr.TryExchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), (c, n, ctx) => predicate((long) c, (long) n, ctx), mapContext, predicateContext));
 		}
 
-		public (long PreviousValue, long NewValue) Decrement() {
-			var res = _ptr.Decrement();
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		public long SpinWaitForBoundedValue(long lowerBound, long upperBound) {
+			return (long) _ptr.SpinWaitForBoundedValue((IntPtr) lowerBound, (IntPtr) upperBound);
 		}
 
-		public (long PreviousValue, long NewValue) Add(long operand) {
-			var res = _ptr.Add((IntPtr) operand);
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(long newValue, long lowerBound, long upperBound) {
+			return Cast(_ptr.SpinWaitForBoundedExchange((IntPtr) newValue, (IntPtr) lowerBound, (IntPtr) upperBound));
 		}
 
-		public (long PreviousValue, long NewValue) Subtract(long operand) {
-			var res = _ptr.Subtract((IntPtr) operand);
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(Func<long, long> mapFunc, long lowerBound, long upperBound) {
+			return Cast(_ptr.SpinWaitForBoundedExchange(cur => (IntPtr) mapFunc((long) cur), (IntPtr) lowerBound, (IntPtr) upperBound));
 		}
 
-		public (long PreviousValue, long NewValue) MultiplyBy(long operand) {
-			var res = _ptr.MultiplyBy((IntPtr) operand);
-			return ((long) res.PreviousValue, (long) res.NewValue);
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange<TContext>(Func<long, TContext, long> mapFunc, long lowerBound, long upperBound, TContext context) {
+			return Cast(_ptr.SpinWaitForBoundedExchange((cur, ctx) => (IntPtr) mapFunc((long) cur, ctx), (IntPtr) lowerBound, (IntPtr) upperBound, context));
 		}
 
-		public (long PreviousValue, long NewValue) DivideBy(long operand) {
-			var res = _ptr.DivideBy((IntPtr) operand);
-			return ((long) res.PreviousValue, (long) res.NewValue);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) Increment() => Cast(_ptr.Increment());
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) Decrement() => Cast(_ptr.Decrement());
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) Add(long operand) => Cast(_ptr.Add((IntPtr) operand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) Subtract(long operand) => Cast(_ptr.Subtract((IntPtr) operand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) MultiplyBy(long operand) => Cast(_ptr.MultiplyBy((IntPtr) operand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (long PreviousValue, long NewValue) DivideBy(long operand) => Cast(_ptr.DivideBy((IntPtr) operand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static (long, long) Cast((IntPtr, IntPtr) operand) => ((long) operand.Item1, (long) operand.Item2);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static (bool, long, long) Cast((bool, IntPtr, IntPtr) operand) => (operand.Item1, (long) operand.Item2, (long) operand.Item3);
 	}
 }

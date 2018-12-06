@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
+using Egodystonic.Atomics.Benchmarks.DummyObjects;
 using Egodystonic.Atomics.Numerics;
 using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
@@ -80,7 +81,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 
 				var value = _inlined.Value;
 				var exchVal = _inlined.Exchange(value + 3);
-				_inlined.Value = exchVal - 3;
+				_inlined.Value = exchVal.PreviousValue - 3;
 			}
 		}
 		#endregion
@@ -137,7 +138,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 
 				var value = _nonInlined.Value;
 				var exchVal = _nonInlined.Exchange(value + 3);
-				_nonInlined.Value = exchVal - 3;
+				_nonInlined.Value = exchVal.PreviousValue - 3;
 			}
 		}
 		#endregion

@@ -10,5 +10,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 		protected ConcurrentTestCaseRunner<TTarget> NewRunner() => _runnerFactory.NewRunner();
 		protected ConcurrentTestCaseRunner<TTarget> NewRunner(T initialValue) => _runnerFactory.NewRunner(initialValue);
+
+
 	}
 }

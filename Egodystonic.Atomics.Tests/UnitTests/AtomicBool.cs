@@ -58,11 +58,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				"Iterative Writer vs Reader Custom Test Case",
 				target => {
 					while (target.Value) { }
-					Assert.False(target.Exchange(true));
+					Assert.False(target.Exchange(true).PreviousValue);
 				},
 				target => {
 					while (!target.Value) { }
-					Assert.True(target.Exchange(false));
+					Assert.True(target.Exchange(false).PreviousValue);
 				},
 				new ConcurrentTestCaseThreadConfig(1, 1),
 				NumIterations,

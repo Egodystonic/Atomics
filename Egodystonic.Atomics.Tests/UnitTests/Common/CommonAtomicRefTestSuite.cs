@@ -36,7 +36,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newLongValue = atomicLong.Increment().NewValue;
-					var prev = target.Exchange(new DummyImmutableRef(newLongValue));
+					var prev = target.Exchange(new DummyImmutableRef(newLongValue)).PreviousValue;
 					Assert.AreEqual(prev.LongProp, newLongValue - 1L);
 				},
 				NumIterations,
@@ -56,9 +56,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
 				},
 				NumIterations
 			);
@@ -71,9 +77,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
 						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
@@ -103,9 +115,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
 				},
 				NumIterations
 			);
@@ -118,9 +136,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
 						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);

@@ -7,34 +7,6 @@ using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicEnumVal<T> : IAtomic<T> where T : unmanaged, Enum {
-		struct OperandAndRequisiteFlagsPair : IEquatable<OperandAndRequisiteFlagsPair> {
-			public readonly T Operand;
-			public readonly T RequisiteFlags;
-
-			public OperandAndRequisiteFlagsPair(T operand, T requisiteFlags) {
-				Operand = operand;
-				RequisiteFlags = requisiteFlags;
-			}
-
-			public bool Equals(OperandAndRequisiteFlagsPair other) {
-				return Operand.Equals(other.Operand) && RequisiteFlags.Equals(other.RequisiteFlags);
-			}
-
-			public override bool Equals(object obj) {
-				if (ReferenceEquals(null, obj)) return false;
-				return obj is OperandAndRequisiteFlagsPair other && Equals(other);
-			}
-
-			public override int GetHashCode() {
-				unchecked {
-					return (Operand.GetHashCode() * 397) ^ RequisiteFlags.GetHashCode();
-				}
-			}
-
-			public static bool operator ==(OperandAndRequisiteFlagsPair left, OperandAndRequisiteFlagsPair right) { return left.Equals(right); }
-			public static bool operator !=(OperandAndRequisiteFlagsPair left, OperandAndRequisiteFlagsPair right) { return !left.Equals(right); }
-		}
-
 		readonly AtomicValUnmanaged<T> _asUnmanaged;
 
 		public AtomicEnumVal() => _asUnmanaged = new AtomicValUnmanaged<T>();
@@ -59,65 +31,31 @@ namespace Egodystonic.Atomics {
 		public void SetUnsafe(T newValue) => _asUnmanaged.SetUnsafe(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public T Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
+		public (T PreviousValue, T NewValue) Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue) TryExchange(T newValue, Func<T, T, bool> predicate) => _asUnmanaged.TryExchange(newValue, predicate);
+		public T SpinWaitForValue(T targetValue) => _asUnmanaged.SpinWaitForValue(targetValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) Exchange(Func<T, T> mapFunc) => _asUnmanaged.Exchange(mapFunc);
+		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) => _asUnmanaged.Exchange(mapFunc, context);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, T comparand) => _asUnmanaged.TryExchange(mapFunc, comparand);
+		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) => _asUnmanaged.SpinWaitForExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(Func<T, T> mapFunc, Func<T, T, bool> predicate) => _asUnmanaged.TryExchange(mapFunc, predicate);
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) => _asUnmanaged.SpinWaitForExchange(mapFunc, comparand, context);
 
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (T PreviousValue, T NewValue) AddFlag(T operand) => Exchange((curVar, context) => curVar | context, operand);
-//
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) AddFlag(T operand, T requisiteFlags) {
-//			var context = new OperandAndRequisiteFlagsPair(operand, requisiteFlags);
-//			return TryExchange((curVar, context) => curVar | context.Operand, (curVar, context) => (curVar & context.RequisiteFlags) == context.RequisiteFlags, context);
-//		} 
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) AddFlag(T operand, Func<T, bool> predicate) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) AddFlag(T operand, Func<T, T, bool> predicate) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (T PreviousValue, T NewValue) RemoveFlag(T operand) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) RemoveFlag(T operand, T requisiteFlags) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) RemoveFlag(T operand, Func<T, bool> predicate) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public (bool FlagWasAdded, T PreviousValue, T NewValue) RemoveFlag(T operand, Func<T, T, bool> predicate) {
-//			
-//		}
-//
-//		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-//		public bool HasFlag(T operand) {
-//			
-//		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) => _asUnmanaged.SpinWaitForExchange(mapFunc, predicate, mapContext, predicateContext);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) => _asUnmanaged.TryExchange(mapFunc, comparand, context);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) => _asUnmanaged.TryExchange(mapFunc, predicate, mapContext, predicateContext);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicEnumVal<T> operand) => operand.Get();

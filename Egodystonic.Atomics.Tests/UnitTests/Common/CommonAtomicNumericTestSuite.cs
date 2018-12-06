@@ -73,9 +73,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = Add(curValue, curValue);
-					var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
 				},
 				NumIterations
 			);
@@ -89,9 +95,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
 						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue) = target.TryExchange(newValue, curValue);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
@@ -121,7 +133,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = Add(curValue, One);
-					var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Equals(Sub(n, One)));
+					var (wasSet, prevValue, _) = target.TryExchange(newValue, (c, n) => c.Equals(Sub(n, One)));
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
 						Assert.AreEqual(Add(prevValue, One), newValue);
@@ -142,7 +154,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations * -1))) return;
 						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue) = target.TryExchange(newValue, (c, n) => c.Equals(Add(n, One)));
+						var (wasSet, prevValue, _) = target.TryExchange(newValue, (c, n) => c.Equals(Add(n, One)));
 						if (wasSet) Assert.AreEqual(curValue, prevValue);
 						else Assert.AreNotEqual(curValue, prevValue);
 					}

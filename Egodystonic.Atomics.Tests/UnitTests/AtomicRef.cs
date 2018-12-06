@@ -41,9 +41,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				atomicRef => {
 					var curValue = atomicRef.Value;
 					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = atomicRef.TryExchange(newValue, curValue);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, curValue);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
 				},
 				NumIterations
 			);
@@ -56,9 +62,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curValue = atomicRef.Value;
 						if (curValue.LongProp == NumIterations) return;
 						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = atomicRef.TryExchange(newValue, curValue);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, curValue);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
@@ -101,9 +113,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				atomicRef => {
 					var curValue = atomicRef.Value;
 					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-					if (wasSet) Assert.AreEqual(curValue, prevValue);
-					else Assert.AreNotEqual(curValue, prevValue);
+					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
 				},
 				NumIterations
 			);
@@ -116,9 +134,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curValue = atomicRef.Value;
 						if (curValue.LongProp == NumIterations) return;
 						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);

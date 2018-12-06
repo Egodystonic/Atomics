@@ -27,9 +27,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
 						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue) = target.TryExchange(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
-						if (wasSet) Assert.AreEqual(prevValue, curValue);
-						else Assert.AreNotEqual(prevValue, curValue);
+						var (wasSet, prevValue, setValue) = target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
@@ -40,7 +46,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 					var newValue = Sub(curValue, One);
-					target.TryExchange(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+					target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 				},
 				NumIterations,
 				target => target.Value,
@@ -49,13 +55,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var testValue = new TTarget { Value = Convert(100f) };
 			testValue.Value = Convert(100f);
-			Assert.False(testValue.TryExchange(Zero, Convert(101f), Convert(0.5f)).ValueWasSet);
+			Assert.False(testValue.TryExchangeWithMaxDelta(Zero, Convert(101f), Convert(0.5f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.True(testValue.TryExchange(Zero, Convert(101f), Convert(1f)).ValueWasSet);
+			Assert.True(testValue.TryExchangeWithMaxDelta(Zero, Convert(101f), Convert(1f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.True(testValue.TryExchange(Zero, Convert(99f), Convert(1f)).ValueWasSet);
+			Assert.True(testValue.TryExchangeWithMaxDelta(Zero, Convert(99f), Convert(1f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.False(testValue.TryExchange(Zero, Convert(99f), Convert(0.5f)).ValueWasSet);
+			Assert.False(testValue.TryExchangeWithMaxDelta(Zero, Convert(99f), Convert(0.5f)).ValueWasSet);
 		}
 
 		[Test]
@@ -71,7 +77,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), Add(curValue, Convert(0.25f)), Convert(0.5f));
+						var (wasSet, prevValue, newValue) = target.TryExchangeWithMaxDelta(c => Sub(c, One), Add(curValue, Convert(0.25f)), Convert(0.5f));
 						if (wasSet) {
 							Assert.AreEqual(Add(newValue, One), prevValue);
 							Assert.AreEqual(prevValue, curValue);
@@ -86,7 +92,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					target.TryExchange(c => Sub(c, One), Sub(curValue, One), Convert(1.5f));
+					target.TryExchangeWithMaxDelta(c => Sub(c, One), Sub(curValue, One), Convert(1.5f));
 				},
 				NumIterations,
 				target => target.Value,
@@ -94,13 +100,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			);
 
 			var testValue = new TTarget { Value = Convert(100f) };
-			Assert.False(testValue.TryExchange(c => Zero, Convert(101f), Convert(0.5f)).ValueWasSet);
+			Assert.False(testValue.TryExchangeWithMaxDelta(c => Zero, Convert(101f), Convert(0.5f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.True(testValue.TryExchange(c => Zero, Convert(101f), Convert(1f)).ValueWasSet);
+			Assert.True(testValue.TryExchangeWithMaxDelta(c => Zero, Convert(101f), Convert(1f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.True(testValue.TryExchange(c => Zero, Convert(99f), Convert(1f)).ValueWasSet);
+			Assert.True(testValue.TryExchangeWithMaxDelta(c => Zero, Convert(99f), Convert(1f)).ValueWasSet);
 			testValue.Value = Convert(100f);
-			Assert.False(testValue.TryExchange(c => Zero, Convert(99f), Convert(0.5f)).ValueWasSet);
+			Assert.False(testValue.TryExchangeWithMaxDelta(c => Zero, Convert(99f), Convert(0.5f)).ValueWasSet);
 		}
 	}
 }

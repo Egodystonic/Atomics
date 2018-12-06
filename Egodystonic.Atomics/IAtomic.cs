@@ -57,66 +57,81 @@ namespace Egodystonic.Atomics {
 		#endregion
 
 		#region Exchange
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) Exchange<T>(this IAtomic<T> @this, Func<T, T> mapFunc) {
-			return @this.Exchange<object>((curVal, _) => mapFunc(curVal), null);
+			return @this.Exchange((curVal, ctx) => ctx(curVal), mapFunc);
 		}
 		#endregion
 
 		#region SpinWaitForExchange
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T>(this IAtomic<T> @this, T newValue, Func<T, T, bool> predicate) {
 			return @this.SpinWaitForExchange((_, ctx) => ctx, (curVal, newVal, ctx) => ctx(curVal, newVal), newValue, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, T newValue, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.SpinWaitForExchange((_, ctx) => ctx, predicate, newValue, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T>(this IAtomic<T> @this, Func<T, T> mapFunc, T comparand) {
 			return @this.SpinWaitForExchange((curVal, ctx) => ctx(curVal), comparand, mapFunc);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T>(this IAtomic<T> @this, Func<T, T> mapFunc, Func<T, T, bool> predicate) {
 			return @this.SpinWaitForExchange((curVal, ctx) => ctx(curVal), (curVal, newVal, ctx) => ctx(curVal, newVal), mapFunc, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, Func<T, TContext, T> mapFunc, Func<T, T, bool> predicate, TContext context) {
 			return @this.SpinWaitForExchange(mapFunc, (curVal, newVal, ctx) => ctx(curVal, newVal), context, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, Func<T, T> mapFunc, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.SpinWaitForExchange((curVal, ctx) => ctx(curVal), predicate, mapFunc, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T PreviousValue, T NewValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, Func<T, TContext, T> mapFunc, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.SpinWaitForExchange(mapFunc, predicate, context, context);
 		}
 		#endregion
 
 		#region TryExchange
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(this IAtomic<T> @this, T newValue, Func<T, T, bool> predicate) {
 			return @this.TryExchange((_, ctx) => ctx, (curVal, newVal, ctx) => ctx(curVal, newVal), newValue, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T, TContext>(this IAtomic<T> @this, T newValue, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.TryExchange((_, ctx) => ctx, predicate, newValue, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(this IAtomic<T> @this, Func<T, T> mapFunc, T comparand) {
 			return @this.TryExchange((curVal, ctx) => ctx(curVal), comparand, mapFunc);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(this IAtomic<T> @this, Func<T, T> mapFunc, Func<T, T, bool> predicate) {
 			return @this.TryExchange((curVal, ctx) => ctx(curVal), (curVal, newVal, ctx) => ctx(curVal, newVal), mapFunc, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T, TContext>(this IAtomic<T> @this, Func<T, TContext, T> mapFunc, Func<T, T, bool> predicate, TContext context) {
 			return @this.TryExchange(mapFunc, (curVal, newVal, ctx) => ctx(curVal, newVal), context, predicate);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T, TContext>(this IAtomic<T> @this, Func<T, T> mapFunc, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.TryExchange((curVal, ctx) => ctx(curVal), predicate, mapFunc, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T, TContext>(this IAtomic<T> @this, Func<T, TContext, T> mapFunc, Func<T, T, TContext, bool> predicate, TContext context) {
 			return @this.TryExchange(mapFunc, predicate, context, context);
 		}
