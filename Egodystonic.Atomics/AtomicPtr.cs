@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Egodystonic.Atomics.Numerics;
 
 namespace Egodystonic.Atomics {
-	public sealed unsafe class AtomicPtr<T> : INumericAtomic<IntPtr> where T : unmanaged {
+	public sealed unsafe class AtomicPtr<T> : IAtomic<IntPtr> where T : unmanaged {
 		public struct TypedPtrTryExchangeRes : IEquatable<TypedPtrTryExchangeRes> {
 			public readonly bool ValueWasSet;
 			public readonly T* PreviousValue;
@@ -198,66 +198,6 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		// ============================ Numeric API ============================
-
-		public T* SpinWaitForBoundedValue(T* lowerBound, T* upperBound) {
-			var spinner = new SpinWait();
-			while (true) {
-				var curVal = Get();
-				if (curVal >= lowerBound && curVal <= upperBound) return curVal;
-				spinner.SpinOnce();
-			}
-		}
-
-		public TypedPtrExchangeRes SpinWaitForBoundedExchange(T* newValue, T* lowerBound, T* upperBound) {
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
-		public TypedPtrExchangeRes SpinWaitForBoundedExchange(AtomicPtrMap mapFunc, T* lowerBound, T* upperBound) {
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				var newValue = mapFunc(curValue);
-
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
-		public TypedPtrExchangeRes SpinWaitForBoundedExchange<TContext>(AtomicPtrMap<TContext> mapFunc, T* lowerBound, T* upperBound, TContext context) {
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				var newValue = mapFunc(curValue, context);
-
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TypedPtrExchangeRes Increment() => Add(new IntPtr(1L));
 
@@ -300,33 +240,7 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public TypedPtrExchangeRes MultiplyBy(IntPtr operand) {
-			// Multiplication / division of pointers doesn't make much sense but we'll implement it anyway
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				var newValue = (T*) (((IntPtr) curValue).ToInt64() * operand.ToInt64());
-				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue);
-				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
-		public TypedPtrExchangeRes DivideBy(IntPtr operand) {
-			// Multiplication / division of pointers doesn't make much sense but we'll implement it anyway
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = Get();
-				var newValue = (T*) (((IntPtr) curValue).ToInt64() / operand.ToInt64());
-				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue);
-				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
-		// ============================ INumericAtomic<IntPtr> API ============================
+		// ============================ IAtomic<IntPtr> API ============================
 
 		IntPtr IAtomic<IntPtr>.Value {
 			[MethodImpl(MethodImplOptions.AggressiveInlining)] get => (IntPtr) Value;
@@ -403,37 +317,6 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public IntPtr SpinWaitForBoundedValue(IntPtr lowerBound, IntPtr upperBound) => (IntPtr) SpinWaitForBoundedValue((T*) lowerBound, (T*) upperBound);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForBoundedExchange(IntPtr newValue, IntPtr lowerBound, IntPtr upperBound) => SpinWaitForBoundedExchange((T*) newValue, (T*) lowerBound, (T*) upperBound).AsUntyped;
-
-		public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForBoundedExchange(Func<IntPtr, IntPtr> mapFunc, IntPtr lowerBound, IntPtr upperBound) {
-			return SpinWaitForBoundedExchange((cur, ctx) => (T*) ctx((IntPtr) cur), (T*) lowerBound, (T*) upperBound, mapFunc).AsUntyped;
-		}
-
-		public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForBoundedExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, IntPtr lowerBound, IntPtr upperBound, TContext context) {
-			var spinner = new SpinWait();
-
-			while (true) {
-				var curValue = GetAsIntPtr();
-				if ((T*) curValue < (T*) lowerBound || (T*) curValue > (T*) upperBound) {
-					spinner.SpinOnce();
-					continue;
-				}
-
-				var newValue = mapFunc(curValue, context);
-
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
-				spinner.SpinOnce();
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.Increment() => Increment().AsUntyped;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.Decrement() => Decrement().AsUntyped;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.Add(IntPtr operand) => Add(operand).AsUntyped;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.Subtract(IntPtr operand) => Subtract(operand).AsUntyped;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.MultiplyBy(IntPtr operand) => MultiplyBy(operand).AsUntyped;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) INumericAtomic<IntPtr>.DivideBy(IntPtr operand) => DivideBy(operand).AsUntyped;
 
 		// ============================ Missing extension methods for IAtomic<T*> ============================
 

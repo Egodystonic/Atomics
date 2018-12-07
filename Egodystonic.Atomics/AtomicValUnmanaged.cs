@@ -98,8 +98,10 @@ namespace Egodystonic.Atomics {
 			WriteToLong(&newValueAsLong, newValue);
 			WriteToLong(&comparandAsLong, comparand);
 			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
+			var previousValue = ReadFromLong(&previousValueAsLong);
 
-			return (previousValueAsLong == comparandAsLong, ReadFromLong(&previousValueAsLong), newValue);
+			var wasSet = previousValueAsLong == comparandAsLong;
+			return (wasSet, previousValue, wasSet ? newValue : previousValue);
 		}
 
 		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) {
@@ -149,7 +151,7 @@ namespace Egodystonic.Atomics {
 			long comparandAsLong, newValueAsLong;
 			WriteToLong(&comparandAsLong, comparand);
 			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			WriteToLong(&newValueAsLong, comparand);
+			WriteToLong(&newValueAsLong, newValue);
 
 			var prevValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
 			var prevValue = ReadFromLong(&prevValueAsLong);

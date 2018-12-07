@@ -178,26 +178,26 @@ namespace Egodystonic.Atomics.Numerics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Increment() {
-			var prevVal = Interlocked.Increment(ref _value);
-			return (prevVal, prevVal + 1);
+			var newVal = Interlocked.Increment(ref _value);
+			return (newVal - 1, newVal);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Decrement() {
-			var prevVal = Interlocked.Decrement(ref _value);
-			return (prevVal, prevVal - 1);
+			var newVal = Interlocked.Decrement(ref _value);
+			return (newVal + 1, newVal);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Add(int operand) {
-			var prevVal = Interlocked.Add(ref _value, operand);
-			return (prevVal, prevVal + operand);
+			var newVal = Interlocked.Add(ref _value, operand);
+			return (newVal - operand, newVal);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (int PreviousValue, int NewValue) Subtract(int operand) {
-			var prevVal = Interlocked.Add(ref _value, -operand);
-			return (prevVal, prevVal - operand);
+			var newVal = Interlocked.Add(ref _value, -operand);
+			return (newVal + operand, newVal);
 		}
 
 		public (int PreviousValue, int NewValue) MultiplyBy(int operand) {

@@ -10,7 +10,7 @@ using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicPtrTest : CommonAtomicNumericTestSuite<long, AtomicPtrAsLongWrapper> {
+	class AtomicPtrTest : CommonAtomicValTestSuite<AtomicPtrAsDummyImmutableValWrapper> {
 		#region Test Fields
 
 		#endregion
@@ -30,13 +30,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#endregion
 
 		#region Tests
-		protected override long Zero { get; } = 0;
-		protected override long One { get; } = 1;
-		protected override long Convert(int operand) => operand;
-		protected override long Add(long lhs, long rhs) => lhs + rhs;
-		protected override long Sub(long lhs, long rhs) => lhs - rhs;
-		protected override long Mul(long lhs, long rhs) => lhs * rhs;
-		protected override long Div(long lhs, long rhs) => lhs / rhs;
+		[Test]
+		public void Stub1() {
+			Assert.Fail("Need to test increment/add etc.");
+		}
 		#endregion Tests
 	}
 }

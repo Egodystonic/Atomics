@@ -32,7 +32,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#region Tests
 		[Test]
 		public void GetAndSet() {
-			const int NumIterations = 3_000_000;
+			const int NumIterations = 3;
 			var runner = _runnerFactory.NewRunner(false);
 
 			var atomicInt = new AtomicInt(0);

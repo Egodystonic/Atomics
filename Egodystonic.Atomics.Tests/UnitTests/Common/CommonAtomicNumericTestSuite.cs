@@ -51,7 +51,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newValue = Convert(atomicInt.Increment().NewValue);
-					var prev = target.Exchange(newValue);
+					var prev = target.Exchange(newValue).PreviousValue;
 					Assert.AreEqual(prev, Sub(newValue, One));
 				},
 				NumIterations,
