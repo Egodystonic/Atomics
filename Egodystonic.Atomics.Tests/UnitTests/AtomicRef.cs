@@ -13,6 +13,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	class AtomicRefTest : CommonAtomicRefTestSuite<AtomicRef<DummyImmutableRef>> {
 		#region Test Fields
 		RunnerFactory<DummyEquatableRef, AtomicRef<DummyEquatableRef>> _equatableRefRunnerFactory;
+
+		protected override DummyImmutableRef Alpha { get; } = new DummyImmutableRef();
+		protected override DummyImmutableRef Bravo { get; } = new DummyImmutableRef();
+		protected override DummyImmutableRef Charlie { get; } = new DummyImmutableRef();
+		protected override DummyImmutableRef Delta { get; } = new DummyImmutableRef();
+		protected override bool AreEqual(DummyImmutableRef lhs, DummyImmutableRef rhs) => ReferenceEquals(lhs, rhs);
 		#endregion
 
 		#region Test Setup

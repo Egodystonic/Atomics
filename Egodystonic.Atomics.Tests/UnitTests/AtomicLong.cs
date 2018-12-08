@@ -12,7 +12,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
 	class AtomicLongTest : CommonAtomicNumericTestSuite<long, AtomicLong> {
 		#region Test Fields
-
+		protected override long Alpha { get; } = 111L;
+		protected override long Bravo { get; } = 222L;
+		protected override long Charlie { get; } = 333L;
+		protected override long Delta { get; } = 444L;
+		protected override bool AreEqual(long lhs, long rhs) => lhs == rhs;
 		#endregion
 
 		#region Test Setup

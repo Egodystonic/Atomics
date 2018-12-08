@@ -67,7 +67,7 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
-			if (TargetTypeIsEquatable) return SpinWaitForExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand, comparand);
+			if (TargetTypeIsEquatable) return SpinWaitForExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), newValue, comparand);
 
 			while (true) {
 				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (_copyFunc(comparand), _copyFunc(newValue));
@@ -117,7 +117,7 @@ namespace Egodystonic.Atomics {
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
-			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand, comparand);
+			if (TargetTypeIsEquatable) return TryExchange(mapFunc, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), context, comparand);
 
 			var comparandCopy = _copyFunc(comparand);
 			var newValue = mapFunc(comparandCopy, context); // Comparand will always be curValue if the interlocked call passes

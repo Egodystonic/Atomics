@@ -12,7 +12,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
 	class AtomicDoubleTest : CommonAtomicFloatingPointTestSuite<double, AtomicDouble> {
 		#region Test Fields
-
+		protected override double Alpha { get; } = 111d;
+		protected override double Bravo { get; } = 222d;
+		protected override double Charlie { get; } = 333d;
+		protected override double Delta { get; } = 444d;
+		// ReSharper disable once CompareOfFloatsByEqualityOperator Direct comparison is deliberate
+		protected override bool AreEqual(double lhs, double rhs) => lhs == rhs;
 		#endregion
 
 		#region Test Setup

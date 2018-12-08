@@ -10,7 +10,7 @@ using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicPtrTest : CommonAtomicValTestSuite<AtomicPtrAsDummyImmutableValWrapper> {
+	class AtomicEnumValTest : CommonAtomicValTestSuite<AtomicEnumAsDummyImmutableValWrapper> {
 		#region Test Fields
 		protected override DummyImmutableVal Alpha { get; } = new DummyImmutableVal(1, 1);
 		protected override DummyImmutableVal Bravo { get; } = new DummyImmutableVal(2, 2);
@@ -36,7 +36,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#region Tests
 		[Test]
 		public void Stub1() {
-			Assert.Fail("Need to test increment/add etc.");
+			Assert.Fail("Test enum-specific stuff just to be sure.");
 		}
 		#endregion Tests
 	}

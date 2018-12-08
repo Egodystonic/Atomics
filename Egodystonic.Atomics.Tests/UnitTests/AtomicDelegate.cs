@@ -10,18 +10,20 @@ using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicPtrTest : CommonAtomicValTestSuite<AtomicPtrAsDummyImmutableValWrapper> {
+	class AtomicDelegateTest : CommonAtomicTestSuite<Action, AtomicDelegate<Action>> {
 		#region Test Fields
-		protected override DummyImmutableVal Alpha { get; } = new DummyImmutableVal(1, 1);
-		protected override DummyImmutableVal Bravo { get; } = new DummyImmutableVal(2, 2);
-		protected override DummyImmutableVal Charlie { get; } = new DummyImmutableVal(3, 3);
-		protected override DummyImmutableVal Delta { get; } = new DummyImmutableVal(4, 4);
-		protected override bool AreEqual(DummyImmutableVal lhs, DummyImmutableVal rhs) => lhs == rhs;
+		RunnerFactory<Action, AtomicDelegate<Action>> _atomicDelegateRunnerFactory;
+
+		protected override Action Alpha { get; } = () => { };
+		protected override Action Bravo { get; } = () => { };
+		protected override Action Charlie { get; } = () => { };
+		protected override Action Delta { get; } = () => { };
+		protected override bool AreEqual(Action lhs, Action rhs) => ReferenceEquals(lhs, rhs);
 		#endregion
 
 		#region Test Setup
 		[OneTimeSetUp]
-		public void SetUpClass() { }
+		public void SetUpClass() => _atomicDelegateRunnerFactory = new RunnerFactory<Action, AtomicDelegate<Action>>();
 
 		[OneTimeTearDown]
 		public void TearDownClass() { }
@@ -36,7 +38,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#region Tests
 		[Test]
 		public void Stub1() {
-			Assert.Fail("Need to test increment/add etc.");
+			Assert.Fail("Need all tests");
 		}
 		#endregion Tests
 	}

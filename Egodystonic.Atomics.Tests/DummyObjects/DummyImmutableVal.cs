@@ -19,6 +19,9 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 		[FieldOffset(0)]
 		readonly IntPtr _ptr; // Used for AtomicPtrAsDummyImmutableVal type
 
+		[FieldOffset(0)]
+		readonly DummyEnum _enum; // Used for AtomicEnumAsDummyImmutableVal type
+
 		public DummyImmutableVal(int alpha, int bravo) : this() {
 			Alpha = alpha;
 			Bravo = bravo;
@@ -26,6 +29,10 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 
 		DummyImmutableVal(IntPtr ptr) : this() {
 			_ptr = ptr;
+		}
+
+		DummyImmutableVal(DummyEnum @enum) : this() {
+			_enum = @enum;
 		}
 
 		public bool Equals(DummyImmutableVal other) {
@@ -50,6 +57,9 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 		public static implicit operator DummyImmutableVal(IntPtr operand) => new DummyImmutableVal(operand);
 		public static unsafe implicit operator int*(DummyImmutableVal operand) => (int*) operand._ptr;
 		public static unsafe implicit operator DummyImmutableVal(int* operand) => new DummyImmutableVal((IntPtr) operand);
+
+		public static implicit operator DummyEnum(DummyImmutableVal operand) => operand._enum;
+		public static implicit operator DummyImmutableVal(DummyEnum operand) => new DummyImmutableVal(operand);
 
 		public override string ToString() => $"{Alpha}, {Bravo}";
 	}

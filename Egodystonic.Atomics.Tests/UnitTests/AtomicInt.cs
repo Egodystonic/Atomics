@@ -12,7 +12,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
 	class AtomicIntTest : CommonAtomicNumericTestSuite<int, AtomicInt> {
 		#region Test Fields
-
+		protected override int Alpha { get; } = 111;
+		protected override int Bravo { get; } = 222;
+		protected override int Charlie { get; } = 333;
+		protected override int Delta { get; } = 444;
+		protected override bool AreEqual(int lhs, int rhs) => lhs == rhs;
 		#endregion
 
 		#region Test Setup
