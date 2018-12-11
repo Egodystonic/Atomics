@@ -125,21 +125,21 @@ namespace Egodystonic.Atomics.Numerics {
 
 		// ============================ Numeric API ============================
 
-		public double SpinWaitForBoundedValue(double lowerBound, double upperBound) {
+		public double SpinWaitForBoundedValue(double lowerBoundInclusive, double upperBoundExclusive) {
 			var spinner = new SpinWait();
 			while (true) {
 				var curVal = Get();
-				if (curVal >= lowerBound && curVal <= upperBound) return curVal;
+				if (curVal >= lowerBoundInclusive && curVal < upperBoundExclusive) return curVal;
 				spinner.SpinOnce();
 			}
 		}
 
-		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange(double newValue, double lowerBound, double upperBound) {
+		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange(double newValue, double lowerBoundInclusive, double upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -149,12 +149,12 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
-		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange(Func<double, double> mapFunc, double lowerBound, double upperBound) {
+		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange(Func<double, double> mapFunc, double lowerBoundInclusive, double upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -166,12 +166,12 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
-		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange<TContext>(Func<double, TContext, double> mapFunc, double lowerBound, double upperBound, TContext context) {
+		public (double PreviousValue, double NewValue) SpinWaitForBoundedExchange<TContext>(Func<double, TContext, double> mapFunc, double lowerBoundInclusive, double upperBoundExclusive, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -238,6 +238,64 @@ namespace Egodystonic.Atomics.Numerics {
 		}
 
 		// ============================ Floating-Point API ============================
+
+		public double SpinWaitForValueWithMaxDelta(double targetValue, double maxDelta) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (Math.Abs(targetValue - curValue) <= maxDelta) return curValue;
+
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForExchangeWithMaxDelta(double newValue, double comparand, double maxDelta) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (Math.Abs(comparand - curValue) > maxDelta) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForExchangeWithMaxDelta(Func<double, double> mapFunc, double comparand, double maxDelta) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (Math.Abs(comparand - curValue) > maxDelta) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForExchangeWithMaxDelta<TContext>(Func<double, TContext, double> mapFunc, double comparand, double maxDelta, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (Math.Abs(comparand - curValue) > maxDelta) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
 
 		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchangeWithMaxDelta(double newValue, double comparand, double maxDelta) {
 			var spinner = new SpinWait();

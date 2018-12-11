@@ -118,21 +118,21 @@ namespace Egodystonic.Atomics.Numerics {
 
 		// ============================ Numeric API ============================
 
-		public long SpinWaitForBoundedValue(long lowerBound, long upperBound) {
+		public long SpinWaitForBoundedValue(long lowerBoundInclusive, long upperBoundExclusive) {
 			var spinner = new SpinWait();
 			while (true) {
 				var curVal = Get();
-				if (curVal >= lowerBound && curVal <= upperBound) return curVal;
+				if (curVal >= lowerBoundInclusive && curVal < upperBoundExclusive) return curVal;
 				spinner.SpinOnce();
 			}
 		}
 
-		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(long newValue, long lowerBound, long upperBound) {
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(long newValue, long lowerBoundInclusive, long upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -142,12 +142,12 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
-		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(Func<long, long> mapFunc, long lowerBound, long upperBound) {
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange(Func<long, long> mapFunc, long lowerBoundInclusive, long upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -159,12 +159,12 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
-		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange<TContext>(Func<long, TContext, long> mapFunc, long lowerBound, long upperBound, TContext context) {
+		public (long PreviousValue, long NewValue) SpinWaitForBoundedExchange<TContext>(Func<long, TContext, long> mapFunc, long lowerBoundInclusive, long upperBoundExclusive, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (curValue < lowerBound || curValue > upperBound) {
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) {
 					spinner.SpinOnce();
 					continue;
 				}

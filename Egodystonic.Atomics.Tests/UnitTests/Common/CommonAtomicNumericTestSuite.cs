@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
 using NUnit.Framework;
@@ -449,6 +450,136 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				},
 				NumIterations
 			);
+		}
+
+		// API Tests
+		[Test]
+		public void API_SpinWaitForBoundedValue() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var waitRes = target.SpinWaitForBoundedValue(Convert(90), Convert(110));
+			Assert.AreEqual(Convert(100), waitRes);
+
+			var spinWaitTask = Task.Run(() => target.SpinWaitForBoundedValue(Convert(200), Convert(300)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(190));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(200));
+			Assert.AreEqual(Convert(200), spinWaitTask.Result);
+			spinWaitTask = Task.Run(() => target.SpinWaitForBoundedValue(Convert(0), Convert(200)));
+			Thread.Sleep(200); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(199));
+			Assert.AreEqual(Convert(199), spinWaitTask.Result);
+		}
+
+		[Test]
+		public void API_SpinWaitForBoundedExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+	
+			// (T, T, T)
+			var exchRes = target.SpinWaitForBoundedExchange(Convert(190), Convert(90), Convert(110));
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			var spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(Convert(50), Convert(200), Convert(300)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(200));
+			Assert.AreEqual(Convert(200), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(50), spinWaitTask.Result.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.SpinWaitForBoundedExchange(t => Mul(t, Convert(2)), Convert(0), Convert(51));
+			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(101));
+			Assert.AreEqual(Convert(101), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(91), spinWaitTask.Result.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.SpinWaitForBoundedExchange(Add, Convert(91), Convert(92), Convert(109));
+			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(Div, Convert(300), Convert(400), Convert(10)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(300));
+			Assert.AreEqual(Convert(300), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(30), spinWaitTask.Result.NewValue);
+		}
+
+		[Test]
+		public void API_Increment() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.Increment();
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(101), incRes.NewValue);
+		}
+
+		[Test]
+		public void API_Decrement() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.Decrement();
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(99), incRes.NewValue);
+		}
+
+		[Test]
+		public void API_Add() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.Add(Convert(20));
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(120), incRes.NewValue);
+		}
+
+		[Test]
+		public void API_Subtract() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.Subtract(Convert(20));
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(80), incRes.NewValue);
+		}
+
+		[Test]
+		public void API_MultiplyBy() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.MultiplyBy(Convert(20));
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(2000), incRes.NewValue);
+		}
+
+		[Test]
+		public void API_DivideBy() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			var incRes = target.DivideBy(Convert(20));
+			Assert.AreEqual(Convert(100), incRes.PreviousValue);
+			Assert.AreEqual(Convert(5), incRes.NewValue);
 		}
 	}
 }

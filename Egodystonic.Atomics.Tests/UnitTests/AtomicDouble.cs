@@ -43,6 +43,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		protected override double Mul(double lhs, double rhs) => lhs * rhs;
 		protected override double Div(double lhs, double rhs) => lhs / rhs;
 		protected override double Convert(float operand) => operand;
+		protected override double AsDouble(double operand) => operand;
 		protected override double Abs(double operand) => Math.Abs(operand);
 		#endregion Tests
 	}
