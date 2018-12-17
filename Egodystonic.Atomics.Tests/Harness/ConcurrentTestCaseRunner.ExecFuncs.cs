@@ -80,6 +80,9 @@ namespace Egodystonic.Atomics.Tests.Harness {
 			new ConcurrentTestCaseThreadConfig(16, 1),
 			new ConcurrentTestCaseThreadConfig(32, 1)
 		};
+		public static ConcurrentTestCaseThreadConfig[] DefaultSingleWriterSingleReaderThreadConfigs = {
+			new ConcurrentTestCaseThreadConfig(1, 1)
+		};
 	}
 
 	sealed partial class ConcurrentTestCaseRunner<T> {
@@ -215,6 +218,45 @@ namespace Egodystonic.Atomics.Tests.Harness {
 			foreach (var threadConfig in DefaultSingleReaderThreadConfigs) {
 				ExecuteCustomTestCase(new IterativeConcurrentTestCase<T>(
 					$"Iterated Single-Reader (n = {totalIterationCount}); {(iterateReaderFunc ? String.Empty : "(non-iterated reader)")}, {threadConfig.WriterThreadCount} writers{(iterateWriterFunc ? String.Empty : " (non-iterated)")}",
+					writerFunctionSingleIteration,
+					readerFunctionSingleIteration,
+					threadConfig,
+					totalIterationCount,
+					iterateWriterFunc,
+					iterateReaderFunc
+				));
+			}
+		}
+
+		public void ExecuteSingleWriterSingleReaderTests(Action<T> writerFunction, Action<T> readerFunction) {
+			foreach (var threadConfig in DefaultSingleWriterSingleReaderThreadConfigs) {
+				ExecuteCustomTestCase(new StandardConcurrentTestCase<T>(
+					$"Single-Writer / Single-Reader",
+					writerFunction,
+					readerFunction,
+					threadConfig
+				));
+			}
+		}
+
+		public void ExecuteSingleWriterSingleReaderTests(Action<T> writerFunctionSingleIteration, Action<T> readerFunctionSingleIteration, int totalIterationCount) {
+			foreach (var threadConfig in DefaultSingleWriterSingleReaderThreadConfigs) {
+				ExecuteCustomTestCase(new IterativeConcurrentTestCase<T>(
+					$"Iterated Single-Writer / Single-Reader (n = {totalIterationCount})",
+					writerFunctionSingleIteration,
+					readerFunctionSingleIteration,
+					threadConfig,
+					totalIterationCount,
+					true,
+					true
+				));
+			}
+		}
+
+		public void ExecuteSingleWriterSingleReaderTests(Action<T> writerFunctionSingleIteration, Action<T> readerFunctionSingleIteration, int totalIterationCount, bool iterateWriterFunc, bool iterateReaderFunc) {
+			foreach (var threadConfig in DefaultSingleWriterSingleReaderThreadConfigs) {
+				ExecuteCustomTestCase(new IterativeConcurrentTestCase<T>(
+					$"Iterated Single-Writer / Single-Reader (n = {totalIterationCount}); {(iterateReaderFunc ? String.Empty : "(non-iterated reader)")}, {threadConfig.WriterThreadCount} writers{(iterateWriterFunc ? String.Empty : " (non-iterated)")}",
 					writerFunctionSingleIteration,
 					readerFunctionSingleIteration,
 					threadConfig,

@@ -34,7 +34,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 			get => _contextFactoryFunc;
 			set => _contextFactoryFunc = value ?? throw new ArgumentNullException(nameof(value));
 		}
-		public Action<T> GlobalSetUp { get; set; }
+		public Action<T, ConcurrentTestCaseThreadConfig> GlobalSetUp { get; set; }
 
 		public Action<T> AllThreadsSetUp { get; set; }
 		public Action<T> WriterThreadSetUp { get; set; }
@@ -52,7 +52,8 @@ namespace Egodystonic.Atomics.Tests.Harness {
 		}
 
 		public void ExecuteCustomTestCase(IConcurrentTestCase<T> testCase) {
-			Console.WriteLine($"Starting case: {testCase.Description}");
+			const string StartingCaseMessage = "Starting case: ";
+			Console.WriteLine($"{StartingCaseMessage}{testCase.Description}");
 
 			var threadConfig = testCase.ThreadConfig;
 			var collectedErrors = new ConcurrentBag<Exception>();
@@ -62,7 +63,7 @@ namespace Egodystonic.Atomics.Tests.Harness {
 
 			try {
 				var contextObject = ContextFactoryFunc();
-				GlobalSetUp?.Invoke(contextObject);
+				GlobalSetUp?.Invoke(contextObject, threadConfig);
 				var barrier = new Barrier(threadConfig.TotalThreadCount + 1);
 
 				for (var i = 0; i < threadConfig.TotalThreadCount; ++i) {
@@ -85,9 +86,14 @@ namespace Egodystonic.Atomics.Tests.Harness {
 					));
 				}
 
+				var padding = new String(' ', StartingCaseMessage.Length);
+				Console.WriteLine($"{padding}{testCase.Description} => Setup...");
 				if (!barrier.SignalAndWait(MaxSetUpWaitTime)) throw new TimeoutException($"Setup did not completion within the specified time limit ({MaxSetUpWaitTime}).");
+				Console.WriteLine($"{padding}{testCase.Description} => Execution...");
 				if (!barrier.SignalAndWait(MaxExecutionWaitTime)) throw new TimeoutException($"Execution did not completion within the specified time limit ({MaxExecutionWaitTime}).");
+				Console.WriteLine($"{padding}{testCase.Description} => Tear Down...");
 				if (!barrier.SignalAndWait(MaxTearDownWaitTime)) throw new TimeoutException($"Teardown did not completion within the specified time limit ({MaxTearDownWaitTime}).");
+				Console.WriteLine($"{padding}{testCase.Description} => Complete!");
 			}
 			catch (Exception e) {
 				collectedErrors.Add(e);

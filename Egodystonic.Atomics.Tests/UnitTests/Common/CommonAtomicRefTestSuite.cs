@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
@@ -11,7 +12,7 @@ using NUnit.Framework;
 namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 	abstract class CommonAtomicRefTestSuite<TTarget> : CommonAtomicTestSuite<DummyImmutableRef, TTarget> where TTarget : IAtomic<DummyImmutableRef>, new() {
 		[Test]
-		public void GetAndSet() {
+		public void GetAndSetAndValue() {
 			const int NumIterations = 1_000_000;
 			var atomicLong = new AtomicLong(0L);
 			var runner = NewRunner(new DummyImmutableRef(0L));
@@ -20,57 +21,495 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => target.Set(new DummyImmutableRef(atomicLong.Increment().NewValue)),
 				NumIterations,
 				target => target.Get(),
-				(prev, cur) => Assert.True(prev.LongProp <= cur.LongProp)
+				(prev, cur) => AssertTrue(prev.LongProp <= cur.LongProp)
+			);
+
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => target.Value = new DummyImmutableRef(atomicLong.Increment().NewValue),
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(prev.LongProp <= cur.LongProp)
+			);
+		}
+
+		[Test]
+		public void SpinWaitForValue() {
+			const int NumIterations = 300_000;
+
+			var runner = NewRunner(new DummyImmutableRef(0L));
+
+			// (T)
+			var valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef(i))
+				.ToArray();
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						if ((curVal.LongProp & 1) == 0) {
+							AssertAreEqual(curVal.LongProp + 1, target.SpinWaitForValue(valuesArr[(int) (curVal.LongProp + 1L)]).LongProp);
+						}
+						else {
+							target.Value = valuesArr[(int) (curVal.LongProp + 1L)];
+						}
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						if ((curVal.LongProp & 1) == 1) {
+							AssertAreEqual(curVal.LongProp + 1, target.SpinWaitForValue(valuesArr[(int) (curVal.LongProp + 1L)]).LongProp);
+						}
+						else {
+							target.Value = valuesArr[(int) (curVal.LongProp + 1L)];
+						}
+					}
+				}
+			);
+
+			// (Func<T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						target.TryExchange(new DummyImmutableRef(curVal.LongProp + 1L), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						AssertTrue(target.SpinWaitForValue(c => c.LongProp > curVal.LongProp).LongProp >= curVal.LongProp);
+					}
+				}
+			);
+
+			// (Func<T, TContext, bool>, TContext)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						target.TryExchange(new DummyImmutableRef(curVal.LongProp + 1L), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.LongProp == NumIterations) break;
+						AssertTrue(target.SpinWaitForValue((c, ctx) => c.LongProp > ctx.LongProp, curVal).LongProp >= curVal.LongProp);
+					}
+				}
 			);
 		}
 
 		[Test]
 		public void Exchange() {
 			const int NumIterations = 300_000;
-			var atomicLong = new AtomicLong(0L);
 			var runner = NewRunner(new DummyImmutableRef(0L));
-			runner.GlobalSetUp = _ => atomicLong.Set(0L);
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
+			// (T)
+			var atomicLong = new AtomicLong(0L);
+			runner.GlobalSetUp = (_, __) => atomicLong.Set(0L);
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newLongValue = atomicLong.Increment().NewValue;
 					var prev = target.Exchange(new DummyImmutableRef(newLongValue)).PreviousValue;
-					Assert.AreEqual(prev.LongProp, newLongValue - 1L);
+					AssertAreEqual(prev.LongProp, newLongValue - 1L);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
+				(prev, cur) => AssertTrue(cur.LongProp >= prev.LongProp)
 			);
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					var (prevValue, newValue) = target.Exchange(c => new DummyImmutableRef(c.LongProp + 1L));
+					AssertAreEqual(prevValue.LongProp, newValue.LongProp - 1L);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(cur.LongProp >= prev.LongProp)
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations * 10L, target.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (prevValue, newValue) = target.Exchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), 10L);
+					AssertAreEqual(prevValue.LongProp, newValue.LongProp - 10L);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
 		}
 
 		[Test]
-		public void TryExchange() {
+		[SuppressMessage("ReSharper", "AccessToModifiedClosure")] // Closure is always modified after use 
+		public void SpinWaitForExchangeWithoutContext() {
+			const int NumIterations = 30_000;
+
+			var runner = NewRunner(new DummyImmutableRef("0", 0L));
+
+			// (T, T)
+			var valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef(i.ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual(NumIterations.ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], valuesArr[nextVal]);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], valuesArr[nextVal]);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, T)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], valuesArr[nextVal]);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], valuesArr[nextVal]);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef(i.ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual(NumIterations.ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n) => n.LongProp == c.LongProp + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n) => n.LongProp == c.LongProp + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		[SuppressMessage("ReSharper", "AccessToModifiedClosure")] // Closure is always modified after use 
+		public void SpinWaitForExchangeWithContext() {
+			const int NumIterations = 10_000;
+
+			var runner = NewRunner(new DummyImmutableRef("0", 0L));
+
+			// (Func<T, TContext, T>, T)
+			var valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], valuesArr[nextVal], valuesArr);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + 1], valuesArr[nextVal], valuesArr);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, TContext, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef(i.ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual(NumIterations.ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, valuesArr, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, valuesArr, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			valuesArr = Enumerable.Range(0, NumIterations + 1)
+				.Select(i => new DummyImmutableRef((-i).ToString(), i))
+				.ToArray();
+			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.LongProp);
+				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void TryExchangeWithoutContext() {
 			const int NumIterations = 100_000;
 
 			var runner = NewRunner(new DummyImmutableRef(0L));
 
-			// Test: Return value of method is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(newValue, setValue);
-					}
-					else {
-						Assert.AreNotEqual(curValue, prevValue);
-						Assert.AreEqual(setValue, prevValue);
-					}
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
@@ -79,78 +518,19 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
 						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(newValue, setValue);
+							AssertAreEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(newValue, setValue);
 						}
 						else {
-							Assert.AreNotEqual(curValue, prevValue);
-							Assert.AreEqual(setValue, prevValue);
+							AssertAreNotEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(setValue, prevValue);
 						}
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(newValue, curValue);
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
-		}
-
-		[Test]
-		public void PredicatedTryExchange() {
-			const int NumIterations = 100_000;
-
-			var runner = NewRunner(new DummyImmutableRef(0L));
-
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(newValue, setValue);
-					}
-					else {
-						Assert.AreNotEqual(curValue, prevValue);
-						Assert.AreEqual(setValue, prevValue);
-					}
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.LongProp == NumIterations) return;
-						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
-						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(newValue, setValue);
-						}
-						else {
-							Assert.AreNotEqual(curValue, prevValue);
-							Assert.AreEqual(setValue, prevValue);
-						}
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Method always exhibits coherency for consecutive reads from external threads
+			// Func(T, Func<T, T, bool>)
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
@@ -159,58 +539,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
-			);
-		}
-
-		[Test]
-		public void MappedExchange() {
-			const int NumIterations = 300_000;
-
-			var runner = NewRunner(new DummyImmutableRef(0L));
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var (prev, cur) = target.Exchange(dummy => new DummyImmutableRef(dummy.LongProp + 1L));
-					Assert.AreEqual(prev.LongProp, cur.LongProp - 1L);
-				},
-				NumIterations
+				(prev, cur) => AssertTrue(cur.LongProp >= prev.LongProp)
 			);
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => target.Exchange(dummy => new DummyImmutableRef(dummy.LongProp + 1L)),
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp),
-				dummy => dummy.LongProp == NumIterations
-			);
-		}
-
-		[Test]
-		public void MappedTryExchange() {
-			const int NumIterations = 100_000;
-
-			var runner = NewRunner(new DummyImmutableRef(0L));
-
-			// Test: Return value of method is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), curValue);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
+			// (Func<T, T>, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
@@ -218,65 +551,100 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						if (curValue.LongProp == NumIterations) return;
 						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), curValue);
 						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+							AssertAreEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(prevValue.LongProp + 1L, newValue.LongProp);
 						}
-						else Assert.AreNotEqual(curValue, prevValue);
+						else AssertAreNotEqualObjects(curValue, prevValue);
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
+			// (Func<T, T>, Func<T, T, bool>)
+			runner.ExecuteFreeThreadedTests(
 				target => {
-					var curValue = target.Value;
-					target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), curValue);
+					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
 				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
+				NumIterations
 			);
 		}
 
 		[Test]
-		public void MappedPredicatedTryExchange() {
+		public void TryExchangeWithContext() {
 			const int NumIterations = 100_000;
 
 			var runner = NewRunner(new DummyImmutableRef(0L));
 
-			// Test: Return value of method is always consistent
-			runner.ExecuteFreeThreadedTests(
+			// Func(T, Func<T, T, TContext, bool>)
+			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
-					if (wasSet) Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else Assert.AreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					var curValue = target.Value;
+					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+					target.TryExchange(newValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
 				},
-				NumIterations
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(cur.LongProp >= prev.LongProp)
 			);
 
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(NumIterations, target.Value.LongProp);
+			// (Func<T, TContext, T>, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L && c.LongProp < NumIterations);
-						if (wasSet) Assert.AreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-						else if (prevValue.LongProp == NumIterations || newValue.LongProp == NumIterations) return;
-						else Assert.AreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+						var curValue = target.Value;
+						if (curValue.LongProp == NumIterations) return;
+						var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), curValue, 1L);
+						if (wasSet) {
+							AssertAreEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(prevValue.LongProp + 1L, newValue.LongProp);
+						}
+						else AssertAreNotEqualObjects(curValue, prevValue);
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			runner.ExecuteFreeThreadedTests(
 				target => {
-					target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
+					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), (c, n) => c.LongProp == n.LongProp - 1L, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
 				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
+				NumIterations
+			);
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+				},
+				NumIterations
+			);
+
+			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+				},
+				NumIterations
+			);
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + (ctx - 1L)), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 2L, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+				},
+				NumIterations
 			);
 		}
 	}

@@ -2,6 +2,7 @@
 
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Egodystonic.Atomics.Tests.Harness;
@@ -13,6 +14,99 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 		protected ConcurrentTestCaseRunner<TTarget> NewRunner() => _runnerFactory.NewRunner();
 		protected ConcurrentTestCaseRunner<TTarget> NewRunner(T initialValue) => _runnerFactory.NewRunner(initialValue);
+
+		// These methods provided because NUnit is too slow a lot of the time
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(int expected, int actual) {
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(long expected, long actual) {
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(uint expected, uint actual) {
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(ulong expected, ulong actual) {
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(float expected, float actual) {
+			// ReSharper disable once CompareOfFloatsByEqualityOperator Exact comparison is expected here
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(double expected, double actual) {
+			// ReSharper disable once CompareOfFloatsByEqualityOperator Exact comparison is expected here
+			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(float expected, float actual, float tolerance) {
+			if (Math.Abs(expected - actual) > tolerance) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual(double expected, double actual, double tolerance) {
+			if (Math.Abs(expected - actual) > tolerance) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqual<TTest>(TTest expected, TTest actual) where TTest : IEquatable<TTest> {
+			if (!expected.Equals(actual)) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreEqualObjects(object expected, object actual) {
+			if (!expected.Equals(actual)) Assert.Fail($"Expected {expected} but was {actual}.");
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(int expected, int actual) {
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(long expected, long actual) {
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(uint expected, uint actual) {
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(ulong expected, ulong actual) {
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(float expected, float actual) {
+			// ReSharper disable once CompareOfFloatsByEqualityOperator Exact comparison is expected here
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(double expected, double actual) {
+			// ReSharper disable once CompareOfFloatsByEqualityOperator Exact comparison is expected here
+			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(float expected, float actual, float tolerance) {
+			if (Math.Abs(expected - actual) <= tolerance) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual(double expected, double actual, double tolerance) {
+			if (Math.Abs(expected - actual) <= tolerance) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqual<TTest>(TTest expected, TTest actual) where TTest : IEquatable<TTest> {
+			if (expected.Equals(actual)) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertAreNotEqualObjects(object expected, object actual) {
+			if (expected.Equals(actual)) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected void AssertTrue(bool condition) {
+			if (!condition) Assert.Fail($"Condition was false.");
+		}
+
 
 		// These tests just check the API for TTarget. I.e. return value, parameters, etc.
 		protected abstract T Alpha { get; }

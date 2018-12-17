@@ -37,7 +37,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			var atomicInt = new AtomicInt(0);
 
-			runner.GlobalSetUp = _ => atomicInt.Set(0);
+			runner.GlobalSetUp = (_, __) => atomicInt.Set(0);
 			runner.AllThreadsTearDown = target => Assert.True(target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {

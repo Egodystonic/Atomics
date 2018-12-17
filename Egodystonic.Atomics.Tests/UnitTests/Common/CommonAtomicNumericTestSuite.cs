@@ -43,7 +43,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var atomicInt = new AtomicInt(0);
 			var runner = NewRunner(Zero);
-			runner.GlobalSetUp = _ => { atomicInt.Set(0); };
+			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
 			runner.AllThreadsTearDown = target => {
 				Assert.AreEqual(Convert(NumIterations), target.Value);
 			};

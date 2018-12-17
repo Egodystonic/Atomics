@@ -116,13 +116,13 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				var curValue = Get();
+				var curValue = GetUnsafe();
 				if (!curValue.Equals(comparand)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				EnterLockAsWriter();
+				EnterLockAsWriter(spinner);
 				if (!_value.Equals(curValue)) {
 					ExitLockAsWriter();
 					spinner.SpinOnce();
@@ -143,14 +143,14 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				var curValue = Get();
+				var curValue = GetUnsafe();
 				var newValue = mapFunc(curValue, mapContext);
 				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				EnterLockAsWriter();
+				EnterLockAsWriter(spinner);
 				if (!_value.Equals(curValue)) {
 					ExitLockAsWriter();
 					spinner.SpinOnce();

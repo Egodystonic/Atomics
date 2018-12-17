@@ -45,6 +45,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void Stub2() {
 			Assert.Fail("Need to implement tests for 16-byte val");
 		}
+
+		[Test]
+		public void Stub3() {
+			Assert.Fail("Need to implement tests for borrow methods");
+		}
 		#endregion Tests
 	}
 }
