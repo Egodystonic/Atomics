@@ -60,6 +60,104 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
+		public (double PreviousValue, double NewValue) SpinWaitForMinimumExchange(double newValue, double minValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForMinimumExchange(Func<double, double> mapFunc, double minValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForMinimumExchange<TContext>(Func<double, TContext, double> mapFunc, double minValue, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue, context);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForMaximumExchange(double newValue, double maxValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForMaximumExchange(Func<double, double> mapFunc, double maxValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (double PreviousValue, double NewValue) SpinWaitForMaximumExchange<TContext>(Func<double, TContext, double> mapFunc, double maxValue, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) {
+					spinner.SpinOnce();
+					continue;
+				}
+
+				var newValue = mapFunc(curValue, context);
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
 		public (double PreviousValue, double NewValue) SpinWaitForExchange(double newValue, double comparand) {
 			var spinner = new SpinWait();
 
@@ -95,6 +193,111 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMinimumExchange(double newValue, double minValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) return (false, curValue, curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMinimumExchange(Func<double, double> mapFunc, double minValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMinimumExchange<TContext>(Func<double, TContext, double> mapFunc, double minValue, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < minValue) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMaximumExchange(double newValue, double maxValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) return (false, curValue, curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMaximumExchange(Func<double, double> mapFunc, double maxValue) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryMaximumExchange<TContext>(Func<double, TContext, double> mapFunc, double maxValue, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue > maxValue) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryBoundedExchange(double newValue, double lowerBoundInclusive, double upperBoundExclusive) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryBoundedExchange(Func<double, double> mapFunc, double lowerBoundInclusive, double upperBoundExclusive) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (bool ValueWasSet, double PreviousValue, double NewValue) TryBoundedExchange<TContext>(Func<double, TContext, double> mapFunc, double lowerBoundInclusive, double upperBoundExclusive, TContext context) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, double PreviousValue, double NewValue) TryExchange(double newValue, double comparand) {
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
@@ -124,6 +327,24 @@ namespace Egodystonic.Atomics.Numerics {
 		}
 
 		// ============================ Numeric API ============================
+
+		public double SpinWaitForMinimumValue(double minValue) {
+			var spinner = new SpinWait();
+			while (true) {
+				var curVal = Get();
+				if (curVal >= minValue) return curVal;
+				spinner.SpinOnce();
+			}
+		}
+
+		public double SpinWaitForMaximumValue(double maxValue) {
+			var spinner = new SpinWait();
+			while (true) {
+				var curVal = Get();
+				if (curVal <= maxValue) return curVal;
+				spinner.SpinOnce();
+			}
+		}
 
 		public double SpinWaitForBoundedValue(double lowerBoundInclusive, double upperBoundExclusive) {
 			var spinner = new SpinWait();

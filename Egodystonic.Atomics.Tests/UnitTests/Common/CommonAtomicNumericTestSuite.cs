@@ -15,13 +15,18 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		protected abstract T Zero { get; }
 		protected abstract T One { get; }
 		protected abstract T Convert(int operand);
+		protected abstract int ToInt(T operand);
 		protected abstract T Add(T lhs, T rhs);
 		protected abstract T Sub(T lhs, T rhs);
 		protected abstract T Mul(T lhs, T rhs);
 		protected abstract T Div(T lhs, T rhs);
+		protected abstract bool GreaterThan(T lhs, T rhs);
+		protected abstract bool GreaterThanOrEqualTo(T lhs, T rhs);
+		protected abstract bool LessThan(T lhs, T rhs);
+		protected abstract bool LessThanOrEqualTo(T lhs, T rhs);
 
 		[Test]
-		public void GetAndSet() {
+		public void GetAndSetAndValue() {
 			const int NumIterations = 1_000_000;
 			var runner = NewRunner(Zero);
 
@@ -35,20 +40,103 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => target.Get(),
 				(prev, cur) => Assert.LessOrEqual(prev, cur)
 			);
+
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					target.Value = Convert(atomicInt.Increment().NewValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.LessOrEqual(prev, cur)
+			);
+		}
+
+		[Test]
+		public void SpinWaitForValue() {
+			const int NumIterations = 300_000;
+
+			var runner = NewRunner(Zero);
+
+			// (T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						if ((ToInt(curVal) & 1) == 0) {
+							AssertAreEqual(Add(curVal, One), target.SpinWaitForValue(Add(curVal, One)));
+						}
+						else {
+							target.Value = Add(curVal, One);
+						}
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						if ((ToInt(curVal) & 1) == 1) {
+							AssertAreEqual(Add(curVal, One), target.SpinWaitForValue(Add(curVal, One)));
+						}
+						else {
+							target.Value = Add(curVal, One);
+						}
+					}
+				}
+			);
+
+			// (Func<T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						target.TryExchange(Add(curVal, One), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						AssertTrue(GreaterThanOrEqualTo(target.SpinWaitForValue(c => GreaterThan(c, curVal)), curVal));
+					}
+				}
+			);
+
+			// (Func<T, TContext, bool>, TContext)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						target.TryExchange(Add(curVal, One), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Equals(Convert(NumIterations))) break;
+						AssertTrue(GreaterThanOrEqualTo(target.SpinWaitForValue((c, ctx) => GreaterThan(c, curVal), curVal), curVal));
+					}
+				}
+			);
 		}
 
 		[Test]
 		public void Exchange() {
 			const int NumIterations = 300_000;
 
-			var atomicInt = new AtomicInt(0);
 			var runner = NewRunner(Zero);
+
+			// (T)
+			var atomicInt = new AtomicInt(0);
 			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
 			runner.AllThreadsTearDown = target => {
 				Assert.AreEqual(Convert(NumIterations), target.Value);
 			};
-
-			// Test: Method always exhibits coherency for consecutive reads from external threads
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newValue = Convert(atomicInt.Increment().NewValue);
@@ -61,245 +149,515 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					Assert.LessOrEqual(prev, cur);
 				}
 			);
-		}
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
 
-		[Test]
-		public void TryExchange() {
-			const int NumIterations = 100_000;
-
-			var runner = NewRunner(Convert(NumIterations));
-
-			// Test: Return value of method is always consistent
+			// (Func<T, T>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(Convert(NumIterations), target.Value);
+			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var curValue = target.Value;
-					var newValue = Add(curValue, curValue);
-					var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(newValue, setValue);
-					}
-					else {
-						Assert.AreNotEqual(curValue, prevValue);
-						Assert.AreEqual(setValue, prevValue);
-					}
+					var exchRes = target.Exchange(t => Add(t, One));
+					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.NewValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(0, target.Value);
+			// (Func<T, TContext, T>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(Convert(NumIterations), target.Value);
+			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.Equals(Zero)) return;
-						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
-						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(newValue, setValue);
-						}
-						else {
-							Assert.AreNotEqual(curValue, prevValue);
-							Assert.AreEqual(setValue, prevValue);
-						}
+					var exchRes = target.Exchange(Add, One);
+					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.NewValue);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void SpinWaitForExchangeWithoutContext() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
+			// (Func<T, T>, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), nextVal);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (n, c) => n.Equals(Add(c, One)));
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (n, c) => n.Equals(Add(c, One)));
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (n, c) => n.Equals(Add(c, One)));
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (n, c) => n.Equals(Add(c, One)));
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void SpinWaitForExchangeWithContext() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(Zero);
+
+			// (Func<T, TContext, T>, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, nextVal, One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, nextVal, One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => Add(Div(Add(c, ctx), Add(One, One)), One), (c, n, ctx) => n.Equals(Add(c, ctx)), nextVal, One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => Add(Div(Add(c, ctx), Add(One, One)), One), (c, n, ctx) => n.Equals(Add(c, ctx)), nextVal, One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = Convert(i);
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						AssertAreEqual(nextVal, exchRes.PreviousValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void TryExchangeWithoutContext() {
+			const int NumIterations = 200_000;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = Sub(curValue, One);
+					var newValue = Add(curValue, One);
 					target.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.LessOrEqual(cur, prev)
-			);
-		}
-
-		[Test]
-		public void PredicatedTryExchange() {
-			const int NumIterations = 100_000;
-
-			var runner = NewRunner(Zero);
-
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var newValue = Add(curValue, One);
-					var (wasSet, prevValue, _) = target.TryExchange(newValue, (c, n) => c.Equals(Sub(n, One)));
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(Add(prevValue, One), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
+				(prev, cur) => AssertTrue(GreaterThanOrEqualTo(cur, prev))
 			);
 
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations * -1, target.Value);
-			};
+			// (T, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Equals(Convert(NumIterations * -1))) return;
-						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue, _) = target.TryExchange(newValue, (c, n) => c.Equals(Add(n, One)));
-						if (wasSet) Assert.AreEqual(curValue, prevValue);
-						else Assert.AreNotEqual(curValue, prevValue);
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var newValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => Equals(Add(c, One), n));
+						if (wasSet) {
+							AssertAreEqual(curValue, prevValue);
+							AssertAreEqual(newValue, setValue);
+						}
+						else {
+							AssertAreNotEqual(curValue, prevValue);
+							AssertAreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
+			// (Func<T, T>, T)
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					checked {
-						var curValue = target.Value;
-						var newValue = Sub(curValue, Convert(3));
-						target.TryExchange(newValue, (c, n) => c.Equals(Add(n, Convert(3))));
+					var curValue = target.Value;
+
+					var (wasSet, prevValue, newValue) = target.TryExchange(
+						c => Add(c, One),
+						curValue
+					);
+
+					if (wasSet) {
+						AssertAreEqual(curValue, prevValue);
+						AssertAreEqual(Add(curValue, One), newValue);
 					}
+					else AssertAreNotEqual(curValue, prevValue);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => {
-					Assert.LessOrEqual(cur, prev);
-					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
+				(prev, cur) => LessThanOrEqualTo(prev, cur)
+			);
+
+			// (Func<T, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var (wasSet, prevValue, setValue) = target.TryExchange(c => Add(c, One), (c, n) => Equals(Add(c, One), n));
+						if (wasSet) {
+							AssertAreEqual(curValue, prevValue);
+							AssertAreEqual(Add(prevValue, One), setValue);
+						}
+						else {
+							AssertAreNotEqual(curValue, prevValue);
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
 				}
 			);
+			runner.AllThreadsTearDown = null;
 		}
 
 		[Test]
-		public void MappedExchange() {
+		public void TryExchangeWithContext() {
 			const int NumIterations = 300_000;
 
 			var runner = NewRunner(Zero);
-			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(Convert(NumIterations), target.Value);
-			};
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousSingleWriterCoherencyTests(
-				target => {
-					var (prevValue, newValue) = target.Exchange(c => Add(c, One));
-					Assert.AreEqual(prevValue, Sub(newValue, One));
-				},
-				NumIterations,
-				target => target.Value,
-				(prev, cur) => {
-					Assert.LessOrEqual(prev, cur);
-				}
-			);
-		}
-
-		[Test]
-		public void MappedTryExchange() {
-			const int NumIterations = 100_000;
-
-			var runner = NewRunner(Convert(NumIterations));
-
-			// Test: Return value of method is always consistent
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var curValue = target.Value;
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, c), curValue);
-					if (wasSet) {
-						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(Add(prevValue, prevValue), newValue);
-					}
-					else Assert.AreNotEqual(curValue, prevValue);
-				},
-				NumIterations
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => Assert.AreEqual(0, target.Value);
+			// (T, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
 						var curValue = target.Value;
-						if (curValue.Equals(Zero)) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), curValue);
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var newValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => Equals(Add(c, ctx), n), One);
 						if (wasSet) {
-							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(Sub(prevValue, One), newValue);
+							AssertAreEqual(curValue, prevValue);
+							AssertAreEqual(newValue, setValue);
 						}
-						else Assert.AreNotEqual(curValue, prevValue);
+						else {
+							AssertAreNotEqual(curValue, prevValue);
+							AssertAreEqual(setValue, prevValue);
+						}
 					}
 				}
 			);
 			runner.AllThreadsTearDown = null;
 
-			// Test: Method always exhibits coherency for consecutive reads from external threads
+			// (Func<T, TContext, T>, T)
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					target.TryExchange(c => Sub(c, One), curValue);
+
+					var (wasSet, prevValue, newValue) = target.TryExchange(
+						Add,
+						curValue,
+						One
+					);
+
+					if (wasSet) {
+						AssertAreEqual(curValue, prevValue);
+						AssertAreEqual(Add(curValue, One), newValue);
+					}
+					else AssertAreNotEqual(curValue, prevValue);
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => Assert.LessOrEqual(cur, prev)
+				(prev, cur) => LessThanOrEqualTo(prev, cur)
 			);
+
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n) => Equals(Add(c, One), n) && LessThan(c, Convert(NumIterations)), One);
+						if (wasSet) {
+							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
+							AssertAreEqual(Add(prevValue, One), setValue);
+						}
+						else {
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var (wasSet, prevValue, setValue) = target.TryExchange(c => Add(c, One), (c, n, ctx) => Equals(Add(c, ctx), n) && LessThan(c, Convert(NumIterations)), One);
+						if (wasSet) {
+							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
+							AssertAreEqual(Add(prevValue, One), setValue);
+						}
+						else {
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n, ctx) => Equals(Add(c, One), n) && LessThan(c, Convert(NumIterations)), One);
+						if (wasSet) {
+							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
+							AssertAreEqual(Add(prevValue, One), setValue);
+						}
+						else {
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Equals(Convert(NumIterations))) return;
+						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n, ctx) => Equals(Add(c, One), n) && LessThan(c, Convert(ctx)), One, NumIterations);
+						if (wasSet) {
+							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
+							AssertAreEqual(Add(prevValue, One), setValue);
+						}
+						else {
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
 		}
 
 		[Test]
-		public void MappedPredicatedTryExchange() {
-			const int NumIterations = 100_000;
+		public void SpinWaitForBoundedValue() {
+			const int NumIterations = 300_000;
+			const int Coefficient = 4;
+			const int TicketChunking = NumIterations / 10_000;
 
 			var runner = NewRunner(Zero);
+			var ticketProvider = new AtomicInt(0);
+			var ticketBarrier = new AtomicInt(0);
 
-			// Test: Return value of TryExchange is always consistent
-			runner.ExecuteFreeThreadedTests(
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteWriterReaderTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => Add(c, One), (c, n) => c.Equals(Sub(n, One)));
-					if (wasSet) Assert.AreEqual(Add(prevValue, One), newValue);
+					var ticketNumber = ticketProvider.Increment().NewValue;
+					ticketBarrier.SpinWaitForMinimumValue(ticketNumber);
+					target.Value = Convert(ticketNumber * Coefficient);
 				},
-				NumIterations
-			);
-
-
-			// Test: Method does what is expected and is safe from race conditions
-			runner.AllThreadsTearDown = target => {
-				Assert.AreEqual(NumIterations * -1, target.Value);
-			};
-			runner.ExecuteFreeThreadedTests(
 				target => {
 					while (true) {
-						var curValue = target.Value;
-						if (curValue.Equals(Convert(NumIterations * -1))) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => Sub(c, One), (c, n) => c.Equals(Add(n, One)) && !c.Equals(Convert(NumIterations * -1)));
-						if (wasSet) Assert.AreEqual(Sub(prevValue, One), newValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// Test: Method always exhibits coherency for consecutive reads from external threads
-			runner.ExecuteContinuousCoherencyTests(
-				target => {
-					checked {
-						target.TryExchange(c => Sub(c, Convert(3)), (c, n) => c.Equals(Add(n, Convert(3))));
+						var barrierValue = ticketBarrier.Add(TicketChunking).NewValue;
+						AssertAreEqual(
+							Convert(barrierValue * Coefficient),
+							target.SpinWaitForBoundedValue(Convert((barrierValue * Coefficient) - (Coefficient / 2)), Convert(barrierValue * Coefficient))
+						);
+						if (barrierValue == NumIterations * Coefficient) return;
 					}
 				},
 				NumIterations,
-				target => target.Value,
-				(prev, cur) => {
-					Assert.LessOrEqual(cur, prev);
-					Assert.AreEqual(cur, Mul(Div(cur, Convert(3)), Convert(3))); // For integer-based numerics, check that we haven't somehow become a non-multiple-of-three
-				}
+				iterateWriterFunc: true,
+				iterateReaderFunc: false
 			);
 		}
 
@@ -454,6 +812,52 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 		// API Tests
 		[Test]
+		public void API_SpinWaitForMinimumValue() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var waitRes = target.SpinWaitForMinimumValue(Convert(90));
+			Assert.AreEqual(Convert(100), waitRes);
+
+			var spinWaitTask = Task.Run(() => target.SpinWaitForMinimumValue(Convert(200)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(199));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(200));
+			Assert.AreEqual(Convert(200), spinWaitTask.Result);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMinimumValue(Convert(300)));
+			Thread.Sleep(200); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(109003));
+			Assert.AreEqual(Convert(109003), spinWaitTask.Result);
+		}
+
+		[Test]
+		public void API_SpinWaitForMaximumValue() {
+			var target = new TTarget();
+
+			target.Set(Convert(-100));
+			var waitRes = target.SpinWaitForMaximumValue(Convert(-90));
+			Assert.AreEqual(Convert(-100), waitRes);
+
+			var spinWaitTask = Task.Run(() => target.SpinWaitForMaximumValue(Convert(-200)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-199));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-200));
+			Assert.AreEqual(Convert(-200), spinWaitTask.Result);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMaximumValue(Convert(-300)));
+			Thread.Sleep(200); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-109003));
+			Assert.AreEqual(Convert(-109003), spinWaitTask.Result);
+		}
+
+		[Test]
 		public void API_SpinWaitForBoundedValue() {
 			var target = new TTarget();
 
@@ -477,11 +881,91 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void API_SpinWaitForMinimumExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			// (T, T)
+			var exchRes = target.SpinWaitForMinimumExchange(Convert(190), Convert(90));
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			var spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(Convert(50), Convert(200)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(200));
+			Assert.AreEqual(Convert(200), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(50), spinWaitTask.Result.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.SpinWaitForMinimumExchange(t => Mul(t, Convert(2)), Convert(0));
+			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(t => Sub(t, Convert(10)), Convert(101)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(101));
+			Assert.AreEqual(Convert(101), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(91), spinWaitTask.Result.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.SpinWaitForMinimumExchange(Add, Convert(91), Convert(109));
+			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(Div, Convert(300), Convert(10)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(300));
+			Assert.AreEqual(Convert(300), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(30), spinWaitTask.Result.NewValue);
+		}
+
+		[Test]
+		public void API_SpinWaitForMaximumExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(-100));
+
+			// (T, T)
+			var exchRes = target.SpinWaitForMaximumExchange(Convert(-190), Convert(-90));
+			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			var spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(Convert(-50), Convert(-200)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-200));
+			Assert.AreEqual(Convert(-200), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(-50), spinWaitTask.Result.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.SpinWaitForMaximumExchange(t => Mul(t, Convert(2)), Convert(-0));
+			Assert.AreEqual(Convert(-50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-101));
+			Assert.AreEqual(Convert(-101), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(-91), spinWaitTask.Result.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.SpinWaitForMaximumExchange(Add, Convert(-91), Convert(-109));
+			Assert.AreEqual(Convert(-91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(Div, Convert(-300), Convert(10)));
+			Thread.Sleep(100); // Give the test time to fail if it's gonna
+			Assert.AreEqual(false, spinWaitTask.IsCompleted);
+			target.Set(Convert(-300));
+			Assert.AreEqual(Convert(-300), spinWaitTask.Result.PreviousValue);
+			Assert.AreEqual(Convert(-30), spinWaitTask.Result.NewValue);
+		}
+
+		[Test]
 		public void API_SpinWaitForBoundedExchange() {
 			var target = new TTarget();
 
 			target.Set(Convert(100));
-	
+
 			// (T, T, T)
 			var exchRes = target.SpinWaitForBoundedExchange(Convert(190), Convert(90), Convert(110));
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
@@ -514,6 +998,162 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			target.Set(Convert(300));
 			Assert.AreEqual(Convert(300), spinWaitTask.Result.PreviousValue);
 			Assert.AreEqual(Convert(30), spinWaitTask.Result.NewValue);
+		}
+
+		[Test]
+		public void API_TryMinimumExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			// (T, T)
+			var exchRes = target.TryMinimumExchange(Convert(190), Convert(90));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			exchRes = target.TryMinimumExchange(Convert(50), Convert(200));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(190), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			target.Set(Convert(200));
+			exchRes = target.TryMinimumExchange(Convert(50), Convert(200));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(50), exchRes.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.TryMinimumExchange(t => Mul(t, Convert(2)), Convert(0));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			exchRes = target.TryMinimumExchange(t => Sub(t, Convert(10)), Convert(101));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			target.Set(Convert(101));
+			exchRes = target.TryMinimumExchange(t => Sub(t, Convert(10)), Convert(101));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(101), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(91), exchRes.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.TryMinimumExchange(Add, Convert(91), Convert(109));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			exchRes = target.TryMinimumExchange(Div, Convert(300), Convert(10));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			target.Set(Convert(300));
+			exchRes = target.TryMinimumExchange(Div, Convert(300), Convert(10));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(300), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(30), exchRes.NewValue);
+		}
+
+		[Test]
+		public void API_TryMaximumExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(-100));
+
+			// (T, T)
+			var exchRes = target.TryMaximumExchange(Convert(-190), Convert(-90));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			exchRes = target.TryMaximumExchange(Convert(-50), Convert(-200));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-190), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			target.Set(Convert(-200));
+			exchRes = target.TryMaximumExchange(Convert(-50), Convert(-200));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-50), exchRes.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.TryMaximumExchange(t => Mul(t, Convert(2)), Convert(-0));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			exchRes = target.TryMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			target.Set(Convert(-101));
+			exchRes = target.TryMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-101), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-91), exchRes.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.TryMaximumExchange(Add, Convert(-91), Convert(-109));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			exchRes = target.TryMaximumExchange(Div, Convert(-300), Convert(10));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			target.Set(Convert(-300));
+			exchRes = target.TryMaximumExchange(Div, Convert(-300), Convert(10));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(-300), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(-30), exchRes.NewValue);
+		}
+
+		[Test]
+		public void API_TryBoundedExchange() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+
+			// (T, T, T)
+			var exchRes = target.TryBoundedExchange(Convert(190), Convert(90), Convert(110));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			exchRes = target.TryBoundedExchange(Convert(50), Convert(200), Convert(300));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(190), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			target.Set(Convert(200));
+			exchRes = target.TryBoundedExchange(Convert(50), Convert(200), Convert(300));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(50), exchRes.NewValue);
+
+			// (Func<T, T>, T, T)
+			exchRes = target.TryBoundedExchange(t => Mul(t, Convert(2)), Convert(0), Convert(51));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			exchRes = target.TryBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			target.Set(Convert(101));
+			exchRes = target.TryBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(101), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(91), exchRes.NewValue);
+
+			// (Func<T, TContext, T>, T, T)
+			exchRes = target.TryBoundedExchange(Add, Convert(91), Convert(92), Convert(109));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			exchRes = target.TryBoundedExchange(Div, Convert(300), Convert(400), Convert(10));
+			Assert.AreEqual(false, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			target.Set(Convert(300));
+			exchRes = target.TryBoundedExchange(Div, Convert(300), Convert(400), Convert(10));
+			Assert.AreEqual(true, exchRes.ValueWasSet);
+			Assert.AreEqual(Convert(300), exchRes.PreviousValue);
+			Assert.AreEqual(Convert(30), exchRes.NewValue);
 		}
 
 		[Test]

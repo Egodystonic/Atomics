@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Threading;
 using Egodystonic.Atomics.Numerics;
-using Egodystonic.Atomics.Tests.DummyObjects;
-using Egodystonic.Atomics.Tests.Harness;
 using Egodystonic.Atomics.Tests.UnitTests.Common;
 using NUnit.Framework;
-using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
-namespace Egodystonic.Atomics.Tests.UnitTests {
+namespace Egodystonic.Atomics.Tests.UnitTests.Numerics {
 	[TestFixture]
 	class AtomicFloatTest : CommonAtomicFloatingPointTestSuite<float, AtomicFloat> {
 		#region Test Fields
@@ -45,6 +40,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		protected override float Convert(float operand) => operand;
 		protected override double AsDouble(float operand) => operand;
 		protected override float Abs(float operand) => MathF.Abs(operand);
+		protected override int ToInt(float operand) => (int) operand;
+		protected override bool GreaterThan(float lhs, float rhs) => lhs > rhs;
+		protected override bool GreaterThanOrEqualTo(float lhs, float rhs) => lhs >= rhs;
+		protected override bool LessThan(float lhs, float rhs) => lhs < rhs;
+		protected override bool LessThanOrEqualTo(float lhs, float rhs) => lhs <= rhs;
 		#endregion Tests
 	}
 }

@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Threading;
 using Egodystonic.Atomics.Numerics;
-using Egodystonic.Atomics.Tests.DummyObjects;
-using Egodystonic.Atomics.Tests.Harness;
 using Egodystonic.Atomics.Tests.UnitTests.Common;
 using NUnit.Framework;
-using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
-namespace Egodystonic.Atomics.Tests.UnitTests {
+namespace Egodystonic.Atomics.Tests.UnitTests.Numerics {
 	[TestFixture]
 	class AtomicLongTest : CommonAtomicNumericTestSuite<long, AtomicLong> {
 		#region Test Fields
@@ -41,6 +36,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		protected override long Sub(long lhs, long rhs) => lhs - rhs;
 		protected override long Mul(long lhs, long rhs) => lhs * rhs;
 		protected override long Div(long lhs, long rhs) => lhs / rhs;
+		protected override int ToInt(long operand) => (int) operand;
+		protected override bool GreaterThan(long lhs, long rhs) => lhs > rhs;
+		protected override bool GreaterThanOrEqualTo(long lhs, long rhs) => lhs >= rhs;
+		protected override bool LessThan(long lhs, long rhs) => lhs < rhs;
+		protected override bool LessThanOrEqualTo(long lhs, long rhs) => lhs <= rhs;
 		#endregion Tests
 	}
 }
