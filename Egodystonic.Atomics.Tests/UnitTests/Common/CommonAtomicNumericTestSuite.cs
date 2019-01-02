@@ -235,7 +235,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (n, c) => n.Equals(Add(c, One)));
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n) => n.Equals(Add(c, One)));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -243,7 +243,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (n, c) => n.Equals(Add(c, One)));
+						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n) => n.Equals(Add(c, One)));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -257,7 +257,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (n, c) => n.Equals(Add(c, One)));
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -265,7 +265,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (n, c) => n.Equals(Add(c, One)));
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -330,7 +330,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -338,7 +338,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -352,7 +352,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange((c, ctx) => Add(Div(Add(c, ctx), Add(One, One)), One), (c, n, ctx) => n.Equals(Add(c, ctx)), nextVal, One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), One, nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -360,7 +360,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange((c, ctx) => Add(Div(Add(c, ctx), Add(One, One)), One), (c, n, ctx) => n.Equals(Add(c, ctx)), nextVal, One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), One, nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -374,7 +374,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)), One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -382,7 +382,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)), One);
+						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -396,7 +396,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						Console.WriteLine($"Waiting for {nextVal}");
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -404,7 +405,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
+						Console.WriteLine($"Waiting for {nextVal}");
+						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
 						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
 					}
@@ -481,7 +483,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var (wasSet, prevValue, setValue) = target.TryExchange(c => Add(c, One), (c, n) => Equals(Add(c, One), n));
+						var (wasSet, prevValue, setValue) = target.TryExchange(c => Add(c, One), (c, n) => Equals(Add(c, One), n) && Equals(c, curValue));
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
 							AssertAreEqual(Add(prevValue, One), setValue);
@@ -628,36 +630,479 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
-		public void SpinWaitForBoundedValue() {
+		public void SpinWaitForMinimumValue() {
 			const int NumIterations = 300_000;
-			const int Coefficient = 4;
-			const int TicketChunking = NumIterations / 10_000;
 
 			var runner = NewRunner(Zero);
-			var ticketProvider = new AtomicInt(0);
-			var ticketBarrier = new AtomicInt(0);
 
-			// (T, T)
 			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
-			runner.ExecuteWriterReaderTests(
+			runner.ExecuteSingleWriterTests(
 				target => {
-					var ticketNumber = ticketProvider.Increment().NewValue;
-					ticketBarrier.SpinWaitForMinimumValue(ticketNumber);
-					target.Value = Convert(ticketNumber * Coefficient);
+					var incRes = target.Increment();
+					AssertAreEqual(Add(incRes.PreviousValue, One), incRes.NewValue);
 				},
 				target => {
 					while (true) {
-						var barrierValue = ticketBarrier.Add(TicketChunking).NewValue;
-						AssertAreEqual(
-							Convert(barrierValue * Coefficient),
-							target.SpinWaitForBoundedValue(Convert((barrierValue * Coefficient) - (Coefficient / 2)), Convert(barrierValue * Coefficient))
-						);
-						if (barrierValue == NumIterations * Coefficient) return;
+						var curVal = target.Value;
+						if (ToInt(curVal) == NumIterations) break;
+
+						var waitRes = target.SpinWaitForMinimumValue(Add(curVal, One));
+						AssertTrue(GreaterThan(waitRes, curVal));
 					}
 				},
 				NumIterations,
 				iterateWriterFunc: true,
 				iterateReaderFunc: false
+			);
+		}
+
+		[Test]
+		public void SpinWaitForMaximumValue() {
+			const int NumIterations = 300_000;
+
+			var runner = NewRunner(Convert(NumIterations));
+
+			runner.AllThreadsTearDown = target => AssertAreEqual(Zero, target.Value);
+			runner.ExecuteSingleWriterTests(
+				target => {
+					var incRes = target.Decrement();
+					AssertAreEqual(Sub(incRes.PreviousValue, One), incRes.NewValue);
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (ToInt(curVal) == 0) break;
+
+						var waitRes = target.SpinWaitForMaximumValue(Sub(curVal, One));
+						AssertTrue(LessThan(waitRes, curVal));
+					}
+				},
+				NumIterations,
+				iterateWriterFunc: true,
+				iterateReaderFunc: false
+			);
+		}
+
+		[Test]
+		public void SpinWaitForBoundedValue() {
+			const int IncrementsPerTicket = 100;
+			const int NumTickets = 300;
+			const int TargetValue = IncrementsPerTicket * NumTickets;
+
+			var runner = NewRunner(Zero);
+
+			var ticketProvider = new AtomicInt();
+
+			runner.GlobalSetUp = (_, __) => ticketProvider.Set(0);
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(TargetValue), target.Value);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var ticket = ticketProvider.Increment().PreviousValue;
+						if (ticket >= NumTickets) return;
+
+						var lowerBoundInc = Convert(ticket * IncrementsPerTicket);
+						var upperBoundEx = Convert((ticket + 1) * IncrementsPerTicket);
+						var waitRes = target.SpinWaitForBoundedValue(lowerBoundInc, upperBoundEx);
+						AssertTrue(LessThanOrEqualTo(waitRes, lowerBoundInc) && GreaterThan(upperBoundEx, waitRes));
+
+						for (var i = 0; i < IncrementsPerTicket; ++i) target.Increment();
+					}
+				}
+			);
+		}
+
+		[Test]
+		public void SpinWaitForMinimumExchange() {
+			const int NumIterations = 30;
+			const int Target = 3_000;
+
+			CancellationTokenSource readerCompletionSource = null;
+			var runner = NewRunner(Zero);
+			runner.GlobalSetUp = (_, __) => readerCompletionSource = new CancellationTokenSource();
+
+			// (T, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Increment();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMinimumExchange(Zero, Convert(Target));
+						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, T>, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Increment();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMinimumExchange(c => Sub(c, Convert(Target)), Convert(Target));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Increment();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMinimumExchange(Sub, Convert(Target), Convert(Target));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+		}
+
+		[Test]
+		public void SpinWaitForMaximumExchange() {
+			const int NumIterations = 30;
+			const int Target = -3_000;
+
+			CancellationTokenSource readerCompletionSource = null;
+			var runner = NewRunner(Zero);
+			runner.GlobalSetUp = (_, __) => readerCompletionSource = new CancellationTokenSource();
+
+			// (T, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Decrement();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMaximumExchange(Zero, Convert(Target));
+						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, T>, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Decrement();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMaximumExchange(c => Sub(c, Convert(Target)), Convert(Target));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.Decrement();
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForMaximumExchange(Sub, Convert(Target), Convert(Target));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+		}
+
+		[Test]
+		public void SpinWaitForBoundedExchange() {
+			const int NumIterations = 30;
+			const int IncrementSize = 3;
+			const int Target = IncrementSize * 3_000;
+			const int Range = IncrementSize - 1;
+
+			CancellationTokenSource readerCompletionSource = null;
+			var runner = NewRunner(Zero);
+			runner.GlobalSetUp = (_, __) => readerCompletionSource = new CancellationTokenSource();
+
+			// (T, T, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.TryExchange(c => Add(c, Convert(IncrementSize)), (c, _) => LessThan(c, Convert(Target)));
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForBoundedExchange(Zero, Convert(Target - Range), Convert(Target + Range));
+						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, T>, T, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.TryExchange(c => Add(c, Convert(IncrementSize)), (c, _) => LessThan(c, Convert(Target)));
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForBoundedExchange(c => Sub(c, Convert(Target)), Convert(Target - Range), Convert(Target + Range));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+
+			// (Func<T, TContext, T>, T, T)
+			runner.ExecuteSingleReaderTests(
+				target => {
+					while (!readerCompletionSource.IsCancellationRequested) {
+						target.TryExchange(c => Add(c, Convert(IncrementSize)), (c, _) => LessThan(c, Convert(Target)));
+						Thread.Yield(); // To reduce contention, otherwise the read thread gets starved out
+					}
+				},
+				target => {
+					for (var i = 0; i < NumIterations; i++) {
+						var exchRes = target.SpinWaitForBoundedExchange((c, ctx) => Sub(c, ctx), Convert(Target - Range), Convert(Target + Range), Convert(Target));
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
+					}
+					readerCompletionSource.Cancel();
+				}
+			);
+		}
+
+		[Test]
+		public void TryMinimumExchange() {
+			const int NumIterations = 300_000;
+			const int MinValue = 5;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Increment();
+				},
+				target => {
+					var tryRes = target.TryMinimumExchange(Zero, Convert(MinValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Increment();
+				},
+				target => {
+					var tryRes = target.TryMinimumExchange(c => Div(c, Convert(2)), Convert(MinValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Increment();
+				},
+				target => {
+					var tryRes = target.TryMinimumExchange((c, ctx) => Div(c, Convert(ctx)), Convert(MinValue), 2);
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
+					}
+				},
+				NumIterations
+			);
+		}
+
+		[Test]
+		public void TryMaximumExchange() {
+			const int NumIterations = 300_000;
+			const int MaxValue = -5;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Decrement();
+				},
+				target => {
+					var tryRes = target.TryMaximumExchange(Zero, Convert(MaxValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Increment();
+				},
+				target => {
+					var tryRes = target.TryMaximumExchange(c => Div(c, Convert(2)), Convert(MaxValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Increment();
+				},
+				target => {
+					var tryRes = target.TryMaximumExchange((c, ctx) => Div(c, Convert(ctx)), Convert(MaxValue), 2);
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
+			);
+		}
+
+		[Test]
+		public void TryBoundedExchange() {
+			const int NumIterations = 100_000;
+			const int Modulus = 30;
+			const int MinValue = (Modulus / 2) - 5;
+			const int MaxValue = (Modulus / 2) + 5;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Exchange(c => GreaterThanOrEqualTo(c, Convert(Modulus)) ? Zero : Add(c, One));
+				},
+				target => {
+					var tryRes = target.TryBoundedExchange(Zero, Convert(MinValue), Convert(MaxValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Exchange(c => GreaterThanOrEqualTo(c, Convert(Modulus)) ? Zero : Add(c, One));
+				},
+				target => {
+					var tryRes = target.TryBoundedExchange(c => Sub(c, Convert(MinValue)), Convert(MinValue), Convert(MaxValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
+			);
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteWriterReaderTests(
+				target => {
+					target.Exchange(c => GreaterThanOrEqualTo(c, Convert(Modulus)) ? Zero : Add(c, One));
+				},
+				target => {
+					var tryRes = target.TryBoundedExchange(Sub, Convert(MinValue), Convert(MaxValue), Convert(MinValue));
+					if (tryRes.ValueWasSet) {
+						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.NewValue);
+						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+					else {
+						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
+					}
+				},
+				NumIterations
 			);
 		}
 
