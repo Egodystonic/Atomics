@@ -174,13 +174,13 @@ namespace Egodystonic.Atomics {
 			else return (true, curValue.DynamicInvoke(args));
 		}
 
-		public (bool DelegateWasInvoked, TOut Result) TryInvoke<TOut>(Func<T, TOut> invocationWrapper) {
+		public (bool DelegateWasInvoked, TOut Result) TryWrappedInvoke<TOut>(Func<T, TOut> invocationWrapper) {
 			var curValue = Get();
 			if (curValue is null) return (false, default);
 			else return (true, invocationWrapper(curValue));
 		}
 
-		public bool TryInvoke(Action<T> invocationWrapper) {
+		public bool TryWrappedInvoke(Action<T> invocationWrapper) {
 			var curValue = Get();
 			if (curValue is null) return false;
 			invocationWrapper(curValue);
