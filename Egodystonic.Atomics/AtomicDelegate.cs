@@ -6,7 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed class AtomicDelegate<T> : IAtomic<T> where T : Delegate {
+	// TODO mention that reference equality is used throughout
+	public sealed class AtomicDelegate<T> : IAtomic<T> where T : MulticastDelegate {
 		T _value;
 
 		public T Value {
@@ -37,7 +38,7 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				if (curValue == targetValue) return curValue;
+				if (ReferenceEquals(curValue, targetValue)) return curValue;
 				spinner.SpinOnce();
 			}
 		}
@@ -49,7 +50,7 @@ namespace Egodystonic.Atomics {
 				var curValue = Get();
 				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -58,7 +59,7 @@ namespace Egodystonic.Atomics {
 			var spinner = new SpinWait();
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, comparand), comparand)) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -68,7 +69,7 @@ namespace Egodystonic.Atomics {
 			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, comparand), comparand)) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -84,7 +85,7 @@ namespace Egodystonic.Atomics {
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -92,14 +93,14 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
-			var wasSet = oldValue == comparand;
+			var wasSet = ReferenceEquals(oldValue, comparand);
 			return (wasSet, oldValue, wasSet ? newValue : oldValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
 			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
 			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
-			if (prevValue == comparand) return (true, prevValue, newValue);
+			if (ReferenceEquals(prevValue, comparand)) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -111,7 +112,7 @@ namespace Egodystonic.Atomics {
 				var newValue = mapFunc(curValue, mapContext);
 				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -127,7 +128,7 @@ namespace Egodystonic.Atomics {
 				curValue = Get();
 				newValue = (T)Delegate.Combine(curValue, operand);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
@@ -144,7 +145,7 @@ namespace Egodystonic.Atomics {
 				curValue = Get();
 				newValue = (T)Delegate.Remove(curValue, operand);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
@@ -161,7 +162,7 @@ namespace Egodystonic.Atomics {
 				curValue = Get();
 				newValue = (T)Delegate.RemoveAll(curValue, operand);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
@@ -184,6 +185,19 @@ namespace Egodystonic.Atomics {
 			var curValue = Get();
 			if (curValue is null) return false;
 			invocationWrapper(curValue);
+			return true;
+		}
+
+		public (bool DelegateWasInvoked, TOut Result) TryWrappedInvoke<TOut, TContext>(Func<T, TContext, TOut> invocationWrapper, TContext context) {
+			var curValue = Get();
+			if (curValue is null) return (false, default);
+			else return (true, invocationWrapper(curValue, context));
+		}
+
+		public bool TryWrappedInvoke<TContext>(Action<T, TContext> invocationWrapper, TContext context) {
+			var curValue = Get();
+			if (curValue is null) return false;
+			invocationWrapper(curValue, context);
 			return true;
 		}
 

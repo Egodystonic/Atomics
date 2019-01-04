@@ -56,7 +56,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void AssertAreEqualObjects(object expected, object actual) {
-			if (!expected.Equals(actual)) Assert.Fail($"Expected {expected} but was {actual}.");
+			if (!Equals(expected, actual)) Assert.Fail($"Expected {expected} but was {actual}.");
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -99,7 +99,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void AssertAreNotEqualObjects(object expected, object actual) {
-			if (expected.Equals(actual)) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+			if (Equals(expected, actual)) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

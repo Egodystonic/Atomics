@@ -34,10 +34,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#endregion
 
 		#region Tests
-		[Test]
-		public void Stub1() {
-			Assert.Fail("Test enum-specific stuff just to be sure.");
-		}
 		#endregion Tests
 	}
 }
