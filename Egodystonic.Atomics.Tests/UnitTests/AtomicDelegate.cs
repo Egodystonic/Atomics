@@ -273,6 +273,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 
 			// Context-consuming variants
+			atomicInt.Set(0);
 			target.Set(null);
 			Assert.AreEqual((false, default(int)), target.TryWrappedInvoke((f, ctx) => f(ctx), 10));
 

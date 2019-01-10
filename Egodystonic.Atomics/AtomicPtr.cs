@@ -91,6 +91,10 @@ namespace Egodystonic.Atomics {
 
 		IntPtr _value;
 
+		public AtomicPtr() : this(default(IntPtr)) { }
+		public AtomicPtr(IntPtr initialValue) => _value = initialValue;
+		public AtomicPtr(T* initialValue) => _value = (IntPtr) initialValue;
+
 		public T* Value {
 			[MethodImpl(MethodImplOptions.AggressiveInlining)] get => Get();
 			[MethodImpl(MethodImplOptions.AggressiveInlining)] set => Set(value);
@@ -202,7 +206,7 @@ namespace Egodystonic.Atomics {
 		public TypedPtrExchangeRes Increment() => Add(new IntPtr(1L));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TypedPtrExchangeRes Decrement() => Subtract(new IntPtr(-1L));
+		public TypedPtrExchangeRes Decrement() => Subtract(new IntPtr(1L));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TypedPtrExchangeRes Add(int operand) => Add(new IntPtr(operand));
@@ -251,11 +255,11 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IAtomic<IntPtr>.GetUnsafe() => (IntPtr) GetUnsafe();
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void Set(IntPtr newValue) => SetAsIntPtr(newValue);
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void SetUnsafe(IntPtr newValue) => SetUnsafe((T*) newValue);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public (IntPtr PreviousValue, IntPtr NewValue) Exchange(IntPtr newValue) => Exchange((T*) newValue).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.Exchange(IntPtr newValue) => Exchange((T*) newValue).AsUntyped;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public IntPtr SpinWaitForValue(IntPtr targetValue) => (IntPtr) SpinWaitForValue((T*) targetValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IAtomic<IntPtr>.SpinWaitForValue(IntPtr targetValue) => (IntPtr) SpinWaitForValue((T*) targetValue);
 
-		public (IntPtr PreviousValue, IntPtr NewValue) Exchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, TContext context) {
+		(IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.Exchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -267,9 +271,9 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForExchange(IntPtr newValue, IntPtr comparand) => SpinWaitForExchange((T*) newValue, (T*) comparand).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.SpinWaitForExchange(IntPtr newValue, IntPtr comparand) => SpinWaitForExchange((T*) newValue, (T*) comparand).AsUntyped;
 
-		public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, IntPtr comparand, TContext context) {
+		(IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.SpinWaitForExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, IntPtr comparand, TContext context) {
 			var spinner = new SpinWait();
 			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
@@ -279,7 +283,7 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (IntPtr PreviousValue, IntPtr NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<IntPtr, TMapContext, IntPtr> mapFunc, Func<IntPtr, IntPtr, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		(IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.SpinWaitForExchange<TMapContext, TPredicateContext>(Func<IntPtr, TMapContext, IntPtr> mapFunc, Func<IntPtr, IntPtr, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -295,16 +299,16 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public (bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) TryExchange(IntPtr newValue, IntPtr comparand) => TryExchange((T*) newValue, (T*) comparand).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, IntPtr comparand) => TryExchange((T*) newValue, (T*) comparand).AsUntyped;
 
-		public (bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) TryExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, IntPtr comparand, TContext context) {
+		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, IntPtr comparand, TContext context) {
 			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
 			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			if (prevValue == comparand) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
-		public (bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) TryExchange<TMapContext, TPredicateContext>(Func<IntPtr, TMapContext, IntPtr> mapFunc, Func<IntPtr, IntPtr, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		(bool ValueWasSet, IntPtr PreviousValue, IntPtr NewValue) IAtomic<IntPtr>.TryExchange<TMapContext, TPredicateContext>(Func<IntPtr, TMapContext, IntPtr> mapFunc, Func<IntPtr, IntPtr, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {

@@ -6,7 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed class AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
+	public sealed class 
+		AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
 		public readonly struct ScopedReadonlyRefToken : IDisposable, IEquatable<ScopedReadonlyRefToken> {
 			readonly AtomicVal<T> _owner;
 			public ref readonly T Value => ref _owner._value;

@@ -7,22 +7,35 @@ using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Egodystonic.Atomics.Tests.DummyObjects {
-	[StructLayout(LayoutKind.Auto, Size = 16)] // Unnecessary in reality but it's good to be ultra-specific
+	[StructLayout(LayoutKind.Explicit, Size = 16)]
 	struct DummySixteenByteVal : IEquatable<DummySixteenByteVal> {
-		public readonly float Alligator;
-		public readonly float Bear;
-		public readonly float Crocodile;
-		public readonly float Dragon; // Only dragons are worth comparing for equality; the others are inferior species
+		[FieldOffset(0)]
+		public readonly float Alpha;
+		[FieldOffset(4)]
+		public readonly float NonEquatedValue1;
+		[FieldOffset(8)]
+		public readonly float Bravo;
+		[FieldOffset(12)]
+		public readonly float NonEquatedValue2;
 
-		public DummySixteenByteVal(float alligator, float bear, float crocodile, float dragon) {
-			Alligator = alligator;
-			Bear = bear;
-			Crocodile = crocodile;
-			Dragon = dragon;
+		public DummySixteenByteVal(float alpha, float bravo) {
+			Alpha = alpha;
+			Bravo = bravo;
+
+			// Just to add some nonzero values for testing
+			NonEquatedValue1 = Alpha * Bravo;
+			NonEquatedValue2 = Bravo - Alpha;
+		}
+
+		public DummySixteenByteVal(float alpha, float nonEquatedValue1, float bravo, float nonEquatedValue2) {
+			Alpha = alpha;
+			NonEquatedValue1 = nonEquatedValue1;
+			Bravo = bravo;
+			NonEquatedValue2 = nonEquatedValue2;
 		}
 
 		public bool Equals(DummySixteenByteVal other) {
-			return Dragon.Equals(other.Dragon);
+			return Alpha.Equals(other.Alpha) && Bravo.Equals(other.Bravo);
 		}
 
 		public override bool Equals(object obj) {
@@ -31,7 +44,9 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 		}
 
 		public override int GetHashCode() {
-			return Dragon.GetHashCode();
+			unchecked {
+				return (Alpha.GetHashCode() * 397) ^ Bravo.GetHashCode();
+			}
 		}
 
 		public static bool operator ==(DummySixteenByteVal left, DummySixteenByteVal right) { return left.Equals(right); }

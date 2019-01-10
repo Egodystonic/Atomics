@@ -21,6 +21,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected unsafe void AssertAreEqual<TTest>(TTest* expected, TTest* actual) where TTest : unmanaged {
+			if (expected != actual) Assert.Fail($"Expected 0x{((IntPtr) expected).ToInt64():X} but was 0x{((IntPtr) actual).ToInt64():X}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void AssertAreEqual(long expected, long actual) {
 			if (expected != actual) Assert.Fail($"Expected {expected} but was {actual}.");
 		}
@@ -62,6 +66,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void AssertAreNotEqual(int expected, int actual) {
 			if (expected == actual) Assert.Fail($"Expected {expected} to not be equal to {actual}.");
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		protected unsafe void AssertAreNotEqual<TTest>(TTest* expected, TTest* actual) where TTest : unmanaged {
+			if (expected == actual) Assert.Fail($"Expected 0x{((IntPtr) expected).ToInt64():X} to not be equal to 0x{((IntPtr) actual).ToInt64():X}.");
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void AssertAreNotEqual(long expected, long actual) {
