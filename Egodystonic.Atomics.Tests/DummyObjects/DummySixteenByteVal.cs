@@ -10,15 +10,15 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 	[StructLayout(LayoutKind.Explicit, Size = 16)]
 	struct DummySixteenByteVal : IEquatable<DummySixteenByteVal> {
 		[FieldOffset(0)]
-		public readonly float Alpha;
+		public readonly int Alpha;
 		[FieldOffset(4)]
-		public readonly float NonEquatedValue1;
+		public readonly int NonEquatedValue1;
 		[FieldOffset(8)]
-		public readonly float Bravo;
+		public readonly int NonEquatedValue2;
 		[FieldOffset(12)]
-		public readonly float NonEquatedValue2;
+		public readonly int Bravo;
 
-		public DummySixteenByteVal(float alpha, float bravo) {
+		public DummySixteenByteVal(int alpha, int bravo) {
 			Alpha = alpha;
 			Bravo = bravo;
 
@@ -27,7 +27,7 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 			NonEquatedValue2 = Bravo - Alpha;
 		}
 
-		public DummySixteenByteVal(float alpha, float nonEquatedValue1, float bravo, float nonEquatedValue2) {
+		public DummySixteenByteVal(int alpha, int nonEquatedValue1, int bravo, int nonEquatedValue2) {
 			Alpha = alpha;
 			NonEquatedValue1 = nonEquatedValue1;
 			Bravo = bravo;
@@ -48,6 +48,8 @@ namespace Egodystonic.Atomics.Tests.DummyObjects {
 				return (Alpha.GetHashCode() * 397) ^ Bravo.GetHashCode();
 			}
 		}
+
+		public override string ToString() => $"{Alpha}, {Bravo}, ({NonEquatedValue1}, {NonEquatedValue2})";
 
 		public static bool operator ==(DummySixteenByteVal left, DummySixteenByteVal right) { return left.Equals(right); }
 		public static bool operator !=(DummySixteenByteVal left, DummySixteenByteVal right) { return !left.Equals(right); }
