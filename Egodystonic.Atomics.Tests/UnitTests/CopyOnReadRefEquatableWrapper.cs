@@ -8,7 +8,7 @@ using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
-	sealed class CopyOnReadRefDefaultCopyWrapper : IAtomic<DummyEquatableRef> {
+	sealed class CopyOnReadRefEquatableWrapper : IAtomic<DummyEquatableRef> {
 		readonly CopyOnReadRef<DummyEquatableRef> _ref = new CopyOnReadRef<DummyEquatableRef>(Copy);
 
 		public DummyEquatableRef Value {
@@ -36,6 +36,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyEquatableRef SpinWaitForValue(DummyEquatableRef targetValue) => _ref.SpinWaitForValue(targetValue);
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (DummyEquatableRef PreviousValue, DummyEquatableRef NewValue) Exchange<TContext>(Func<DummyEquatableRef, TContext, DummyEquatableRef> mapFunc, TContext context) {
 			return _ref.Exchange(mapFunc, context);
 		}
@@ -45,18 +46,22 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			return _ref.SpinWaitForExchange(newValue, comparand);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (DummyEquatableRef PreviousValue, DummyEquatableRef NewValue) SpinWaitForExchange<TContext>(Func<DummyEquatableRef, TContext, DummyEquatableRef> mapFunc, DummyEquatableRef comparand, TContext context) {
 			return _ref.SpinWaitForExchange(mapFunc, comparand, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (DummyEquatableRef PreviousValue, DummyEquatableRef NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyEquatableRef, TMapContext, DummyEquatableRef> mapFunc, Func<DummyEquatableRef, DummyEquatableRef, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			return _ref.SpinWaitForExchange(mapFunc, predicate, mapContext, predicateContext);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, DummyEquatableRef PreviousValue, DummyEquatableRef NewValue) TryExchange<TContext>(Func<DummyEquatableRef, TContext, DummyEquatableRef> mapFunc, DummyEquatableRef comparand, TContext context) {
 			return _ref.TryExchange(mapFunc, comparand, context);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, DummyEquatableRef PreviousValue, DummyEquatableRef NewValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyEquatableRef, TMapContext, DummyEquatableRef> mapFunc, Func<DummyEquatableRef, DummyEquatableRef, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
 			return _ref.TryExchange(mapFunc, predicate, mapContext, predicateContext);
 		}

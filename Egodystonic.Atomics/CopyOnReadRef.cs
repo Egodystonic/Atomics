@@ -107,8 +107,10 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
+			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
+			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, (c, _, ctx) => ValuesAreEqual(c, ctx), newValue, comparand);
+
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var oldValueCopy = _copyFunc(oldValue);
 			var wasSet = oldValue == comparand;
