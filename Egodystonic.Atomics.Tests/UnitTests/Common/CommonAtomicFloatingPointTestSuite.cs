@@ -33,11 +33,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
-						var newValue = Sub(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+						var CurrentValue = Sub(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchangeWithMaxDelta(CurrentValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(newValue, setValue);
+							Assert.AreEqual(CurrentValue, setValue);
 						}
 						else {
 							Assert.AreNotEqual(curValue, prevValue);
@@ -52,8 +52,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = Sub(curValue, One);
-					target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+					var CurrentValue = Sub(curValue, One);
+					target.TryExchangeWithMaxDelta(CurrentValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 				},
 				NumIterations,
 				target => target.Value,
@@ -84,9 +84,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
-						var (wasSet, prevValue, newValue) = target.TryExchangeWithMaxDelta(c => Sub(c, One), Add(curValue, Convert(0.25f)), Convert(0.5f));
+						var (wasSet, prevValue, CurrentValue) = target.TryExchangeWithMaxDelta(c => Sub(c, One), Add(curValue, Convert(0.25f)), Convert(0.5f));
 						if (wasSet) {
-							Assert.AreEqual(Add(newValue, One), prevValue);
+							Assert.AreEqual(Add(CurrentValue, One), prevValue);
 							Assert.AreEqual(prevValue, curValue);
 						}
 						else Assert.AreNotEqual(prevValue, curValue);
@@ -149,35 +149,35 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T, T, T)
 			var exchRes = target.SpinWaitForExchangeWithMaxDelta(Convert(2f), Convert(1f), Convert(0f));
 			AssertEqualWithTolerance(exchRes.PreviousValue, Convert(1f));
-			AssertEqualWithTolerance(exchRes.NewValue, Convert(2f));
+			AssertEqualWithTolerance(exchRes.CurrentValue, Convert(2f));
 			var spinWaitTask = Task.Run(() => target.SpinWaitForExchangeWithMaxDelta(Convert(3f), Convert(2.5f), Convert(0.1f)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(2.45f));
 			AssertEqualWithTolerance(spinWaitTask.Result.PreviousValue, Convert(2.45f));
-			AssertEqualWithTolerance(spinWaitTask.Result.NewValue, Convert(3f));
+			AssertEqualWithTolerance(spinWaitTask.Result.CurrentValue, Convert(3f));
 
 			// (Func<T, T>, T, T)
 			exchRes = target.SpinWaitForExchangeWithMaxDelta(t => Mul(t, Convert(2f)), Convert(4f), Convert(1f));
 			AssertEqualWithTolerance(exchRes.PreviousValue, Convert(3f));
-			AssertEqualWithTolerance(exchRes.NewValue, Convert(6f));
+			AssertEqualWithTolerance(exchRes.CurrentValue, Convert(6f));
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchangeWithMaxDelta(t => Sub(t, Convert(1.1f)), Convert(6.1f), Convert(0f)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(6.1f));
 			AssertEqualWithTolerance(spinWaitTask.Result.PreviousValue, Convert(6.1f));
-			AssertEqualWithTolerance(spinWaitTask.Result.NewValue, Convert(5f));
+			AssertEqualWithTolerance(spinWaitTask.Result.CurrentValue, Convert(5f));
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.SpinWaitForExchangeWithMaxDelta(Add, Convert(100f), Convert(100f), Convert(5f));
 			AssertEqualWithTolerance(exchRes.PreviousValue, Convert(5f));
-			AssertEqualWithTolerance(exchRes.NewValue, Convert(10f));
+			AssertEqualWithTolerance(exchRes.CurrentValue, Convert(10f));
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchangeWithMaxDelta(Div, Convert(20.1f), Convert(0.11f), Convert(10f)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(20f));
 			AssertEqualWithTolerance(spinWaitTask.Result.PreviousValue, Convert(20f));
-			AssertEqualWithTolerance(spinWaitTask.Result.NewValue, Convert(2f));
+			AssertEqualWithTolerance(spinWaitTask.Result.CurrentValue, Convert(2f));
 		}
 
 		[Test]
@@ -190,46 +190,46 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var exchRes = target.TryExchangeWithMaxDelta(Convert(2f), Convert(1f), Convert(0f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(1f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(2f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(2f), exchRes.CurrentValue);
 			exchRes = target.TryExchangeWithMaxDelta(Convert(3f), Convert(2.5f), Convert(0.1f));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(2f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(2f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(2f), exchRes.CurrentValue);
 			target.Set(Convert(2.45f));
 			exchRes = target.TryExchangeWithMaxDelta(Convert(3f), Convert(2.5f), Convert(0.1f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(2.45f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(3f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(3f), exchRes.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.TryExchangeWithMaxDelta(t => Mul(t, Convert(2f)), Convert(4f), Convert(1f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(3f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(6f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(6f), exchRes.CurrentValue);
 			exchRes = target.TryExchangeWithMaxDelta(t => Sub(t, Convert(1.1f)), Convert(6.1f), Convert(0f));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(exchRes.PreviousValue, Convert(6f));
-			AssertEqualWithTolerance(exchRes.NewValue, Convert(6f));
+			AssertEqualWithTolerance(exchRes.CurrentValue, Convert(6f));
 			target.Set(Convert(6.1f));
 			exchRes = target.TryExchangeWithMaxDelta(t => Sub(t, Convert(1.1f)), Convert(6.1f), Convert(0f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(6.1f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(5f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(5f), exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.TryExchangeWithMaxDelta(Add, Convert(100f), Convert(100f), Convert(5f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(5f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(10f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(10f), exchRes.CurrentValue);
 			exchRes = target.TryExchangeWithMaxDelta(Div, Convert(20.1f), Convert(0.1f), Convert(10f));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(10f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(10f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(10f), exchRes.CurrentValue);
 			target.Set(Convert(20f));
 			exchRes = target.TryExchangeWithMaxDelta(Div, Convert(20.1f), Convert(0.11f), Convert(10f));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			AssertEqualWithTolerance(Convert(20f), exchRes.PreviousValue);
-			AssertEqualWithTolerance(Convert(2f), exchRes.NewValue);
+			AssertEqualWithTolerance(Convert(2f), exchRes.CurrentValue);
 		}
 	}
 }

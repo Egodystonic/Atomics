@@ -25,37 +25,37 @@ namespace Egodystonic.Atomics {
 		public T GetUnsafe() => _asUnmanaged.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T newValue) => _asUnmanaged.Set(newValue);
+		public void Set(T CurrentValue) => _asUnmanaged.Set(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T newValue) => _asUnmanaged.SetUnsafe(newValue);
+		public void SetUnsafe(T CurrentValue) => _asUnmanaged.SetUnsafe(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
+		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) => _asUnmanaged.Exchange(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) => _asUnmanaged.TryExchange(CurrentValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T SpinWaitForValue(T targetValue) => _asUnmanaged.SpinWaitForValue(targetValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) => _asUnmanaged.Exchange(mapFunc, context);
+		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) => _asUnmanaged.Exchange(mapFunc, context);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) => _asUnmanaged.SpinWaitForExchange(newValue, comparand);
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) => _asUnmanaged.SpinWaitForExchange(CurrentValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) => _asUnmanaged.SpinWaitForExchange(mapFunc, comparand, context);
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) => _asUnmanaged.SpinWaitForExchange(mapFunc, context, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) => _asUnmanaged.SpinWaitForExchange(mapFunc, predicate, mapContext, predicateContext);
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) => _asUnmanaged.SpinWaitForExchange(mapFunc, mapContext, predicate, predicateContext);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) => _asUnmanaged.TryExchange(mapFunc, comparand, context);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) => _asUnmanaged.TryExchange(mapFunc, context, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) => _asUnmanaged.TryExchange(mapFunc, predicate, mapContext, predicateContext);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) => _asUnmanaged.TryExchange(mapFunc, mapContext, predicate, predicateContext);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicEnumVal<T> operand) => operand.Get();

@@ -14,18 +14,18 @@ namespace Egodystonic.Atomics {
 		public static T GetUnsafe<T>(ref T @ref) where T : class => @ref;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Set<T>(ref T @ref, T newValue) where T : class => Volatile.Write(ref @ref, newValue); // fence is useless on its own but will synchronize with other operations
+		public static void Set<T>(ref T @ref, T CurrentValue) where T : class => Volatile.Write(ref @ref, CurrentValue); // fence is useless on its own but will synchronize with other operations
 
 		// ReSharper disable once RedundantAssignment It doesn't realise it's a ref field
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SetUnsafe<T>(ref T @ref, T newValue) where T : class => @ref = newValue;
+		public static void SetUnsafe<T>(ref T @ref, T CurrentValue) where T : class => @ref = CurrentValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T Exchange<T>(ref T @ref, T newValue) where T : class => Interlocked.Exchange(ref @ref, newValue);
+		public static T Exchange<T>(ref T @ref, T CurrentValue) where T : class => Interlocked.Exchange(ref @ref, CurrentValue);
 
-		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, T comparand) where T : class {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T CurrentValue, T comparand) where T : class {
 			if (!TargetTypeIsEquatable<T>()) {
-				var oldValue = Interlocked.CompareExchange(ref @ref, newValue, comparand);
+				var oldValue = Interlocked.CompareExchange(ref @ref, CurrentValue, comparand);
 				return (oldValue == comparand, oldValue);
 			}
 
@@ -39,14 +39,14 @@ namespace Egodystonic.Atomics {
 				curValue = Get(ref @ref);
 				trySetValue = comparandAsIEquatable.Equals(curValue);
 
-				if (!trySetValue || Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (!trySetValue || Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
 			return (trySetValue, curValue);
 		}
 
-		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, Func<T, bool> predicate) where T : class {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T CurrentValue, Func<T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 
@@ -56,14 +56,14 @@ namespace Egodystonic.Atomics {
 				curValue = Get(ref @ref);
 				trySetValue = predicate(curValue);
 
-				if (!trySetValue || Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (!trySetValue || Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
 			return (trySetValue, curValue);
 		}
 
-		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T newValue, Func<T, T, bool> predicate) where T : class {
+		public static (bool ValueWasSet, T PreviousValue) TryExchange<T>(ref T @ref, T CurrentValue, Func<T, T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
 
@@ -71,36 +71,36 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				curValue = Get(ref @ref);
-				trySetValue = predicate(curValue, newValue);
+				trySetValue = predicate(curValue, CurrentValue);
 
-				if (!trySetValue || Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (!trySetValue || Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
 			return (trySetValue, curValue);
 		}
 
-		public static (T PreviousValue, T NewValue) Exchange<T>(ref T @ref, Func<T, T> mapFunc) where T : class {
+		public static (T PreviousValue, T CurrentValue) Exchange<T>(ref T @ref, Func<T, T> mapFunc) where T : class {
 			T curValue;
-			T newValue;
+			T CurrentValue;
 
 			var spinner = new SpinWait();
 
 			while (true) {
 				curValue = Get(ref @ref);
-				newValue = mapFunc(curValue);
+				CurrentValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, newValue);
+			return (curValue, CurrentValue);
 		}
 
-		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, T comparand) where T : class {
+		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, T comparand) where T : class {
 			bool trySetValue;
 			T curValue;
-			T newValue = default;
+			T CurrentValue = default;
 
 			var spinner = new SpinWait();
 
@@ -110,19 +110,19 @@ namespace Egodystonic.Atomics {
 
 				if (!trySetValue) break;
 
-				newValue = mapFunc(curValue);
+				CurrentValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			return (trySetValue, curValue, CurrentValue);
 		}
 
-		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, bool> predicate) where T : class {
+		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
-			T newValue = default;
+			T CurrentValue = default;
 
 			var spinner = new SpinWait();
 
@@ -132,34 +132,34 @@ namespace Egodystonic.Atomics {
 
 				if (!trySetValue) break;
 
-				newValue = mapFunc(curValue);
+				CurrentValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			return (trySetValue, curValue, CurrentValue);
 		}
 
-		public static (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, T, bool> predicate) where T : class {
+		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T>(ref T @ref, Func<T, T> mapFunc, Func<T, T, bool> predicate) where T : class {
 			bool trySetValue;
 			T curValue;
-			T newValue;
+			T CurrentValue;
 
 			var spinner = new SpinWait();
 
 			while (true) {
 				curValue = Get(ref @ref);
-				newValue = mapFunc(curValue);
-				trySetValue = predicate(curValue, newValue);
+				CurrentValue = mapFunc(curValue);
+				trySetValue = predicate(curValue, CurrentValue);
 
 				if (!trySetValue) break;
 
-				if (Interlocked.CompareExchange(ref @ref, newValue, curValue) == curValue) break;
+				if (Interlocked.CompareExchange(ref @ref, CurrentValue, curValue) == curValue) break;
 				spinner.SpinOnce();
 			}
 
-			return (trySetValue, curValue, newValue);
+			return (trySetValue, curValue, CurrentValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

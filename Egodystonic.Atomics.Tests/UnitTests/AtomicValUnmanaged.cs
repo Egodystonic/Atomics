@@ -12,7 +12,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
 	class AtomicValUnmanagedTest : CommonAtomicValTestSuite<AtomicValUnmanaged<DummyImmutableVal>> {
 		#region Test Fields
-		RunnerFactory<DummyImmutableValAlphaOnlyEquatable, AtomicValUnmanaged<DummyImmutableValAlphaOnlyEquatable>> _alphaOnlyEquatableRunnerFactory;
 
 		protected override DummyImmutableVal Alpha { get; } = new DummyImmutableVal(1, 1);
 		protected override DummyImmutableVal Bravo { get; } = new DummyImmutableVal(2, 2);
@@ -23,7 +22,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		#region Test Setup
 		[OneTimeSetUp]
-		public void SetUpClass() => _alphaOnlyEquatableRunnerFactory = new RunnerFactory<DummyImmutableValAlphaOnlyEquatable, AtomicValUnmanaged<DummyImmutableValAlphaOnlyEquatable>>();
+		public void SetUpClass() { }
 
 		[OneTimeTearDown]
 		public void TearDownClass() { }

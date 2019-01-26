@@ -27,43 +27,43 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public DummyImmutableVal GetUnsafe() => _ptr.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(DummyImmutableVal newValue) => _ptr.Set((IntPtr) newValue);
+		public void Set(DummyImmutableVal CurrentValue) => _ptr.Set((IntPtr) CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(DummyImmutableVal newValue) => _ptr.SetUnsafe((IntPtr) newValue);
+		public void SetUnsafe(DummyImmutableVal CurrentValue) => _ptr.SetUnsafe((IntPtr) CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) Exchange(DummyImmutableVal newValue) => Cast(_castPtr.Exchange((IntPtr) newValue));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange(DummyImmutableVal CurrentValue) => Cast(_castPtr.Exchange((IntPtr) CurrentValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange(DummyImmutableVal newValue, DummyImmutableVal comparand) => Cast(_castPtr.TryExchange(newValue, (IntPtr) comparand));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => Cast(_castPtr.TryExchange(CurrentValue, (IntPtr) comparand));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyImmutableVal SpinWaitForValue(DummyImmutableVal targetValue) => _castPtr.SpinWaitForValue((IntPtr) targetValue);
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {
 			return Cast(_castPtr.Exchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), context));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange(DummyImmutableVal newValue, DummyImmutableVal comparand) {
-			return Cast(_castPtr.SpinWaitForExchange(newValue, (IntPtr) comparand));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) {
+			return Cast(_castPtr.SpinWaitForExchange(CurrentValue, (IntPtr) comparand));
 		}
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, DummyImmutableVal comparand, TContext context) {
-			return Cast(_castPtr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), comparand, context));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context, DummyImmutableVal comparand) {
+			return Cast(_castPtr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), context, comparand));
 		}
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return Cast(_castPtr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), (c, n, ctx) => predicate(c, n, ctx), mapContext, predicateContext));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, TMapContext mapContext, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return Cast(_castPtr.SpinWaitForExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), mapContext, (c, n, ctx) => predicate(c, n, ctx), predicateContext));
 		}
 
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, DummyImmutableVal comparand, TContext context) {
-			return Cast(_castPtr.TryExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), comparand, context));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context, DummyImmutableVal comparand) {
+			return Cast(_castPtr.TryExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), context, comparand));
 		}
 
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return Cast(_castPtr.TryExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), (c, n, ctx) => predicate(c, n, ctx), mapContext, predicateContext));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, TMapContext mapContext, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return Cast(_castPtr.TryExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), mapContext, (c, n, ctx) => predicate(c, n, ctx), predicateContext));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -12,44 +12,44 @@ namespace Egodystonic.Atomics.Numerics {
 		T SpinWaitForMaximumValue(T maxValue);
 		T SpinWaitForBoundedValue(T lowerBoundInclusive, T upperBoundExclusive);
 
-		(T PreviousValue, T NewValue) SpinWaitForMinimumExchange(T newValue, T minValue);
-		(T PreviousValue, T NewValue) SpinWaitForMinimumExchange(Func<T, T> mapFunc, T minValue);
-		(T PreviousValue, T NewValue) SpinWaitForMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
-		(T PreviousValue, T NewValue) SpinWaitForMaximumExchange(T newValue, T maxValue);
-		(T PreviousValue, T NewValue) SpinWaitForMaximumExchange(Func<T, T> mapFunc, T maxValue);
-		(T PreviousValue, T NewValue) SpinWaitForMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
-		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange(T newValue, T lowerBoundInclusive, T upperBoundExclusive);
-		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
-		(T PreviousValue, T NewValue) SpinWaitForBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
+		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange(T CurrentValue, T minValue);
+		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange(Func<T, T> mapFunc, T minValue);
+		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
+		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange(T CurrentValue, T maxValue);
+		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange(Func<T, T> mapFunc, T maxValue);
+		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
+		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange(T CurrentValue, T lowerBoundInclusive, T upperBoundExclusive);
+		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
+		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
 
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMinimumExchange(T newValue, T minValue);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMinimumExchange(Func<T, T> mapFunc, T minValue);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMaximumExchange(T newValue, T maxValue);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMaximumExchange(Func<T, T> mapFunc, T maxValue);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryBoundedExchange(T newValue, T lowerBoundInclusive, T upperBoundExclusive);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange(T CurrentValue, T minValue);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange(Func<T, T> mapFunc, T minValue);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange(T CurrentValue, T maxValue);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange(Func<T, T> mapFunc, T maxValue);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange(T CurrentValue, T lowerBoundInclusive, T upperBoundExclusive);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
 
-		(T PreviousValue, T NewValue) Increment();
-		(T PreviousValue, T NewValue) Decrement();
+		(T PreviousValue, T CurrentValue) Increment();
+		(T PreviousValue, T CurrentValue) Decrement();
 
-		(T PreviousValue, T NewValue) Add(T operand);
-		(T PreviousValue, T NewValue) Subtract(T operand);
-		(T PreviousValue, T NewValue) MultiplyBy(T operand);
-		(T PreviousValue, T NewValue) DivideBy(T operand);
+		(T PreviousValue, T CurrentValue) Add(T operand);
+		(T PreviousValue, T CurrentValue) Subtract(T operand);
+		(T PreviousValue, T CurrentValue) MultiplyBy(T operand);
+		(T PreviousValue, T CurrentValue) DivideBy(T operand);
 	}
 
 	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {
 		T SpinWaitForValueWithMaxDelta(T targetValue, T maxDelta);
 
-		(T PreviousValue, T NewValue) SpinWaitForExchangeWithMaxDelta(T newValue, T comparand, T maxDelta);
-		(T PreviousValue, T NewValue) SpinWaitForExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
-		(T PreviousValue, T NewValue) SpinWaitForExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
+		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta(T CurrentValue, T comparand, T maxDelta);
+		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
+		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
 
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta(T newValue, T comparand, T maxDelta);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
-		(bool ValueWasSet, T PreviousValue, T NewValue) TryExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta(T CurrentValue, T comparand, T maxDelta);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
 	}
 }

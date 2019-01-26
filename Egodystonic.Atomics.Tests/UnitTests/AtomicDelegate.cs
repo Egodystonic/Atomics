@@ -48,7 +48,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var counter = new AtomicInt();
 			var writerCount = new AtomicInt();
 
-			var action = new Func<int, int>(n => counter.Add(n).NewValue);
+			var action = new Func<int, int>(n => counter.Add(n).CurrentValue);
 			CancellationTokenSource cts = null;
 
 			runner.GlobalSetUp = (_, threadConfig) => {
@@ -141,8 +141,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					AssertTrue(invocationCounter.Value >= NumCombinesPerIteration);
 
 					for (var i = 0; i < NumCombinesPerIteration; ++i) {
-						var (previousValue, newValue) = target.Remove(action);
-						AssertAreNotEqualObjects(previousValue, newValue);
+						var (previousValue, CurrentValue) = target.Remove(action);
+						AssertAreNotEqualObjects(previousValue, CurrentValue);
 						AssertCount(NumCombinesPerIteration - (i + 1), action);
 					}
 					// Note: I'm 99% sure testing that invocationCounter doesn't change when calling target.TryInvoke() here would be a race condition.
@@ -179,7 +179,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var combineRes = target.Combine(s => s.ToLower());
 			Assert.AreEqual(initialValue, combineRes.PreviousValue);
 			Assert.AreEqual("TEST", combineRes.PreviousValue("Test"));
-			Assert.AreEqual("test", combineRes.NewValue("Test"));
+			Assert.AreEqual("test", combineRes.CurrentValue("Test"));
 
 			Assert.AreEqual("Test", lastRecordedInput.Value);
 
@@ -189,43 +189,43 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			combineRes = target.Combine(s => s + s);
 			Assert.AreEqual("abcabc", target.Value("abc"));
 			Assert.AreEqual("abc", lastRecordedInput.Value);
-			Assert.AreEqual(combineRes.NewValue, target.Value);
+			Assert.AreEqual(combineRes.CurrentValue, target.Value);
 
 			var removeRes = target.Remove(initialValue);
 			Assert.AreEqual("qwertyqwerty", removeRes.PreviousValue("qwerty"));
 			Assert.AreEqual("qwerty", lastRecordedInput.Value);
-			Assert.AreEqual("ijklijkl", removeRes.NewValue("ijkl"));
+			Assert.AreEqual("ijklijkl", removeRes.CurrentValue("ijkl"));
 			Assert.AreEqual("qwerty", lastRecordedInput.Value);
-			Assert.AreEqual(removeRes.NewValue, target.Value);
+			Assert.AreEqual(removeRes.CurrentValue, target.Value);
 
 			removeRes = target.Remove(c => "this delegate was never added");
-			Assert.AreEqual(removeRes.NewValue, removeRes.PreviousValue);
+			Assert.AreEqual(removeRes.CurrentValue, removeRes.PreviousValue);
 			Assert.AreEqual(target.Value, removeRes.PreviousValue);
 
 			var invocationCounter = new AtomicInt();
-			Func<string, string> newValue = s => { invocationCounter.Increment(); return s[0].ToString(); };
-			target.Combine(newValue);
-			target.Combine(newValue);
-			target.Combine(newValue);
+			Func<string, string> CurrentValue = s => { invocationCounter.Increment(); return s[0].ToString(); };
+			target.Combine(CurrentValue);
+			target.Combine(CurrentValue);
+			target.Combine(CurrentValue);
 
 			Assert.AreEqual((true, "r"), target.TryInvoke("rrrrr"));
 			Assert.AreEqual(3, invocationCounter.Value);
 
-			target.Remove(newValue);
+			target.Remove(CurrentValue);
 			Assert.AreEqual((true, "r"), target.TryInvoke("rrrrr"));
 			Assert.AreEqual(5, invocationCounter.Value);
 
-			removeRes = target.RemoveAll(newValue);
+			removeRes = target.RemoveAll(CurrentValue);
 			Assert.AreEqual((true, "rrrrrrrrrr"), target.TryInvoke("rrrrr"));
 			Assert.AreEqual(5, invocationCounter.Value);
-			Assert.AreEqual("rrrrrrrrrr", removeRes.NewValue("rrrrr"));
+			Assert.AreEqual("rrrrrrrrrr", removeRes.CurrentValue("rrrrr"));
 			Assert.AreEqual("r", removeRes.PreviousValue("rrrrr"));
 
-			removeRes = target.RemoveAll(newValue);
+			removeRes = target.RemoveAll(CurrentValue);
 			Assert.AreEqual((true, "rrrrrrrrrr"), target.TryInvoke("rrrrr"));
 			Assert.AreEqual(7, invocationCounter.Value);
-			Assert.AreEqual("rrrrrrrrrr", removeRes.NewValue("rrrrr"));
-			Assert.AreEqual(removeRes.NewValue, removeRes.PreviousValue);
+			Assert.AreEqual("rrrrrrrrrr", removeRes.CurrentValue("rrrrr"));
+			Assert.AreEqual(removeRes.CurrentValue, removeRes.PreviousValue);
 		}
 
 		[Test]
@@ -244,7 +244,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var targetB = new AtomicDelegate<Func<int, int>>();
 			Assert.AreEqual((false, (object) null), targetB.TryDynamicInvoke(10));
 			
-			targetB.Set(i => atomicInt.Add(i).NewValue);
+			targetB.Set(i => atomicInt.Add(i).CurrentValue);
 			var invokeRes = targetB.TryDynamicInvoke(300);
 			Assert.AreEqual(true, invokeRes.DelegateWasInvoked);
 			Assert.AreEqual(600, (int) invokeRes.Result);
@@ -261,7 +261,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var target = new AtomicDelegate<Func<int, int>>();
 			Assert.AreEqual((false, default(int)), target.TryWrappedInvoke(f => f(10)));
 
-			target.Set(i => atomicInt.Add(i).NewValue);
+			target.Set(i => atomicInt.Add(i).CurrentValue);
 			Assert.AreEqual((true, 10), target.TryWrappedInvoke(f => f(10)));
 			Assert.AreEqual(10, atomicInt.Value);
 
@@ -277,7 +277,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			target.Set(null);
 			Assert.AreEqual((false, default(int)), target.TryWrappedInvoke((f, ctx) => f(ctx), 10));
 
-			target.Set(i => atomicInt.Add(i).NewValue);
+			target.Set(i => atomicInt.Add(i).CurrentValue);
 			Assert.AreEqual((true, 10), target.TryWrappedInvoke((f, ctx) => f(ctx), 10));
 			Assert.AreEqual(10, atomicInt.Value);
 

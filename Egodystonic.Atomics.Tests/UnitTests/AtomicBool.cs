@@ -41,7 +41,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.AllThreadsTearDown = target => Assert.True(target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var iterationNumber = atomicInt.Increment().NewValue;
+					var iterationNumber = atomicInt.Increment().CurrentValue;
 					Assert.False(target.Get());
 					target.Set(iterationNumber == NumIterations);
 				},
@@ -112,7 +112,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var res = target.Exchange(c => !c);
-					Assert.AreNotEqual(res.PreviousValue, res.NewValue);
+					Assert.AreNotEqual(res.PreviousValue, res.CurrentValue);
 				},
 				NumIterations
 			);
@@ -129,7 +129,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					var res = target.TryExchange(c => !c, curValue);
 					if (res.ValueWasSet) {
 						Assert.AreEqual(curValue, res.PreviousValue);
-						Assert.AreNotEqual(res.PreviousValue, res.NewValue);
+						Assert.AreNotEqual(res.PreviousValue, res.CurrentValue);
 					}
 					else Assert.AreNotEqual(curValue, res.PreviousValue);
 				},
@@ -145,8 +145,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var res = target.TryExchange(c => !c, (c, n) => n != c);
-					if (res.ValueWasSet) Assert.AreNotEqual(res.PreviousValue, res.NewValue);
-					else Assert.AreEqual(res.PreviousValue, res.NewValue);
+					if (res.ValueWasSet) Assert.AreNotEqual(res.PreviousValue, res.CurrentValue);
+					else Assert.AreEqual(res.PreviousValue, res.CurrentValue);
 				},
 				NumIterations
 			);

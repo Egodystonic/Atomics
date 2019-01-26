@@ -22,43 +22,43 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public DummyImmutableVal GetUnsafe() => _enum.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(DummyImmutableVal newValue) => _enum.Set((DummyEnum) newValue);
+		public void Set(DummyImmutableVal CurrentValue) => _enum.Set((DummyEnum) CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(DummyImmutableVal newValue) => _enum.SetUnsafe((DummyEnum) newValue);
+		public void SetUnsafe(DummyImmutableVal CurrentValue) => _enum.SetUnsafe((DummyEnum) CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) Exchange(DummyImmutableVal newValue) => Cast(_enum.Exchange((DummyEnum) newValue));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange(DummyImmutableVal CurrentValue) => Cast(_enum.Exchange((DummyEnum) CurrentValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange(DummyImmutableVal newValue, DummyImmutableVal comparand) => Cast(_enum.TryExchange(newValue, (DummyEnum) comparand));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => Cast(_enum.TryExchange(CurrentValue, (DummyEnum) comparand));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyImmutableVal SpinWaitForValue(DummyImmutableVal targetValue) => _enum.SpinWaitForValue((DummyEnum) targetValue);
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {
 			return Cast(_enum.Exchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), context));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange(DummyImmutableVal newValue, DummyImmutableVal comparand) {
-			return Cast(_enum.SpinWaitForExchange(newValue, (DummyEnum) comparand));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) {
+			return Cast(_enum.SpinWaitForExchange(CurrentValue, (DummyEnum) comparand));
 		}
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, DummyImmutableVal comparand, TContext context) {
-			return Cast(_enum.SpinWaitForExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), comparand, context));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context, DummyImmutableVal comparand) {
+			return Cast(_enum.SpinWaitForExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), context, comparand));
 		}
 
-		public (DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return Cast(_enum.SpinWaitForExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), (c, n, ctx) => predicate(c, n, ctx), mapContext, predicateContext));
+		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, TMapContext mapContext, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return Cast(_enum.SpinWaitForExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), mapContext, (c, n, ctx) => predicate(c, n, ctx), predicateContext));
 		}
 
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, DummyImmutableVal comparand, TContext context) {
-			return Cast(_enum.TryExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), comparand, context));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context, DummyImmutableVal comparand) {
+			return Cast(_enum.TryExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), context, comparand));
 		}
 
-		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal NewValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return Cast(_enum.TryExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), (c, n, ctx) => predicate(c, n, ctx), mapContext, predicateContext));
+		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, TMapContext mapContext, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return Cast(_enum.TryExchange((cur, ctx) => (DummyEnum) mapFunc(cur, ctx), mapContext, (c, n, ctx) => predicate(c, n, ctx), predicateContext));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

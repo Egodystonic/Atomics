@@ -73,14 +73,14 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() => _value;
 
-		public void Set(T newValue) {
+		public void Set(T CurrentValue) {
 			EnterLockAsWriter();
-			_value = newValue;
+			_value = CurrentValue;
 			ExitLockAsWriter();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T newValue) => _value = newValue;
+		public void SetUnsafe(T CurrentValue) => _value = CurrentValue;
 
 		public T SpinWaitForValue(T targetValue) {
 			var spinner = new SpinWait();
@@ -92,28 +92,28 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (T PreviousValue, T NewValue) Exchange(T newValue) {
+		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) {
 			EnterLockAsWriter();
 			var oldValue = _value;
-			_value = newValue;
+			_value = CurrentValue;
 			ExitLockAsWriter();
-			return (oldValue, newValue);
+			return (oldValue, CurrentValue);
 		}
 
-		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
+		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
 			try {
 				EnterLockAsWriter();
 				var oldValue = _value;
-				var newValue = mapFunc(oldValue, context);
-				_value = newValue;
-				return (oldValue, newValue);
+				var CurrentValue = mapFunc(oldValue, context);
+				_value = CurrentValue;
+				return (oldValue, CurrentValue);
 			}
 			finally { // Necessary in case map func throws exception
 				ExitLockAsWriter();
 			}
 		}
 
-		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -130,23 +130,23 @@ namespace Egodystonic.Atomics {
 					continue;
 				}
 
-				_value = newValue;
+				_value = CurrentValue;
 				ExitLockAsWriter();
-				return (curValue, newValue);
+				return (curValue, CurrentValue);
 			}
 		}
 
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
-			return SpinWaitForExchange(mapFunc, (curVal, _, ctx) => curVal.Equals(ctx), context, comparand);
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
+			return SpinWaitForExchange(mapFunc, context, (curVal, _, ctx) => curVal.Equals(ctx), comparand);
 		}
 
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = GetUnsafe();
-				var newValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, newValue, predicateContext)) {
+				var CurrentValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, CurrentValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -158,19 +158,19 @@ namespace Egodystonic.Atomics {
 					continue;
 				}
 
-				_value = newValue;
+				_value = CurrentValue;
 				ExitLockAsWriter();
-				return (curValue, newValue);
+				return (curValue, CurrentValue);
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
 			EnterLockAsWriter();
 			var oldValue = _value;
 			if (oldValue.Equals(comparand)) {
-				_value = newValue;
+				_value = CurrentValue;
 				ExitLockAsWriter();
-				return (true, oldValue, newValue);
+				return (true, oldValue, CurrentValue);
 			}
 			else {
 				ExitLockAsWriter();
@@ -178,14 +178,14 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
 			EnterLockAsWriter();
 			try {
 				var oldValue = _value;
-				var newValue = mapFunc(oldValue, context);
+				var CurrentValue = mapFunc(oldValue, context);
 				if (oldValue.Equals(comparand)) {
-					_value = newValue;
-					return (true, oldValue, newValue);
+					_value = CurrentValue;
+					return (true, oldValue, CurrentValue);
 				}
 				else return (false, oldValue, oldValue);
 			}
@@ -194,14 +194,14 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			EnterLockAsWriter();
 			try {
 				var oldValue = _value;
-				var newValue = mapFunc(oldValue, mapContext);
-				if (predicate(oldValue, newValue, predicateContext)) {
-					_value = newValue;
-					return (true, oldValue, newValue);
+				var CurrentValue = mapFunc(oldValue, mapContext);
+				if (predicate(oldValue, CurrentValue, predicateContext)) {
+					_value = CurrentValue;
+					return (true, oldValue, CurrentValue);
 				}
 				else return (false, oldValue, oldValue);
 			}

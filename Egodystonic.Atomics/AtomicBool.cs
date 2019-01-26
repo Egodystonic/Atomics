@@ -29,27 +29,27 @@ namespace Egodystonic.Atomics {
 		public bool GetUnsafe() => Convert(_value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(bool newValue) => SetValueAsInt(Convert(newValue));
+		public void Set(bool CurrentValue) => SetValueAsInt(Convert(CurrentValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetValueAsInt(int newValue) => Volatile.Write(ref _value, newValue);
+		void SetValueAsInt(int CurrentValue) => Volatile.Write(ref _value, CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(bool newValue) => _value = Convert(newValue);
+		public void SetUnsafe(bool CurrentValue) => _value = Convert(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool PreviousValue, bool NewValue) Exchange(bool newValue) => (Convert(Interlocked.Exchange(ref _value, Convert(newValue))), newValue);
+		public (bool PreviousValue, bool CurrentValue) Exchange(bool CurrentValue) => (Convert(Interlocked.Exchange(ref _value, Convert(CurrentValue))), CurrentValue);
 
-		public (bool PreviousValue, bool NewValue) Exchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context) {
+		public (bool PreviousValue, bool CurrentValue) Exchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				var curValueAsInt = Convert(curValue);
-				var newValue = mapFunc(curValue, context);
-				var newValueAsInt = Convert(newValue);
+				var CurrentValue = mapFunc(curValue, context);
+				var CurrentValueAsInt = Convert(CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, newValue);
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -62,99 +62,99 @@ namespace Egodystonic.Atomics {
 			return targetValue;
 		}
 
-		public (bool PreviousValue, bool NewValue) SpinWaitForExchange(bool newValue, bool comparand) {
+		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange(bool CurrentValue, bool comparand) {
 			var spinner = new SpinWait();
-			var newValueAsInt = Convert(newValue);
+			var CurrentValueAsInt = Convert(CurrentValue);
 			var comparandAsInt = Convert(comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, newValue);
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool PreviousValue, bool NewValue) SpinWaitForExchange<TContext>(Func<bool, TContext, bool> mapFunc, bool comparand, TContext context) {
+		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context, bool comparand) {
 			var spinner = new SpinWait();
-			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
-			var newValueAsInt = Convert(newValue);
+			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var CurrentValueAsInt = Convert(CurrentValue);
 			var comparandAsInt = Convert(comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, newValue);
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool PreviousValue, bool NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<bool, TMapContext, bool> mapFunc, Func<bool, bool, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<bool, TMapContext, bool> mapFunc, TMapContext mapContext, Func<bool, bool, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 			
 			while (true) {
 				var curValue = Get();
-				var newValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, newValue, predicateContext)) {
+				var CurrentValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, CurrentValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 				var curValueAsInt = Convert(curValue);
-				var newValueAsInt = Convert(newValue);
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, newValue);
+				var CurrentValueAsInt = Convert(CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, bool PreviousValue, bool NewValue) TryExchange(bool newValue, bool comparand) {
-			var newValueAsInt = Convert(newValue);
+		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange(bool CurrentValue, bool comparand) {
+			var CurrentValueAsInt = Convert(CurrentValue);
 			var comparandAsInt = Convert(comparand);
-			var oldIntValue = Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt);
+			var oldIntValue = Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt);
 			var wasSet = oldIntValue == comparandAsInt;
 			var oldValue = Convert(oldIntValue);
-			return (wasSet, oldValue, wasSet ? newValue : oldValue);
+			return (wasSet, oldValue, wasSet ? CurrentValue : oldValue);
 		}
 
-		public (bool ValueWasSet, bool PreviousValue, bool NewValue) TryExchange<TContext>(Func<bool, TContext, bool> mapFunc, bool comparand, TContext context) {
-			var newValue = mapFunc(comparand, context); // Can just use the map func here as by the time we return, curValue MUST have been the same as comparand
-			var newValueAsInt = Convert(newValue);
+		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context, bool comparand) {
+			var CurrentValue = mapFunc(comparand, context); // Can just use the map func here as by the time we return, curValue MUST have been the same as comparand
+			var CurrentValueAsInt = Convert(CurrentValue);
 			var comparandAsInt = Convert(comparand);
 
-			var prevValueAsInt = Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt);
+			var prevValueAsInt = Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt);
 			var prevValue = Convert(prevValueAsInt);
-			if (prevValueAsInt == comparandAsInt) return (true, prevValue, newValue);
+			if (prevValueAsInt == comparandAsInt) return (true, prevValue, CurrentValue);
 			else return (false, prevValue, prevValue);
 		}
 
-		public (bool ValueWasSet, bool PreviousValue, bool NewValue) TryExchange<TMapContext, TPredicateContext>(Func<bool, TMapContext, bool> mapFunc, Func<bool, bool, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<bool, TMapContext, bool> mapFunc, TMapContext mapContext, Func<bool, bool, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				var newValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
+				var CurrentValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
 
 				var curValueAsInt = Convert(curValue);
-				var newValueAsInt = Convert(newValue);
+				var CurrentValueAsInt = Convert(CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (true, curValue, newValue);
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (true, curValue, CurrentValue);
 
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool PreviousValue, bool NewValue) Negate() {
+		public (bool PreviousValue, bool CurrentValue) Negate() {
 			var spinner = new SpinWait();
 			bool curValue;
-			bool newValue;
+			bool CurrentValue;
 
 			while (true) {
 				curValue = Get();
 				var curValueAsInt = Convert(curValue);
-				newValue = !curValue;
-				var newValueAsInt = Convert(newValue);
+				CurrentValue = !curValue;
+				var CurrentValueAsInt = Convert(CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) break;
+				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, newValue);
+			return (curValue, CurrentValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

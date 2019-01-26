@@ -13,7 +13,7 @@ using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 namespace Egodystonic.Atomics.Benchmarks.Internal {
 	interface IAtomicStub<T> {
 		T Get();
-		void Set(T newValue);
+		void Set(T CurrentValue);
 	}
 
 	abstract class AtomicStubBase<T> {
@@ -21,7 +21,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		public abstract T BaseGet();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public abstract void BaseSet(T newValue);
+		public abstract void BaseSet(T CurrentValue);
 
 		public T BaseFrobnicate<TContext>(Func<T, TContext, bool> predicate, TContext context) {
 			SimulateContention(ContentionLevel.D_VeryHigh);
@@ -39,13 +39,13 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		public sealed override User BaseGet() => Volatile.Read(ref _value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public sealed override void BaseSet(User newValue) => Volatile.Write(ref _value, newValue);
+		public sealed override void BaseSet(User CurrentValue) => Volatile.Write(ref _value, CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public User Get() => Volatile.Read(ref _value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(User newValue) => Volatile.Write(ref _value, newValue);
+		public void Set(User CurrentValue) => Volatile.Write(ref _value, CurrentValue);
 
 		public User InstanceFrobnicate<TContext>(Func<User, TContext, bool> predicate, TContext context) {
 			SimulateContention(ContentionLevel.D_VeryHigh);

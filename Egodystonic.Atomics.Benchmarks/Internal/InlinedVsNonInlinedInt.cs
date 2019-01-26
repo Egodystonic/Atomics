@@ -50,32 +50,32 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		void WithInlined_Entry() {
 			for (var i = 0; i < NumIterations; ++i) {
 				var incResult = _inlined.Increment();
-				Assert(incResult.NewValue == incResult.PreviousValue + 1);
+				Assert(incResult.CurrentValue == incResult.PreviousValue + 1);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var addResult = _inlined.Add(10);
-				Assert(addResult.NewValue == addResult.PreviousValue + 10);
+				Assert(addResult.CurrentValue == addResult.PreviousValue + 10);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var subResult = _inlined.Subtract(9);
-				Assert(subResult.NewValue == subResult.PreviousValue - 9);
+				Assert(subResult.CurrentValue == subResult.PreviousValue - 9);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var multResult = _inlined.MultiplyBy(3);
-				Assert(multResult.NewValue == multResult.PreviousValue * 3);
+				Assert(multResult.CurrentValue == multResult.PreviousValue * 3);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var divResult = _inlined.DivideBy(4);
-				Assert(divResult.NewValue == divResult.PreviousValue / 4);
+				Assert(divResult.CurrentValue == divResult.PreviousValue / 4);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var decResult = _inlined.Decrement();
-				Assert(decResult.NewValue == decResult.PreviousValue - 1);
+				Assert(decResult.CurrentValue == decResult.PreviousValue - 1);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
@@ -107,32 +107,32 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		void WithNonInlined_Entry() {
 			for (var i = 0; i < NumIterations; ++i) {
 				var incResult = _nonInlined.Increment();
-				Assert(incResult.NewValue == incResult.PreviousValue + 1);
+				Assert(incResult.CurrentValue == incResult.PreviousValue + 1);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var addResult = _nonInlined.Add(10);
-				Assert(addResult.NewValue == addResult.PreviousValue + 10);
+				Assert(addResult.CurrentValue == addResult.PreviousValue + 10);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var subResult = _nonInlined.Subtract(9);
-				Assert(subResult.NewValue == subResult.PreviousValue - 9);
+				Assert(subResult.CurrentValue == subResult.PreviousValue - 9);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var multResult = _nonInlined.MultiplyBy(3);
-				Assert(multResult.NewValue == multResult.PreviousValue * 3);
+				Assert(multResult.CurrentValue == multResult.PreviousValue * 3);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var divResult = _nonInlined.DivideBy(4);
-				Assert(divResult.NewValue == divResult.PreviousValue / 4);
+				Assert(divResult.CurrentValue == divResult.PreviousValue / 4);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 
 				var decResult = _nonInlined.Decrement();
-				Assert(decResult.NewValue == decResult.PreviousValue - 1);
+				Assert(decResult.CurrentValue == decResult.PreviousValue - 1);
 
 				SimulateContention(ContentionLevel.B_Moderate);
 

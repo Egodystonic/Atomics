@@ -34,7 +34,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					target.Set(Convert(atomicInt.Increment().NewValue));
+					target.Set(Convert(atomicInt.Increment().CurrentValue));
 				},
 				NumIterations,
 				target => target.Get(),
@@ -43,7 +43,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					target.Value = Convert(atomicInt.Increment().NewValue);
+					target.Value = Convert(atomicInt.Increment().CurrentValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -139,9 +139,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			};
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					var newValue = Convert(atomicInt.Increment().NewValue);
-					var prev = target.Exchange(newValue).PreviousValue;
-					Assert.AreEqual(prev, Sub(newValue, One));
+					var CurrentValue = Convert(atomicInt.Increment().CurrentValue);
+					var prev = target.Exchange(CurrentValue).PreviousValue;
+					Assert.AreEqual(prev, Sub(CurrentValue, One));
 				},
 				NumIterations,
 				target => target.Value,
@@ -159,7 +159,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var exchRes = target.Exchange(t => Add(t, One));
-					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.NewValue);
+					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.CurrentValue);
 				},
 				NumIterations
 			);
@@ -172,7 +172,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var exchRes = target.Exchange(Add, One);
-					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.NewValue);
+					AssertAreEqual(Add(exchRes.PreviousValue, One), exchRes.CurrentValue);
 				},
 				NumIterations
 			);
@@ -193,7 +193,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -201,7 +201,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -215,7 +215,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -223,7 +223,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -237,7 +237,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n) => n.Equals(Add(c, One)));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -245,7 +245,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n) => n.Equals(Add(c, One)));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -259,7 +259,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -267,7 +267,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -286,17 +286,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, nextVal, One);
+						var exchRes = target.SpinWaitForExchange(Add, One, nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, nextVal, One);
+						var exchRes = target.SpinWaitForExchange(Add, One, nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -310,7 +310,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -318,29 +318,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = Convert(i);
 						var exchRes = target.SpinWaitForExchange(Add(nextVal, One), (c, n, ctx) => n.Equals(Add(c, ctx)), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
-			runner.ExecuteSingleWriterSingleReaderTests(
-				target => {
-					for (var i = 0; i < NumIterations; i += 2) {
-						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
-						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
-					}
-				},
-				target => {
-					for (var i = 1; i < NumIterations; i += 2) {
-						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
-						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -352,17 +330,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), One, nextVal);
+						var exchRes = target.SpinWaitForExchange(Add, One, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), One, nextVal);
+						var exchRes = target.SpinWaitForExchange(Add, One, (c, n, ctx) => c.Equals(Sub(n, One)) && c.Equals(ctx), nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -374,17 +352,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal), One);
+						var exchRes = target.SpinWaitForExchange(Add, One, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = Convert(i);
-						var exchRes = target.SpinWaitForExchange(Add, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal), One);
+						var exchRes = target.SpinWaitForExchange(Add, One, (c, n) => n.Equals(Add(c, One)) && c.Equals(nextVal));
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -399,7 +377,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						Console.WriteLine($"Waiting for {nextVal}");
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				},
 				target => {
@@ -408,7 +386,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						Console.WriteLine($"Waiting for {nextVal}");
 						var exchRes = target.SpinWaitForExchange(c => Add(c, One), (c, n, ctx) => n.Equals(Add(c, ctx)) && c.Equals(nextVal), One);
 						AssertAreEqual(nextVal, exchRes.PreviousValue);
-						AssertAreEqual(Add(nextVal, One), exchRes.NewValue);
+						AssertAreEqual(Add(nextVal, One), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -425,8 +403,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = Add(curValue, One);
-					target.TryExchange(newValue, curValue);
+					var CurrentValue = Add(curValue, One);
+					target.TryExchange(CurrentValue, curValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -440,11 +418,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var newValue = Add(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => Equals(Add(c, One), n));
+						var CurrentValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n) => Equals(Add(c, One), n));
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							AssertAreEqual(CurrentValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -460,14 +438,14 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 
-					var (wasSet, prevValue, newValue) = target.TryExchange(
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(
 						c => Add(c, One),
 						curValue
 					);
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(Add(curValue, One), newValue);
+						AssertAreEqual(Add(curValue, One), CurrentValue);
 					}
 					else AssertAreNotEqual(curValue, prevValue);
 				},
@@ -511,11 +489,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var newValue = Add(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => Equals(Add(c, ctx), n), One);
+						var CurrentValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n, ctx) => Equals(Add(c, ctx), n), One);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							AssertAreEqual(CurrentValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -531,15 +509,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var curValue = target.Value;
 
-					var (wasSet, prevValue, newValue) = target.TryExchange(
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(
 						Add,
-						curValue,
-						One
-					);
+						One, curValue);
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(Add(curValue, One), newValue);
+						AssertAreEqual(Add(curValue, One), CurrentValue);
 					}
 					else AssertAreNotEqual(curValue, prevValue);
 				},
@@ -555,7 +531,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n) => Equals(Add(c, One), n) && LessThan(c, Convert(NumIterations)), One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(Add, One, (c, n) => Equals(Add(c, One), n) && LessThan(c, Convert(NumIterations)));
 						if (wasSet) {
 							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
 							AssertAreEqual(Add(prevValue, One), setValue);
@@ -588,26 +564,6 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			);
 			runner.AllThreadsTearDown = null;
 
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					while (true) {
-						var curValue = target.Value;
-						if (curValue.Equals(Convert(NumIterations))) return;
-						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n, ctx) => Equals(Add(c, One), n) && LessThan(c, Convert(NumIterations)), One);
-						if (wasSet) {
-							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
-							AssertAreEqual(Add(prevValue, One), setValue);
-						}
-						else {
-							AssertAreEqual(setValue, prevValue);
-						}
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.AllThreadsTearDown = target => AssertAreEqual(Convert(NumIterations), target.Value);
 			runner.ExecuteFreeThreadedTests(
@@ -615,7 +571,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var (wasSet, prevValue, setValue) = target.TryExchange(Add, (c, n, ctx) => Equals(Add(c, One), n) && LessThan(c, Convert(ctx)), One, NumIterations);
+						var (wasSet, prevValue, setValue) = target.TryExchange(Add, One, (c, n, ctx) => Equals(Add(c, One), n) && LessThan(c, Convert(ctx)), NumIterations);
 						if (wasSet) {
 							AssertTrue(LessThanOrEqualTo(setValue, Convert(NumIterations)));
 							AssertAreEqual(Add(prevValue, One), setValue);
@@ -639,7 +595,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteSingleWriterTests(
 				target => {
 					var incRes = target.Increment();
-					AssertAreEqual(Add(incRes.PreviousValue, One), incRes.NewValue);
+					AssertAreEqual(Add(incRes.PreviousValue, One), incRes.CurrentValue);
 				},
 				target => {
 					while (true) {
@@ -666,7 +622,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteSingleWriterTests(
 				target => {
 					var incRes = target.Decrement();
-					AssertAreEqual(Sub(incRes.PreviousValue, One), incRes.NewValue);
+					AssertAreEqual(Sub(incRes.PreviousValue, One), incRes.CurrentValue);
 				},
 				target => {
 					while (true) {
@@ -732,7 +688,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMinimumExchange(Zero, Convert(Target));
-						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertAreEqual(Zero, exchRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -750,7 +706,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMinimumExchange(c => Sub(c, Convert(Target)), Convert(Target));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -768,7 +724,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMinimumExchange(Sub, Convert(Target), Convert(Target));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -796,7 +752,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMaximumExchange(Zero, Convert(Target));
-						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertAreEqual(Zero, exchRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -814,7 +770,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMaximumExchange(c => Sub(c, Convert(Target)), Convert(Target));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -832,7 +788,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForMaximumExchange(Sub, Convert(Target), Convert(Target));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(exchRes.PreviousValue, Convert(Target)));
 					}
 					readerCompletionSource.Cancel();
@@ -862,7 +818,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForBoundedExchange(Zero, Convert(Target - Range), Convert(Target + Range));
-						AssertAreEqual(Zero, exchRes.NewValue);
+						AssertAreEqual(Zero, exchRes.CurrentValue);
 						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
 					}
 					readerCompletionSource.Cancel();
@@ -880,7 +836,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForBoundedExchange(c => Sub(c, Convert(Target)), Convert(Target - Range), Convert(Target + Range));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
 					}
 					readerCompletionSource.Cancel();
@@ -898,7 +854,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i++) {
 						var exchRes = target.SpinWaitForBoundedExchange((c, ctx) => Sub(c, ctx), Convert(Target - Range), Convert(Target + Range), Convert(Target));
-						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.NewValue);
+						AssertAreEqual(Sub(exchRes.PreviousValue, Convert(Target)), exchRes.CurrentValue);
 						AssertAreEqual(Convert(Target), exchRes.PreviousValue);
 					}
 					readerCompletionSource.Cancel();
@@ -921,11 +877,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMinimumExchange(Zero, Convert(MinValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertAreEqual(Zero, tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
 					}
 				},
@@ -940,11 +896,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMinimumExchange(c => Div(c, Convert(2)), Convert(MinValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
 					}
 				},
@@ -959,11 +915,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMinimumExchange((c, ctx) => Div(c, Convert(ctx)), Convert(MinValue), 2);
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)));
 					}
 				},
@@ -986,11 +942,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMaximumExchange(Zero, Convert(MaxValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertAreEqual(Zero, tryRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1005,11 +961,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMaximumExchange(c => Div(c, Convert(2)), Convert(MaxValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1024,11 +980,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryMaximumExchange((c, ctx) => Div(c, Convert(ctx)), Convert(MaxValue), 2);
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.NewValue);
+						AssertAreEqual(Div(tryRes.PreviousValue, Convert(2)), tryRes.CurrentValue);
 						AssertTrue(LessThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(GreaterThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1053,12 +1009,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryBoundedExchange(Zero, Convert(MinValue), Convert(MaxValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Zero, tryRes.NewValue);
+						AssertAreEqual(Zero, tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1073,12 +1029,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryBoundedExchange(c => Sub(c, Convert(MinValue)), Convert(MinValue), Convert(MaxValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.NewValue);
+						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1093,12 +1049,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var tryRes = target.TryBoundedExchange(Sub, Convert(MinValue), Convert(MaxValue), Convert(MinValue));
 					if (tryRes.ValueWasSet) {
-						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.NewValue);
+						AssertAreEqual(Sub(tryRes.PreviousValue, Convert(MinValue)), tryRes.CurrentValue);
 						AssertTrue(GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MinValue)));
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 					else {
-						AssertAreEqual(tryRes.PreviousValue, tryRes.NewValue);
+						AssertAreEqual(tryRes.PreviousValue, tryRes.CurrentValue);
 						AssertTrue(LessThan(tryRes.PreviousValue, Convert(MinValue)) || GreaterThanOrEqualTo(tryRes.PreviousValue, Convert(MaxValue)));
 					}
 				},
@@ -1115,8 +1071,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (prevValue, newValue) = target.Increment();
-					Assert.AreEqual(Add(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1125,8 +1081,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (prevValue, newValue) = target.Decrement();
-					Assert.AreEqual(Sub(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1135,12 +1091,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Zero, target.Value);
 			runner.ExecuteWriterReaderTests(
 				target => {
-					var (prevValue, newValue) = target.Increment();
-					Assert.AreEqual(Add(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), CurrentValue);
 				},
 				target => {
-					var (prevValue, newValue) = target.Decrement();
-					Assert.AreEqual(Sub(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1149,8 +1105,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations), target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var (prevValue, newValue) = target.Increment();
-					Assert.AreEqual(Add(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Increment();
+					Assert.AreEqual(Add(prevValue, One), CurrentValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -1161,8 +1117,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations), target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var (prevValue, newValue) = target.Decrement();
-					Assert.AreEqual(Sub(prevValue, One), newValue);
+					var (prevValue, CurrentValue) = target.Decrement();
+					Assert.AreEqual(Sub(prevValue, One), CurrentValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -1180,8 +1136,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations * 7), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (prevValue, newValue) = target.Add(Convert(7));
-					Assert.AreEqual(Add(prevValue, Convert(7)), newValue);
+					var (prevValue, CurrentValue) = target.Add(Convert(7));
+					Assert.AreEqual(Add(prevValue, Convert(7)), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1190,8 +1146,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations * 7), target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (prevValue, newValue) = target.Subtract(Convert(7));
-					Assert.AreEqual(Sub(prevValue, Convert(7)), newValue);
+					var (prevValue, CurrentValue) = target.Subtract(Convert(7));
+					Assert.AreEqual(Sub(prevValue, Convert(7)), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1200,12 +1156,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Zero, target.Value);
 			runner.ExecuteWriterReaderTests(
 				target => {
-					var (prevValue, newValue) = target.Add(Convert(3));
-					Assert.AreEqual(Add(prevValue, Convert(3)), newValue);
+					var (prevValue, CurrentValue) = target.Add(Convert(3));
+					Assert.AreEqual(Add(prevValue, Convert(3)), CurrentValue);
 				},
 				target => {
-					var (prevValue, newValue) = target.Subtract(Convert(3));
-					Assert.AreEqual(Sub(prevValue, Convert(3)), newValue);
+					var (prevValue, CurrentValue) = target.Subtract(Convert(3));
+					Assert.AreEqual(Sub(prevValue, Convert(3)), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1214,8 +1170,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations * 9), target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var (prevValue, newValue) = target.Add(Convert(9));
-					Assert.AreEqual(Add(prevValue, Convert(9)), newValue);
+					var (prevValue, CurrentValue) = target.Add(Convert(9));
+					Assert.AreEqual(Add(prevValue, Convert(9)), CurrentValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -1226,8 +1182,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations * 9), target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
-					var (prevValue, newValue) = target.Subtract(Convert(9));
-					Assert.AreEqual(Sub(prevValue, Convert(9)), newValue);
+					var (prevValue, CurrentValue) = target.Subtract(Convert(9));
+					Assert.AreEqual(Sub(prevValue, Convert(9)), CurrentValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -1244,12 +1200,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			runner.ExecuteWriterReaderTests(
 				target => {
-					var (prevValue, newValue) = target.MultiplyBy(Convert(7));
-					Assert.AreEqual(Mul(prevValue, Convert(7)), newValue);
+					var (prevValue, CurrentValue) = target.MultiplyBy(Convert(7));
+					Assert.AreEqual(Mul(prevValue, Convert(7)), CurrentValue);
 				},
 				target => {
-					var (prevValue, newValue) = target.DivideBy(Convert(3));
-					Assert.AreEqual(Div(prevValue, Convert(3)), newValue);
+					var (prevValue, CurrentValue) = target.DivideBy(Convert(3));
+					Assert.AreEqual(Div(prevValue, Convert(3)), CurrentValue);
 				},
 				NumIterations
 			);
@@ -1334,35 +1290,35 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T, T)
 			var exchRes = target.SpinWaitForMinimumExchange(Convert(190), Convert(90));
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			var spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(Convert(50), Convert(200)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(200));
 			Assert.AreEqual(Convert(200), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(50), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(50), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.SpinWaitForMinimumExchange(t => Mul(t, Convert(2)), Convert(0));
 			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(t => Sub(t, Convert(10)), Convert(101)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(101));
 			Assert.AreEqual(Convert(101), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(91), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(91), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.SpinWaitForMinimumExchange(Add, Convert(91), Convert(109));
 			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForMinimumExchange(Div, Convert(300), Convert(10)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(300));
 			Assert.AreEqual(Convert(300), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(30), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(30), spinWaitTask.Result.CurrentValue);
 		}
 
 		[Test]
@@ -1374,35 +1330,35 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T, T)
 			var exchRes = target.SpinWaitForMaximumExchange(Convert(-190), Convert(-90));
 			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			Assert.AreEqual(Convert(-190), exchRes.CurrentValue);
 			var spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(Convert(-50), Convert(-200)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(-200));
 			Assert.AreEqual(Convert(-200), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(-50), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(-50), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.SpinWaitForMaximumExchange(t => Mul(t, Convert(2)), Convert(-0));
 			Assert.AreEqual(Convert(-50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			Assert.AreEqual(Convert(-100), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(-101));
 			Assert.AreEqual(Convert(-101), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(-91), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(-91), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.SpinWaitForMaximumExchange(Add, Convert(-91), Convert(-109));
 			Assert.AreEqual(Convert(-91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			Assert.AreEqual(Convert(-200), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForMaximumExchange(Div, Convert(-300), Convert(10)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(-300));
 			Assert.AreEqual(Convert(-300), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(-30), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(-30), spinWaitTask.Result.CurrentValue);
 		}
 
 		[Test]
@@ -1414,35 +1370,35 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T, T, T)
 			var exchRes = target.SpinWaitForBoundedExchange(Convert(190), Convert(90), Convert(110));
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			var spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(Convert(50), Convert(200), Convert(300)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(200));
 			Assert.AreEqual(Convert(200), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(50), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(50), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.SpinWaitForBoundedExchange(t => Mul(t, Convert(2)), Convert(0), Convert(51));
 			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(101));
 			Assert.AreEqual(Convert(101), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(91), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(91), spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.SpinWaitForBoundedExchange(Add, Convert(91), Convert(92), Convert(109));
 			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForBoundedExchange(Div, Convert(300), Convert(400), Convert(10)));
 			Thread.Sleep(100); // Give the test time to fail if it's gonna
 			Assert.AreEqual(false, spinWaitTask.IsCompleted);
 			target.Set(Convert(300));
 			Assert.AreEqual(Convert(300), spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Convert(30), spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Convert(30), spinWaitTask.Result.CurrentValue);
 		}
 
 		[Test]
@@ -1455,46 +1411,46 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var exchRes = target.TryMinimumExchange(Convert(190), Convert(90));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			exchRes = target.TryMinimumExchange(Convert(50), Convert(200));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(190), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			target.Set(Convert(200));
 			exchRes = target.TryMinimumExchange(Convert(50), Convert(200));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(50), exchRes.NewValue);
+			Assert.AreEqual(Convert(50), exchRes.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.TryMinimumExchange(t => Mul(t, Convert(2)), Convert(0));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			exchRes = target.TryMinimumExchange(t => Sub(t, Convert(10)), Convert(101));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			target.Set(Convert(101));
 			exchRes = target.TryMinimumExchange(t => Sub(t, Convert(10)), Convert(101));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(101), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(91), exchRes.NewValue);
+			Assert.AreEqual(Convert(91), exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.TryMinimumExchange(Add, Convert(91), Convert(109));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			exchRes = target.TryMinimumExchange(Div, Convert(300), Convert(10));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			target.Set(Convert(300));
 			exchRes = target.TryMinimumExchange(Div, Convert(300), Convert(10));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(300), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(30), exchRes.NewValue);
+			Assert.AreEqual(Convert(30), exchRes.CurrentValue);
 		}
 
 		[Test]
@@ -1507,46 +1463,46 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var exchRes = target.TryMaximumExchange(Convert(-190), Convert(-90));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			Assert.AreEqual(Convert(-190), exchRes.CurrentValue);
 			exchRes = target.TryMaximumExchange(Convert(-50), Convert(-200));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-190), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-190), exchRes.NewValue);
+			Assert.AreEqual(Convert(-190), exchRes.CurrentValue);
 			target.Set(Convert(-200));
 			exchRes = target.TryMaximumExchange(Convert(-50), Convert(-200));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-50), exchRes.NewValue);
+			Assert.AreEqual(Convert(-50), exchRes.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.TryMaximumExchange(t => Mul(t, Convert(2)), Convert(-0));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			Assert.AreEqual(Convert(-100), exchRes.CurrentValue);
 			exchRes = target.TryMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-100), exchRes.NewValue);
+			Assert.AreEqual(Convert(-100), exchRes.CurrentValue);
 			target.Set(Convert(-101));
 			exchRes = target.TryMaximumExchange(t => Sub(t, Convert(-10)), Convert(-101));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-101), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-91), exchRes.NewValue);
+			Assert.AreEqual(Convert(-91), exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.TryMaximumExchange(Add, Convert(-91), Convert(-109));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			Assert.AreEqual(Convert(-200), exchRes.CurrentValue);
 			exchRes = target.TryMaximumExchange(Div, Convert(-300), Convert(10));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-200), exchRes.NewValue);
+			Assert.AreEqual(Convert(-200), exchRes.CurrentValue);
 			target.Set(Convert(-300));
 			exchRes = target.TryMaximumExchange(Div, Convert(-300), Convert(10));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(-300), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(-30), exchRes.NewValue);
+			Assert.AreEqual(Convert(-30), exchRes.CurrentValue);
 		}
 
 		[Test]
@@ -1559,46 +1515,46 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var exchRes = target.TryBoundedExchange(Convert(190), Convert(90), Convert(110));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			exchRes = target.TryBoundedExchange(Convert(50), Convert(200), Convert(300));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(190), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(190), exchRes.NewValue);
+			Assert.AreEqual(Convert(190), exchRes.CurrentValue);
 			target.Set(Convert(200));
 			exchRes = target.TryBoundedExchange(Convert(50), Convert(200), Convert(300));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(50), exchRes.NewValue);
+			Assert.AreEqual(Convert(50), exchRes.CurrentValue);
 
 			// (Func<T, T>, T, T)
 			exchRes = target.TryBoundedExchange(t => Mul(t, Convert(2)), Convert(0), Convert(51));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(50), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			exchRes = target.TryBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(100), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(100), exchRes.NewValue);
+			Assert.AreEqual(Convert(100), exchRes.CurrentValue);
 			target.Set(Convert(101));
 			exchRes = target.TryBoundedExchange(t => Sub(t, Convert(10)), Convert(101), Convert(102));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(101), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(91), exchRes.NewValue);
+			Assert.AreEqual(Convert(91), exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, T, T)
 			exchRes = target.TryBoundedExchange(Add, Convert(91), Convert(92), Convert(109));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(91), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			exchRes = target.TryBoundedExchange(Div, Convert(300), Convert(400), Convert(10));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(200), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(200), exchRes.NewValue);
+			Assert.AreEqual(Convert(200), exchRes.CurrentValue);
 			target.Set(Convert(300));
 			exchRes = target.TryBoundedExchange(Div, Convert(300), Convert(400), Convert(10));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(300), exchRes.PreviousValue);
-			Assert.AreEqual(Convert(30), exchRes.NewValue);
+			Assert.AreEqual(Convert(30), exchRes.CurrentValue);
 		}
 
 		[Test]
@@ -1609,7 +1565,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.Increment();
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(101), incRes.NewValue);
+			Assert.AreEqual(Convert(101), incRes.CurrentValue);
 		}
 
 		[Test]
@@ -1620,7 +1576,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.Decrement();
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(99), incRes.NewValue);
+			Assert.AreEqual(Convert(99), incRes.CurrentValue);
 		}
 
 		[Test]
@@ -1631,7 +1587,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.Add(Convert(20));
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(120), incRes.NewValue);
+			Assert.AreEqual(Convert(120), incRes.CurrentValue);
 		}
 
 		[Test]
@@ -1642,7 +1598,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.Subtract(Convert(20));
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(80), incRes.NewValue);
+			Assert.AreEqual(Convert(80), incRes.CurrentValue);
 		}
 
 		[Test]
@@ -1653,7 +1609,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.MultiplyBy(Convert(20));
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(2000), incRes.NewValue);
+			Assert.AreEqual(Convert(2000), incRes.CurrentValue);
 		}
 
 		[Test]
@@ -1664,7 +1620,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var incRes = target.DivideBy(Convert(20));
 			Assert.AreEqual(Convert(100), incRes.PreviousValue);
-			Assert.AreEqual(Convert(5), incRes.NewValue);
+			Assert.AreEqual(Convert(5), incRes.CurrentValue);
 		}
 	}
 }

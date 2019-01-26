@@ -216,23 +216,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var exchRes = target.Exchange(Bravo);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			exchRes = target.Exchange(t => AreEqual(t, Bravo) ? Charlie : Delta);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Charlie, exchRes.NewValue);
+			Assert.AreEqual(Charlie, exchRes.CurrentValue);
 
 			exchRes = target.Exchange(t => AreEqual(t, Bravo) ? Charlie : Delta);
 			Assert.AreEqual(Charlie, exchRes.PreviousValue);
-			Assert.AreEqual(Delta, exchRes.NewValue);
+			Assert.AreEqual(Delta, exchRes.CurrentValue);
 
 			exchRes = target.Exchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Delta);
 			Assert.AreEqual(Delta, exchRes.PreviousValue);
-			Assert.AreEqual(Alpha, exchRes.NewValue);
+			Assert.AreEqual(Alpha, exchRes.CurrentValue);
 
 			exchRes = target.Exchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Delta);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 		}
 
 		[Test]
@@ -243,13 +243,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			target.Set(Alpha);
 			var exchRes = target.SpinWaitForExchange(Bravo, Alpha);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			var spinWaitTask = Task.Run(() => target.SpinWaitForExchange(Charlie, Delta));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Charlie, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Charlie, spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, T)
 			target.Set(Alpha);
@@ -258,13 +258,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchange(t => AreEqual(t, Charlie) ? Alpha : Bravo, Delta));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			
 			// (Func<T, TContext, T>, T, TContext)
 			target.Set(Alpha);
@@ -273,13 +273,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Delta, Charlie));
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Charlie, Delta));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			
 			// (T, Func<T, T, bool>)
 			target.Set(Alpha);
@@ -288,13 +288,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchange(Bravo, (c, n) => AreEqual(c, Delta) && AreEqual(n, Bravo)));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 
 			// (T, Func<T, T, TContext, bool>)
 			target.Set(Alpha);
@@ -303,13 +303,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchange(Bravo, (c, n, ctx) => AreEqual(c, Delta) && AreEqual(n, ctx), Bravo));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, Func<T, T, bool>)
 			target.Set(Alpha);
@@ -318,28 +318,28 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchange(t => AreEqual(t, Charlie) ? Alpha : Bravo, (c, n) => AreEqual(c, Delta) && AreEqual(n, Bravo)));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			target.Set(Alpha);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n) => AreEqual(c, Charlie) && AreEqual(n, Bravo), Charlie));
+			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Charlie, (c, n) => AreEqual(c, Charlie) && AreEqual(n, Bravo)));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, (c, n) => AreEqual(c, Delta) && AreEqual(n, Bravo), Charlie));
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Charlie, (c, n) => AreEqual(c, Delta) && AreEqual(n, Bravo)));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			target.Set(Alpha);
@@ -348,43 +348,28 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			spinWaitTask = Task.Run(() => target.SpinWaitForExchange(t => AreEqual(t, Charlie) ? Alpha : Bravo, (c, n, ctx) => AreEqual(c, Delta) && AreEqual(n, ctx), Bravo));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
-			
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			target.Set(Alpha);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, ctx) && AreEqual(n, Bravo), Charlie));
-			Thread.Sleep(100); // Give the test time to fail
-			Assert.False(spinWaitTask.IsCompleted);
-			target.Set(Charlie);
-			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => !AreEqual(t, ctx) ? Bravo : Alpha, (c, n, ctx) => AreEqual(c, Delta) && AreEqual(n, ctx), Bravo));
-			Thread.Sleep(100); // Give the test time to fail
-			Assert.False(spinWaitTask.IsCompleted);
-			target.Set(Delta);
-			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 			
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			target.Set(Alpha);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, ctx) && AreEqual(n, Bravo), Charlie, Charlie));
+			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Charlie, (c, n, ctx) => AreEqual(c, ctx) && AreEqual(n, Bravo), Charlie));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Charlie);
 			Assert.AreEqual(Charlie, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
-			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, (c, n, ctx) => AreEqual(c, Delta) && AreEqual(n, ctx), Charlie, Bravo));
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
+			spinWaitTask = Task.Run(() => target.SpinWaitForExchange((t, ctx) => AreEqual(t, ctx) ? Alpha : Bravo, Charlie, (c, n, ctx) => AreEqual(c, Delta) && AreEqual(n, ctx), Bravo));
 			Thread.Sleep(100); // Give the test time to fail
 			Assert.False(spinWaitTask.IsCompleted);
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
-			Assert.AreEqual(Bravo, spinWaitTask.Result.NewValue);
+			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
 		}
 
 		[Test]
@@ -396,110 +381,99 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var exchRes = target.TryExchange(Bravo, Alpha);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(Delta, Charlie);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, T>, T)
 			target.Set(Alpha);
 			exchRes = target.TryExchange(t => AreEqual(t, Alpha) ? Bravo : Delta, Alpha);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(t => AreEqual(t, Charlie) ? Bravo : Delta, Charlie);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, T, TContext)
 			target.Set(Alpha);
 			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Alpha, Alpha);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Charlie, Charlie);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (T, Func<T, T, bool>)
 			target.Set(Alpha);
 			exchRes = target.TryExchange(Bravo, (c, n) => AreEqual(c, Alpha) && AreEqual(n, Bravo));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(Delta, (c, n) => AreEqual(c, Bravo) && AreEqual(n, Bravo));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (T, Func<T, T, TContext, bool>)
 			target.Set(Alpha);
 			exchRes = target.TryExchange(Bravo, (c, n, ctx) => AreEqual(c, Alpha) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(Delta, (c, n, ctx) => AreEqual(c, Bravo) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, T>, Func<T, T, bool>)
 			target.Set(Alpha);
 			exchRes = target.TryExchange(t => AreEqual(t, Alpha) ? Bravo : Delta, (c, n) => AreEqual(c, Alpha) && AreEqual(n, Bravo));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(t => AreEqual(t, Charlie) ? Bravo : Delta, (c, n) => AreEqual(c, Bravo) && AreEqual(n, Bravo));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			target.Set(Alpha);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n) => AreEqual(c, Alpha) && AreEqual(n, Bravo), Alpha);
+			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Alpha, (c, n) => AreEqual(c, Alpha) && AreEqual(n, Bravo));
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n) => AreEqual(c, Bravo) && AreEqual(n, Bravo), Charlie);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
+			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Charlie, (c, n) => AreEqual(c, Bravo) && AreEqual(n, Bravo));
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			target.Set(Alpha);
 			exchRes = target.TryExchange(t => AreEqual(t, Alpha) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, Alpha) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 			exchRes = target.TryExchange(t => AreEqual(t, Charlie) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, Bravo) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
-
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			target.Set(Alpha);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, Alpha) && !AreEqual(n, ctx), Alpha);
-			Assert.AreEqual(true, exchRes.ValueWasSet);
-			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => !AreEqual(c, Bravo) && AreEqual(n, ctx), Bravo);
-			Assert.AreEqual(false, exchRes.ValueWasSet);
-			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			target.Set(Alpha);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, Alpha) && AreEqual(n, ctx), Alpha, Bravo);
+			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Alpha, (c, n, ctx) => AreEqual(c, Alpha) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Alpha, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
-			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, (c, n, ctx) => AreEqual(c, Bravo) && AreEqual(n, ctx), Charlie, Bravo);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
+			exchRes = target.TryExchange((t, ctx) => AreEqual(t, ctx) ? Bravo : Delta, Charlie, (c, n, ctx) => AreEqual(c, Bravo) && AreEqual(n, ctx), Bravo);
 			Assert.AreEqual(false, exchRes.ValueWasSet);
 			Assert.AreEqual(Bravo, exchRes.PreviousValue);
-			Assert.AreEqual(Bravo, exchRes.NewValue);
+			Assert.AreEqual(Bravo, exchRes.CurrentValue);
 		}
 	}
 }

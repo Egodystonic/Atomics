@@ -44,20 +44,20 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T newValue) {
-			long newValueAsLong;
-			WriteToLong(&newValueAsLong, newValue);
-			SetLong(newValueAsLong);
+		public void Set(T CurrentValue) {
+			long CurrentValueAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			SetLong(CurrentValueAsLong);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetLong(long newValueAsLong) => Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+		void SetLong(long CurrentValueAsLong) => Interlocked.Exchange(ref _valueAsLong, CurrentValueAsLong);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T newValue) {
-			long newValueAsLong;
-			WriteToLong(&newValueAsLong, newValue);
-			_valueAsLong = newValueAsLong;
+		public void SetUnsafe(T CurrentValue) {
+			long CurrentValueAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			_valueAsLong = CurrentValueAsLong;
 		}
 
 		public T SpinWaitForValue(T targetValue) {
@@ -72,107 +72,107 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (T PreviousValue, T NewValue) Exchange(T newValue) {
-			long newValueAsLong;
-			WriteToLong(&newValueAsLong, newValue);
-			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
-			return (ReadFromLong(&previousValueAsLong), newValue);
+		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) {
+			long CurrentValueAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, CurrentValueAsLong);
+			return (ReadFromLong(&previousValueAsLong), CurrentValue);
 		}
 
-		public (T PreviousValue, T NewValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
+		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValueAsLong = GetLong();
-				var newValue = mapFunc(ReadFromLong(&curValueAsLong), context);
-				long newValueAsLong;
-				WriteToLong(&newValueAsLong, newValue);
+				var CurrentValue = mapFunc(ReadFromLong(&curValueAsLong), context);
+				long CurrentValueAsLong;
+				WriteToLong(&CurrentValueAsLong, CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (ReadFromLong(&curValueAsLong), newValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (ReadFromLong(&curValueAsLong), CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange(T newValue, T comparand) {
-			long newValueAsLong, comparandAsLong;
-			WriteToLong(&newValueAsLong, newValue);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
+			long CurrentValueAsLong, comparandAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
 			WriteToLong(&comparandAsLong, comparand);
-			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
+			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong);
 			var previousValue = ReadFromLong(&previousValueAsLong);
 
 			var wasSet = previousValueAsLong == comparandAsLong;
-			return (wasSet, previousValue, wasSet ? newValue : previousValue);
+			return (wasSet, previousValue, wasSet ? CurrentValue : previousValue);
 		}
 
-		public (T PreviousValue, T NewValue) SpinWaitForExchange(T newValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
 			var spinner = new SpinWait();
-			long newValueAsLong, comparandAsLong;
-			WriteToLong(&newValueAsLong, newValue);
+			long CurrentValueAsLong, comparandAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
 			WriteToLong(&comparandAsLong, comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, newValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
 			var spinner = new SpinWait();
-			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
-			long newValueAsLong, comparandAsLong;
-			WriteToLong(&newValueAsLong, newValue);
+			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			long CurrentValueAsLong, comparandAsLong;
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
 			WriteToLong(&comparandAsLong, comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, newValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
-		public (T PreviousValue, T NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 			
 			while (true) {
 				var curValue = Get();
-				var newValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, newValue, predicateContext)) {
+				var CurrentValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, CurrentValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				long curValueAsLong, newValueAsLong;
+				long curValueAsLong, CurrentValueAsLong;
 				WriteToLong(&curValueAsLong, curValue);
-				WriteToLong(&newValueAsLong, newValue);
+				WriteToLong(&CurrentValueAsLong, CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (curValue, newValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (curValue, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, T comparand, TContext context) {
-			long comparandAsLong, newValueAsLong;
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
+			long comparandAsLong, CurrentValueAsLong;
 			WriteToLong(&comparandAsLong, comparand);
-			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			WriteToLong(&newValueAsLong, newValue);
+			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			WriteToLong(&CurrentValueAsLong, CurrentValue);
 
-			var prevValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
+			var prevValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong);
 			var prevValue = ReadFromLong(&prevValueAsLong);
-			if (prevValueAsLong == comparandAsLong) return (true, prevValue, newValue);
+			if (prevValueAsLong == comparandAsLong) return (true, prevValue, CurrentValue);
 			else return (false, prevValue, prevValue);
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T NewValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, Func<T, T, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				long curValueAsLong;
 				WriteToLong(&curValueAsLong, curValue);
-				var newValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
+				var CurrentValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
 
-				long newValueAsLong;
-				WriteToLong(&newValueAsLong, newValue);
+				long CurrentValueAsLong;
+				WriteToLong(&CurrentValueAsLong, CurrentValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (true, curValue, newValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (true, curValue, CurrentValue);
 				spinner.SpinOnce();
 			}
 		}

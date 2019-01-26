@@ -22,48 +22,48 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public DummyImmutableRef GetUnsafe() => _ref.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(DummyImmutableRef newValue) => _ref.Set(newValue);
+		public void Set(DummyImmutableRef CurrentValue) => _ref.Set(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(DummyImmutableRef newValue) => _ref.SetUnsafe(newValue);
+		public void SetUnsafe(DummyImmutableRef CurrentValue) => _ref.SetUnsafe(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) Exchange(DummyImmutableRef newValue) => _ref.Exchange(newValue);
+		public (DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) Exchange(DummyImmutableRef CurrentValue) => _ref.Exchange(CurrentValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) TryExchange(DummyImmutableRef newValue, DummyImmutableRef comparand) => _ref.TryExchange(newValue, comparand);
+		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) TryExchange(DummyImmutableRef CurrentValue, DummyImmutableRef comparand) => _ref.TryExchange(CurrentValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyImmutableRef SpinWaitForValue(DummyImmutableRef targetValue) => _ref.SpinWaitForValue(targetValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) Exchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, TContext context) {
+		public (DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) Exchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, TContext context) {
 			return _ref.Exchange(mapFunc, context);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) SpinWaitForExchange(DummyImmutableRef newValue, DummyImmutableRef comparand) {
-			return _ref.SpinWaitForExchange(newValue, comparand);
+		public (DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) SpinWaitForExchange(DummyImmutableRef CurrentValue, DummyImmutableRef comparand) {
+			return _ref.SpinWaitForExchange(CurrentValue, comparand);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) SpinWaitForExchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, DummyImmutableRef comparand, TContext context) {
-			return _ref.SpinWaitForExchange(mapFunc, comparand, context);
+		public (DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) SpinWaitForExchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, TContext context, DummyImmutableRef comparand) {
+			return _ref.SpinWaitForExchange(mapFunc, context, comparand);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableRef, TMapContext, DummyImmutableRef> mapFunc, Func<DummyImmutableRef, DummyImmutableRef, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return _ref.SpinWaitForExchange(mapFunc, predicate, mapContext, predicateContext);
+		public (DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<DummyImmutableRef, TMapContext, DummyImmutableRef> mapFunc, TMapContext mapContext, Func<DummyImmutableRef, DummyImmutableRef, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return _ref.SpinWaitForExchange(mapFunc, mapContext, predicate, predicateContext);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) TryExchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, DummyImmutableRef comparand, TContext context) {
-			return _ref.TryExchange(mapFunc, comparand, context);
+		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) TryExchange<TContext>(Func<DummyImmutableRef, TContext, DummyImmutableRef> mapFunc, TContext context, DummyImmutableRef comparand) {
+			return _ref.TryExchange(mapFunc, context, comparand);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef NewValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableRef, TMapContext, DummyImmutableRef> mapFunc, Func<DummyImmutableRef, DummyImmutableRef, TPredicateContext, bool> predicate, TMapContext mapContext, TPredicateContext predicateContext) {
-			return _ref.TryExchange(mapFunc, predicate, mapContext, predicateContext);
+		public (bool ValueWasSet, DummyImmutableRef PreviousValue, DummyImmutableRef CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableRef, TMapContext, DummyImmutableRef> mapFunc, TMapContext mapContext, Func<DummyImmutableRef, DummyImmutableRef, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
+			return _ref.TryExchange(mapFunc, mapContext, predicate, predicateContext);
 		}
 
 		static DummyImmutableRef Copy(DummyImmutableRef r) => r == null ? null : new DummyImmutableRef(r.StringProp, r.LongProp, Copy(r.RefProp));

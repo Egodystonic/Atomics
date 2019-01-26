@@ -51,19 +51,19 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			const int Bitmask = 0b101010101;
 			for (var i = 0; i < NumIterations; ++i) {
 				var incResult = _customInt.Increment();
-				Assert(incResult.NewValue == incResult.PreviousValue + 1);
+				Assert(incResult.CurrentValue == incResult.PreviousValue + 1);
 				var addResult = _customInt.Add(10);
-				Assert(addResult.NewValue == addResult.PreviousValue + 10);
+				Assert(addResult.CurrentValue == addResult.PreviousValue + 10);
 				var subResult = _customInt.Subtract(9);
-				Assert(subResult.NewValue == subResult.PreviousValue - 9);
+				Assert(subResult.CurrentValue == subResult.PreviousValue - 9);
 				var multResult = _customInt.MultiplyBy(3);
-				Assert(multResult.NewValue == multResult.PreviousValue * 3);
+				Assert(multResult.CurrentValue == multResult.PreviousValue * 3);
 				var divResult = _customInt.DivideBy(4);
-				Assert(divResult.NewValue == divResult.PreviousValue / 4);
+				Assert(divResult.CurrentValue == divResult.PreviousValue / 4);
 				var decResult = _customInt.Decrement();
-				Assert(decResult.NewValue == decResult.PreviousValue - 1);
+				Assert(decResult.CurrentValue == decResult.PreviousValue - 1);
 				var exchangeResult = _customInt.Exchange(curVal => curVal & Bitmask);
-				Assert(exchangeResult.NewValue == (exchangeResult.PreviousValue & Bitmask));
+				Assert(exchangeResult.CurrentValue == (exchangeResult.PreviousValue & Bitmask));
 			}
 		}
 		#endregion
@@ -90,19 +90,19 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			const int Bitmask = 0b101010101;
 			for (var i = 0; i < NumIterations; ++i) {
 				var incResult = _unmanagedInt.Exchange(curVal => curVal + 1);
-				Assert(incResult.NewValue == incResult.PreviousValue + 1);
+				Assert(incResult.CurrentValue == incResult.PreviousValue + 1);
 				var addResult = _unmanagedInt.Exchange(curVal => curVal + 10);
-				Assert(addResult.NewValue == addResult.PreviousValue + 10);
+				Assert(addResult.CurrentValue == addResult.PreviousValue + 10);
 				var subResult = _unmanagedInt.Exchange(curVal => curVal - 9);
-				Assert(subResult.NewValue == subResult.PreviousValue - 9);
+				Assert(subResult.CurrentValue == subResult.PreviousValue - 9);
 				var multResult = _unmanagedInt.Exchange(curVal => curVal * 3);
-				Assert(multResult.NewValue == multResult.PreviousValue * 3);
+				Assert(multResult.CurrentValue == multResult.PreviousValue * 3);
 				var divResult = _unmanagedInt.Exchange(curVal => curVal / 4);
-				Assert(divResult.NewValue == divResult.PreviousValue / 4);
+				Assert(divResult.CurrentValue == divResult.PreviousValue / 4);
 				var decResult = _unmanagedInt.Exchange(curVal => curVal - 1);
-				Assert(decResult.NewValue == decResult.PreviousValue - 1);
+				Assert(decResult.CurrentValue == decResult.PreviousValue - 1);
 				var exchangeResult = _unmanagedInt.Exchange(curVal => curVal & Bitmask);
-				Assert(exchangeResult.NewValue == (exchangeResult.PreviousValue & Bitmask));
+				Assert(exchangeResult.CurrentValue == (exchangeResult.PreviousValue & Bitmask));
 			}
 		}
 		#endregion

@@ -18,14 +18,14 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var runner = NewRunner(new DummyImmutableRef(0L));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
-				target => target.Set(new DummyImmutableRef(atomicLong.Increment().NewValue)),
+				target => target.Set(new DummyImmutableRef(atomicLong.Increment().CurrentValue)),
 				NumIterations,
 				target => target.Get(),
 				(prev, cur) => AssertTrue(prev.LongProp <= cur.LongProp)
 			);
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
-				target => target.Value = new DummyImmutableRef(atomicLong.Increment().NewValue),
+				target => target.Value = new DummyImmutableRef(atomicLong.Increment().CurrentValue),
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => AssertTrue(prev.LongProp <= cur.LongProp)
@@ -120,7 +120,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					var newLongValue = atomicLong.Increment().NewValue;
+					var newLongValue = atomicLong.Increment().CurrentValue;
 					var prev = target.Exchange(new DummyImmutableRef(newLongValue)).PreviousValue;
 					AssertAreEqual(prev.LongProp, newLongValue - 1L);
 				},
@@ -135,8 +135,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					var (prevValue, newValue) = target.Exchange(c => new DummyImmutableRef(c.LongProp + 1L));
-					AssertAreEqual(prevValue.LongProp, newValue.LongProp - 1L);
+					var (prevValue, CurrentValue) = target.Exchange(c => new DummyImmutableRef(c.LongProp + 1L));
+					AssertAreEqual(prevValue.LongProp, CurrentValue.LongProp - 1L);
 				},
 				NumIterations,
 				target => target.Value,
@@ -148,8 +148,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations * 10L, target.Value.LongProp);
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (prevValue, newValue) = target.Exchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), 10L);
-					AssertAreEqual(prevValue.LongProp, newValue.LongProp - 10L);
+					var (prevValue, CurrentValue) = target.Exchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), 10L);
+					AssertAreEqual(prevValue.LongProp, CurrentValue.LongProp - 10L);
 				},
 				NumIterations
 			);
@@ -178,9 +178,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -188,9 +188,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -211,9 +211,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -221,9 +221,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -244,9 +244,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n) => n.LongProp == c.LongProp + 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -254,9 +254,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n) => n.LongProp == c.LongProp + 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -277,9 +277,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -287,9 +287,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -316,21 +316,21 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], valuesArr[nextVal], valuesArr);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], valuesArr, valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + 1], valuesArr[nextVal], valuesArr);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + 1], valuesArr, valuesArr[nextVal]);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -351,9 +351,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -361,42 +361,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(valuesArr[nextVal + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual(nextVal.ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((nextVal + 1).ToString(), exchRes.NewValue.StringProp);
-					}
-				}
-			);
-			runner.AllThreadsTearDown = null;
-
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			valuesArr = Enumerable.Range(0, NumIterations + 1)
-				.Select(i => new DummyImmutableRef((-i).ToString(), i))
-				.ToArray();
-			runner.GlobalSetUp = (target, _) => target.Value = valuesArr[0];
-			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.LongProp);
-				AssertAreEqual((-NumIterations).ToString(), target.Value.StringProp);
-			};
-			runner.ExecuteSingleWriterSingleReaderTests(
-				target => {
-					for (var i = 0; i < NumIterations; i += 2) {
-						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
-						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
-						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
-					}
-				},
-				target => {
-					for (var i = 1; i < NumIterations; i += 2) {
-						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
-						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
-						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((nextVal + 1).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -415,21 +382,21 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, valuesArr, 1);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], valuesArr, (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, valuesArr, 1);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => ctx[c.LongProp + 1], valuesArr, (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -448,21 +415,21 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal, 1);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], 1, (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
-						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal, 1);
+						var exchRes = target.SpinWaitForExchange((c, ctx) => valuesArr[c.LongProp + ctx], 1, (c, n) => n.LongProp == c.LongProp + 1 && c.LongProp == nextVal);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -483,9 +450,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				},
 				target => {
@@ -493,9 +460,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => valuesArr[c.LongProp + 1], (c, n, ctx) => n.LongProp == c.LongProp + ctx && c.LongProp == nextVal, 1);
 						AssertAreEqual(nextVal, exchRes.PreviousValue.LongProp);
-						AssertAreEqual(nextVal + 1, exchRes.NewValue.LongProp);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.LongProp);
 						AssertAreEqual((-nextVal).ToString(), exchRes.PreviousValue.StringProp);
-						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.NewValue.StringProp);
+						AssertAreEqual((-(nextVal + 1)).ToString(), exchRes.CurrentValue.StringProp);
 					}
 				}
 			);
@@ -515,11 +482,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
+						var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, curValue);
 						if (wasSet) {
 							AssertAreEqualObjects(curValue, prevValue);
-							AssertAreEqualObjects(newValue, setValue);
+							AssertAreEqualObjects(CurrentValue, setValue);
 						}
 						else {
 							AssertAreNotEqualObjects(curValue, prevValue);
@@ -534,8 +501,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
+					target.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
 				},
 				NumIterations,
 				target => target.Value,
@@ -549,10 +516,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), curValue);
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), curValue);
 						if (wasSet) {
 							AssertAreEqualObjects(curValue, prevValue);
-							AssertAreEqualObjects(prevValue.LongProp + 1L, newValue.LongProp);
+							AssertAreEqualObjects(prevValue.LongProp + 1L, CurrentValue.LongProp);
 						}
 						else AssertAreNotEqualObjects(curValue, prevValue);
 					}
@@ -563,9 +530,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (Func<T, T>, Func<T, T, bool>)
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
-					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n) => c.LongProp == n.LongProp - 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
 				},
 				NumIterations
 			);
@@ -581,8 +548,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(newValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
+					target.TryExchange(CurrentValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
 				},
 				NumIterations,
 				target => target.Value,
@@ -596,10 +563,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), curValue, 1L);
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), 1L, curValue);
 						if (wasSet) {
 							AssertAreEqualObjects(curValue, prevValue);
-							AssertAreEqualObjects(prevValue.LongProp + 1L, newValue.LongProp);
+							AssertAreEqualObjects(prevValue.LongProp + 1L, CurrentValue.LongProp);
 						}
 						else AssertAreNotEqualObjects(curValue, prevValue);
 					}
@@ -610,9 +577,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), (c, n) => c.LongProp == n.LongProp - 1L, 1L);
-					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), 1L, (c, n) => c.LongProp == n.LongProp - 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
 				},
 				NumIterations
 			);
@@ -620,19 +587,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
-					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
-				},
-				NumIterations
-			);
-
-			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
-			runner.ExecuteFreeThreadedTests(
-				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + ctx), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
-					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new DummyImmutableRef(c.LongProp + 1L), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
 				},
 				NumIterations
 			);
@@ -640,9 +597,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.ExecuteFreeThreadedTests(
 				target => {
-					var (wasSet, prevValue, newValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + (ctx - 1L)), (c, n, ctx) => c.LongProp == n.LongProp - ctx, 2L, 1L);
-					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, newValue.LongProp);
-					else AssertAreNotEqual(prevValue.LongProp + 1L, newValue.LongProp);
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new DummyImmutableRef(c.LongProp + (ctx - 1L)), 2L, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					if (wasSet) AssertAreEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
+					else AssertAreNotEqual(prevValue.LongProp + 1L, CurrentValue.LongProp);
 				},
 				NumIterations
 			);
