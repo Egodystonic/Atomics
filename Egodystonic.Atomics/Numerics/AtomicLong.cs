@@ -26,13 +26,13 @@ namespace Egodystonic.Atomics.Numerics {
 		public long GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(long CurrentValue) => Interlocked.Exchange(ref _value, CurrentValue);
+		public void Set(long newValue) => Interlocked.Exchange(ref _value, newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(long CurrentValue) => _value = CurrentValue;
+		public void SetUnsafe(long newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (long PreviousValue, long CurrentValue) Exchange(long CurrentValue) => (Interlocked.Exchange(ref _value, CurrentValue), CurrentValue);
+		public (long PreviousValue, long CurrentValue) Exchange(long newValue) => (Interlocked.Exchange(ref _value, newValue), newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long SpinWaitForValue(long targetValue) {
@@ -46,28 +46,28 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (long PreviousValue, long CurrentValue) SpinWaitForExchange(long CurrentValue, long comparand) {
+		public (long PreviousValue, long CurrentValue) SpinWaitForExchange(long newValue, long comparand) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, comparand) == comparand) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		public (long PreviousValue, long CurrentValue) SpinWaitForExchange<TContext>(Func<long, TContext, long> mapFunc, TContext context, long comparand) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, comparand) == comparand) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -77,28 +77,28 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryExchange(long CurrentValue, long comparand) {
-			var oldValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
+		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryExchange(long newValue, long comparand) {
+			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var wasSet = oldValue == comparand;
-			return (wasSet, oldValue, wasSet ? CurrentValue : oldValue);
+			return (wasSet, oldValue, wasSet ? newValue : oldValue);
 		}
 
 		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryExchange<TContext>(Func<long, TContext, long> mapFunc, TContext context, long comparand) {
-			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			var prevValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
-			if (prevValue == comparand) return (true, prevValue, CurrentValue);
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			if (prevValue == comparand) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -107,10 +107,10 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -145,7 +145,7 @@ namespace Egodystonic.Atomics.Numerics {
 			}
 		}
 
-		public (long PreviousValue, long CurrentValue) SpinWaitForMinimumExchange(long CurrentValue, long minValue) {
+		public (long PreviousValue, long CurrentValue) SpinWaitForMinimumExchange(long newValue, long minValue) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -155,7 +155,7 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -170,9 +170,9 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue);
+				var newValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -187,14 +187,14 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (long PreviousValue, long CurrentValue) SpinWaitForMaximumExchange(long CurrentValue, long maxValue) {
+		public (long PreviousValue, long CurrentValue) SpinWaitForMaximumExchange(long newValue, long maxValue) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -204,7 +204,7 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -219,9 +219,9 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue);
+				var newValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -236,14 +236,14 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (long PreviousValue, long CurrentValue) SpinWaitForBoundedExchange(long CurrentValue, long lowerBoundInclusive, long upperBoundExclusive) {
+		public (long PreviousValue, long CurrentValue) SpinWaitForBoundedExchange(long newValue, long lowerBoundInclusive, long upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -253,7 +253,7 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -268,9 +268,9 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue);
+				var newValue = mapFunc(curValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -285,20 +285,20 @@ namespace Egodystonic.Atomics.Numerics {
 					continue;
 				}
 
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryMinimumExchange(long CurrentValue, long minValue) {
+		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryMinimumExchange(long newValue, long minValue) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				if (curValue < minValue) return (false, curValue, curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -309,8 +309,8 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue < minValue) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -321,19 +321,19 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue < minValue) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue, context);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryMaximumExchange(long CurrentValue, long maxValue) {
+		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryMaximumExchange(long newValue, long maxValue) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				if (curValue > maxValue) return (false, curValue, curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -344,8 +344,8 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue > maxValue) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -356,19 +356,19 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue > maxValue) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue, context);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryBoundedExchange(long CurrentValue, long lowerBoundInclusive, long upperBoundExclusive) {
+		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryBoundedExchange(long newValue, long lowerBoundInclusive, long upperBoundExclusive) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -379,8 +379,8 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -391,8 +391,8 @@ namespace Egodystonic.Atomics.Numerics {
 			while (true) {
 				var curValue = Get();
 				if (curValue < lowerBoundInclusive || curValue >= upperBoundExclusive) return (false, curValue, curValue);
-				var CurrentValue = mapFunc(curValue, context);
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				var newValue = mapFunc(curValue, context);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -426,9 +426,9 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = curValue * operand;
+				var newValue = curValue * operand;
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -438,9 +438,9 @@ namespace Egodystonic.Atomics.Numerics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = curValue / operand;
+				var newValue = curValue / operand;
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}

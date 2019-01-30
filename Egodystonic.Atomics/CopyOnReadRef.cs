@@ -32,13 +32,13 @@ namespace Egodystonic.Atomics {
 		public T GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T CurrentValue) => Volatile.Write(ref _value, CurrentValue);
+		public void Set(T newValue) => Volatile.Write(ref _value, newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T CurrentValue) => _value = CurrentValue;
+		public void SetUnsafe(T newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) => (_copyFunc(Interlocked.Exchange(ref _value, CurrentValue)), _copyFunc(CurrentValue));
+		public (T PreviousValue, T CurrentValue) Exchange(T newValue) => (_copyFunc(Interlocked.Exchange(ref _value, newValue)), _copyFunc(newValue));
 
 		public T SpinWaitForValue(T targetValue) {
 			var spinner = new SpinWait();
@@ -56,21 +56,21 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				var curValue = GetWithoutCopy();
 				var curValueCopy = _copyFunc(curValue);
-				var CurrentValue = mapFunc(curValueCopy, context);
+				var newValue = mapFunc(curValueCopy, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValueCopy, _copyFunc(CurrentValue));
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValueCopy, _copyFunc(newValue));
 				spinner.SpinOnce();
 			}
 		}
 
-		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand) {
 			var spinner = new SpinWait();
 
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
-			if (TargetTypeIsEquatable) return SpinWaitForExchange((_, ctx) => ctx, CurrentValue, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand);
+			if (TargetTypeIsEquatable) return SpinWaitForExchange((_, ctx) => ctx, newValue, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, comparand) == comparand) return (_copyFunc(comparand), _copyFunc(CurrentValue));
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (_copyFunc(comparand), _copyFunc(newValue));
 				spinner.SpinOnce();
 			}
 		}
@@ -81,10 +81,10 @@ namespace Egodystonic.Atomics {
 
 			var comparandCopy = _copyFunc(comparand);
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparandCopy, context); // curValue will always be comparand when this method returns
+			var newValue = mapFunc(comparandCopy, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, comparand) == comparand) return (comparandCopy, _copyFunc(CurrentValue));
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparandCopy, _copyFunc(newValue));
 				spinner.SpinOnce();
 			}
 		}
@@ -95,26 +95,26 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				var curValue = GetWithoutCopy();
 				var curValueCopy = _copyFunc(curValue);
-				var CurrentValue = mapFunc(curValueCopy, mapContext);
-				var CurrentValueCopy = _copyFunc(CurrentValue);
-				if (!predicate(curValueCopy, CurrentValueCopy, predicateContext)) {
+				var newValue = mapFunc(curValueCopy, mapContext);
+				var newValueCopy = _copyFunc(newValue);
+				if (!predicate(curValueCopy, newValueCopy, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValueCopy, CurrentValueCopy);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValueCopy, newValueCopy);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
 			// Branches suck; but hopefully the fact that TargetTypeIsEquatable is invariant for all calls with the same type T will help the branch predictor
-			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, CurrentValue, (c, _, ctx) => ValuesAreEqual(c, ctx), comparand);
+			if (TargetTypeIsEquatable) return TryExchange((_, ctx) => ctx, newValue, (c, _, ctx) => ValuesAreEqual(c, ctx), comparand);
 
-			var oldValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
+			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var oldValueCopy = _copyFunc(oldValue);
 			var wasSet = oldValue == comparand;
-			return (wasSet, oldValueCopy, wasSet ? _copyFunc(CurrentValue) : oldValueCopy);
+			return (wasSet, oldValueCopy, wasSet ? _copyFunc(newValue) : oldValueCopy);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
@@ -122,10 +122,10 @@ namespace Egodystonic.Atomics {
 			if (TargetTypeIsEquatable) return TryExchange(mapFunc, context, (curVal, _, ctx) => ValuesAreEqual(curVal, ctx), comparand);
 
 			var comparandCopy = _copyFunc(comparand);
-			var CurrentValue = mapFunc(comparandCopy, context); // Comparand will always be curValue if the interlocked call passes
-			var prevValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
+			var newValue = mapFunc(comparandCopy, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var prevValueCopy = _copyFunc(prevValue);
-			if (prevValue == comparand) return (true, prevValueCopy, _copyFunc(CurrentValue));
+			if (prevValue == comparand) return (true, prevValueCopy, _copyFunc(newValue));
 			else return (false, prevValueCopy, prevValueCopy);
 		}
 
@@ -135,11 +135,11 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				var curValue = GetWithoutCopy();
 				var curValueCopy = _copyFunc(curValue);
-				var CurrentValue = mapFunc(curValueCopy, mapContext);
-				var CurrentValueCopy = _copyFunc(CurrentValue);
-				if (!predicate(curValueCopy, CurrentValue, predicateContext)) return (false, curValueCopy, curValueCopy);
+				var newValue = mapFunc(curValueCopy, mapContext);
+				var newValueCopy = _copyFunc(newValue);
+				if (!predicate(curValueCopy, newValue, predicateContext)) return (false, curValueCopy, curValueCopy);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValueCopy, CurrentValueCopy);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValueCopy, newValueCopy);
 
 				spinner.SpinOnce();
 			}

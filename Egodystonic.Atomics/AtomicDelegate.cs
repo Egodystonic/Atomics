@@ -25,13 +25,13 @@ namespace Egodystonic.Atomics {
 		public T GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T CurrentValue) => Volatile.Write(ref _value, CurrentValue); // fence is useless on its own but will synchronize with other operations
+		public void Set(T newValue) => Volatile.Write(ref _value, newValue); // fence is useless on its own but will synchronize with other operations
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T CurrentValue) => _value = CurrentValue;
+		public void SetUnsafe(T newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) => (Interlocked.Exchange(ref _value, CurrentValue), CurrentValue);
+		public (T PreviousValue, T CurrentValue) Exchange(T newValue) => (Interlocked.Exchange(ref _value, newValue), newValue);
 
 		public T SpinWaitForValue(T targetValue) {
 			var spinner = new SpinWait();
@@ -48,28 +48,28 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) return (curValue, CurrentValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, comparand), comparand)) return (comparand, CurrentValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, comparand), comparand)) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, comparand), comparand)) return (comparand, CurrentValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, comparand), comparand)) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -79,28 +79,28 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) return (curValue, CurrentValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
-			var oldValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
+			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var wasSet = ReferenceEquals(oldValue, comparand);
-			return (wasSet, oldValue, wasSet ? CurrentValue : oldValue);
+			return (wasSet, oldValue, wasSet ? newValue : oldValue);
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
-			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			var prevValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
-			if (ReferenceEquals(prevValue, comparand)) return (true, prevValue, CurrentValue);
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			if (ReferenceEquals(prevValue, comparand)) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -109,10 +109,10 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) return (true, curValue, CurrentValue);
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -120,53 +120,53 @@ namespace Egodystonic.Atomics {
 
 		public (T PreviousValue, T CurrentValue) Combine(T operand) {
 			T curValue;
-			T CurrentValue;
+			T newValue;
 
 			var spinner = new SpinWait();
 
 			while (true) {
 				curValue = Get();
-				CurrentValue = (T)Delegate.Combine(curValue, operand);
+				newValue = (T)Delegate.Combine(curValue, operand);
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, CurrentValue);
+			return (curValue, newValue);
 		}
 
 		public (T PreviousValue, T CurrentValue) Remove(T operand) {
 			T curValue;
-			T CurrentValue;
+			T newValue;
 
 			var spinner = new SpinWait();
 
 			while (true) {
 				curValue = Get();
-				CurrentValue = (T)Delegate.Remove(curValue, operand);
+				newValue = (T)Delegate.Remove(curValue, operand);
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, CurrentValue);
+			return (curValue, newValue);
 		}
 
 		public (T PreviousValue, T CurrentValue) RemoveAll(T operand) {
 			T curValue;
-			T CurrentValue;
+			T newValue;
 
 			var spinner = new SpinWait();
 
 			while (true) {
 				curValue = Get();
-				CurrentValue = (T)Delegate.RemoveAll(curValue, operand);
+				newValue = (T)Delegate.RemoveAll(curValue, operand);
 
-				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, CurrentValue, curValue), curValue)) break;
+				if (ReferenceEquals(Interlocked.CompareExchange(ref _value, newValue, curValue), curValue)) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, CurrentValue);
+			return (curValue, newValue);
 		}
 
 		public (bool DelegateWasInvoked, object Result) TryDynamicInvoke(params object[] args) {

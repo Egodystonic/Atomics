@@ -44,20 +44,20 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T CurrentValue) {
-			long CurrentValueAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
-			SetLong(CurrentValueAsLong);
+		public void Set(T newValue) {
+			long newValueAsLong;
+			WriteToLong(&newValueAsLong, newValue);
+			SetLong(newValueAsLong);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetLong(long CurrentValueAsLong) => Interlocked.Exchange(ref _valueAsLong, CurrentValueAsLong);
+		void SetLong(long newValueAsLong) => Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T CurrentValue) {
-			long CurrentValueAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
-			_valueAsLong = CurrentValueAsLong;
+		public void SetUnsafe(T newValue) {
+			long newValueAsLong;
+			WriteToLong(&newValueAsLong, newValue);
+			_valueAsLong = newValueAsLong;
 		}
 
 		public T SpinWaitForValue(T targetValue) {
@@ -72,11 +72,11 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) {
-			long CurrentValueAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
-			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, CurrentValueAsLong);
-			return (ReadFromLong(&previousValueAsLong), CurrentValue);
+		public (T PreviousValue, T CurrentValue) Exchange(T newValue) {
+			long newValueAsLong;
+			WriteToLong(&newValueAsLong, newValue);
+			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+			return (ReadFromLong(&previousValueAsLong), newValue);
 		}
 
 		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
@@ -84,46 +84,46 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValueAsLong = GetLong();
-				var CurrentValue = mapFunc(ReadFromLong(&curValueAsLong), context);
-				long CurrentValueAsLong;
-				WriteToLong(&CurrentValueAsLong, CurrentValue);
+				var newValue = mapFunc(ReadFromLong(&curValueAsLong), context);
+				long newValueAsLong;
+				WriteToLong(&newValueAsLong, newValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (ReadFromLong(&curValueAsLong), CurrentValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (ReadFromLong(&curValueAsLong), newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
-			long CurrentValueAsLong, comparandAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
+			long newValueAsLong, comparandAsLong;
+			WriteToLong(&newValueAsLong, newValue);
 			WriteToLong(&comparandAsLong, comparand);
-			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong);
+			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
 			var previousValue = ReadFromLong(&previousValueAsLong);
 
 			var wasSet = previousValueAsLong == comparandAsLong;
-			return (wasSet, previousValue, wasSet ? CurrentValue : previousValue);
+			return (wasSet, previousValue, wasSet ? newValue : previousValue);
 		}
 
-		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand) {
 			var spinner = new SpinWait();
-			long CurrentValueAsLong, comparandAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			long newValueAsLong, comparandAsLong;
+			WriteToLong(&newValueAsLong, newValue);
 			WriteToLong(&comparandAsLong, comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
 		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
-			long CurrentValueAsLong, comparandAsLong;
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			long newValueAsLong, comparandAsLong;
+			WriteToLong(&newValueAsLong, newValue);
 			WriteToLong(&comparandAsLong, comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong) == comparandAsLong) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -132,30 +132,30 @@ namespace Egodystonic.Atomics {
 			
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				long curValueAsLong, CurrentValueAsLong;
+				long curValueAsLong, newValueAsLong;
 				WriteToLong(&curValueAsLong, curValue);
-				WriteToLong(&CurrentValueAsLong, CurrentValue);
+				WriteToLong(&newValueAsLong, newValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
-			long comparandAsLong, CurrentValueAsLong;
+			long comparandAsLong, newValueAsLong;
 			WriteToLong(&comparandAsLong, comparand);
-			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			WriteToLong(&CurrentValueAsLong, CurrentValue);
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			WriteToLong(&newValueAsLong, newValue);
 
-			var prevValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, comparandAsLong);
+			var prevValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
 			var prevValue = ReadFromLong(&prevValueAsLong);
-			if (prevValueAsLong == comparandAsLong) return (true, prevValue, CurrentValue);
+			if (prevValueAsLong == comparandAsLong) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -166,13 +166,13 @@ namespace Egodystonic.Atomics {
 				var curValue = Get();
 				long curValueAsLong;
 				WriteToLong(&curValueAsLong, curValue);
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				long CurrentValueAsLong;
-				WriteToLong(&CurrentValueAsLong, CurrentValue);
+				long newValueAsLong;
+				WriteToLong(&newValueAsLong, newValue);
 
-				if (Interlocked.CompareExchange(ref _valueAsLong, CurrentValueAsLong, curValueAsLong) == curValueAsLong) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, curValueAsLong) == curValueAsLong) return (true, curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}

@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
-using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
-namespace Egodystonic.Atomics.Benchmarks.API {
+namespace Egodystonic.Atomics.Benchmarks.External {
 	/// <summary>
 	/// Demonstration of AtomicRef speed for simple exchange/read versus standard lock and ReaderWriterLockSlim.
 	/// </summary>
@@ -74,26 +73,26 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 			_atomicUser = new AtomicRef<User>(new User(0, _usernames[0]));
 			_atomicRefBarrier = new ManualResetEvent(false);
 			_atomicRefThreads = new List<Thread>();
-			PrepareThreads(NumWriters, _atomicRefBarrier, WithAtomicRef_WriterEntry, _atomicRefThreads);
-			PrepareThreads(NumReaders, _atomicRefBarrier, WithAtomicRef_ReaderEntry, _atomicRefThreads);
+			BenchmarkUtils.PrepareThreads(NumWriters, _atomicRefBarrier, WithAtomicRef_WriterEntry, _atomicRefThreads);
+			BenchmarkUtils.PrepareThreads(NumReaders, _atomicRefBarrier, WithAtomicRef_ReaderEntry, _atomicRefThreads);
 		}
 
 		[Benchmark(Baseline = true)]
 		public void WithAtomicRef() {
-			ExecutePreparedThreads(_atomicRefBarrier, _atomicRefThreads);
+			BenchmarkUtils.ExecutePreparedThreads(_atomicRefBarrier, _atomicRefThreads);
 		}
 
 		void WithAtomicRef_WriterEntry() {
 			for (var i = 0; i < NumIterations; ++i) {
 				_atomicUser.Exchange(cur => new User(cur.LoginID + 1, _usernames[cur.LoginID + 1]));
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		void WithAtomicRef_ReaderEntry() {
 			for (var i = 0; i < NumIterations; ++i) {
 				var curUser = _atomicUser.Value;
-				Assert(curUser.Name == _usernames[curUser.LoginID]);
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.Assert(curUser.Name == _usernames[curUser.LoginID]);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		#endregion
@@ -110,13 +109,13 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 			_standardLockUser = new User(0, _usernames[0]);
 			_standardLockBarrier = new ManualResetEvent(false);
 			_standardLockThreads = new List<Thread>();
-			PrepareThreads(NumWriters, _standardLockBarrier, WithStandardLock_WriterEntry, _standardLockThreads);
-			PrepareThreads(NumReaders, _standardLockBarrier, WithStandardLock_ReaderEntry, _standardLockThreads);
+			BenchmarkUtils.PrepareThreads(NumWriters, _standardLockBarrier, WithStandardLock_WriterEntry, _standardLockThreads);
+			BenchmarkUtils.PrepareThreads(NumReaders, _standardLockBarrier, WithStandardLock_ReaderEntry, _standardLockThreads);
 		}
 
 		[Benchmark]
 		public void WithStandardLock() {
-			ExecutePreparedThreads(_standardLockBarrier, _standardLockThreads);
+			BenchmarkUtils.ExecutePreparedThreads(_standardLockBarrier, _standardLockThreads);
 		}
 
 		void WithStandardLock_WriterEntry() {
@@ -125,15 +124,15 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 					var nextID = _standardLockUser.LoginID + 1;
 					_standardLockUser = new User(nextID, _usernames[nextID]);
 				}
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		void WithStandardLock_ReaderEntry() {
 			for (var i = 0; i < NumIterations; ++i) {
 				User curUser;
 				lock (_lockObject) curUser = _standardLockUser;
-				Assert(curUser.Name == _usernames[curUser.LoginID]);
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.Assert(curUser.Name == _usernames[curUser.LoginID]);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		#endregion
@@ -150,13 +149,13 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 			_rwlsUser = new User(0, _usernames[0]);
 			_rwlsBarrier = new ManualResetEvent(false);
 			_rwlsThreads = new List<Thread>();
-			PrepareThreads(NumWriters, _rwlsBarrier, WithRWLS_WriterEntry, _rwlsThreads);
-			PrepareThreads(NumReaders, _rwlsBarrier, WithRWLS_ReaderEntry, _rwlsThreads);
+			BenchmarkUtils.PrepareThreads(NumWriters, _rwlsBarrier, WithRWLS_WriterEntry, _rwlsThreads);
+			BenchmarkUtils.PrepareThreads(NumReaders, _rwlsBarrier, WithRWLS_ReaderEntry, _rwlsThreads);
 		}
 
 		[Benchmark]
 		public void WithRWLS() {
-			ExecutePreparedThreads(_rwlsBarrier, _rwlsThreads);
+			BenchmarkUtils.ExecutePreparedThreads(_rwlsBarrier, _rwlsThreads);
 		}
 
 		void WithRWLS_WriterEntry() {
@@ -165,7 +164,7 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 				var nextID = _rwlsUser.LoginID + 1;
 				_rwlsUser = new User(nextID, _usernames[nextID]);
 				_rwls.ExitWriteLock();
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		void WithRWLS_ReaderEntry() {
@@ -173,8 +172,8 @@ namespace Egodystonic.Atomics.Benchmarks.API {
 				_rwls.EnterReadLock();
 				var curUser = _rwlsUser;
 				_rwls.ExitReadLock();
-				Assert(curUser.Name == _usernames[curUser.LoginID]);
-				SimulateContention(ContentionLevel);
+				BenchmarkUtils.Assert(curUser.Name == _usernames[curUser.LoginID]);
+				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
 		}
 		#endregion

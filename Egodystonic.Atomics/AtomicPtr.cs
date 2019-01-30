@@ -84,8 +84,8 @@ namespace Egodystonic.Atomics {
 			public static bool operator !=(TypedPtrExchangeRes left, TypedPtrExchangeRes right) { return !left.Equals(right); }
 		}
 
-		public delegate bool AtomicPtrPredicate(T* curValue, T* CurrentValue);
-		public delegate bool AtomicPtrPredicate<in TContext>(T* curValue, T* CurrentValue, TContext context);
+		public delegate bool AtomicPtrPredicate(T* curValue, T* newValue);
+		public delegate bool AtomicPtrPredicate<in TContext>(T* curValue, T* newValue, TContext context);
 		public delegate T* AtomicPtrMap(T* curValue);
 		public delegate T* AtomicPtrMap<in TContext>(T* curValue, TContext context);
 
@@ -110,15 +110,15 @@ namespace Egodystonic.Atomics {
 		public T* GetUnsafe() => (T*) _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T* CurrentValue) => Volatile.Write(ref _value, (IntPtr) CurrentValue);
+		public void Set(T* newValue) => Volatile.Write(ref _value, (IntPtr) newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T* CurrentValue) => _value = (IntPtr) CurrentValue;
+		public void SetUnsafe(T* newValue) => _value = (IntPtr) newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetAsIntPtr(IntPtr CurrentValue) => Volatile.Write(ref _value, CurrentValue);
+		public void SetAsIntPtr(IntPtr newValue) => Volatile.Write(ref _value, newValue);
 
-		public TypedPtrExchangeRes Exchange(T* CurrentValue) => new TypedPtrExchangeRes((T*) Interlocked.Exchange(ref _value, (IntPtr) CurrentValue), CurrentValue);
+		public TypedPtrExchangeRes Exchange(T* newValue) => new TypedPtrExchangeRes((T*) Interlocked.Exchange(ref _value, (IntPtr) newValue), newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T* SpinWaitForValue(T* targetValue) {
@@ -132,28 +132,28 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public TypedPtrExchangeRes SpinWaitForExchange(T* CurrentValue, T* comparand) {
+		public TypedPtrExchangeRes SpinWaitForExchange(T* newValue, T* comparand) {
 			var spinner = new SpinWait();
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) comparand) == (IntPtr) comparand) return new TypedPtrExchangeRes(comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) comparand) == (IntPtr) comparand) return new TypedPtrExchangeRes(comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		public TypedPtrExchangeRes SpinWaitForExchange<TContext>(AtomicPtrMap<TContext> mapFunc, T* comparand, TContext context) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) comparand) == (IntPtr) comparand) return new TypedPtrExchangeRes(comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) comparand) == (IntPtr) comparand) return new TypedPtrExchangeRes(comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -163,28 +163,28 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TypedPtrTryExchangeRes TryExchange(T* CurrentValue, T* comparand) {
-			var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) comparand);
+		public TypedPtrTryExchangeRes TryExchange(T* newValue, T* comparand) {
+			var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) comparand);
 			var wasSet = oldValue == comparand;
-			return new TypedPtrTryExchangeRes(wasSet, oldValue, wasSet ? CurrentValue : oldValue);
+			return new TypedPtrTryExchangeRes(wasSet, oldValue, wasSet ? newValue : oldValue);
 		}
 
 		public TypedPtrTryExchangeRes TryExchange<TContext>(AtomicPtrMap<TContext> mapFunc, T* comparand, TContext context) {
-			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			var prevValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) comparand);
-			if (prevValue == comparand) return new TypedPtrTryExchangeRes(true, prevValue, CurrentValue);
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) comparand);
+			if (prevValue == comparand) return new TypedPtrTryExchangeRes(true, prevValue, newValue);
 			else return new TypedPtrTryExchangeRes(false, prevValue, prevValue);
 		}
 
@@ -193,10 +193,10 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
 
-				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, CurrentValue);
+				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -225,9 +225,9 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = curValue + operand.ToInt64();
-				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue);
-				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, CurrentValue);
+				var newValue = curValue + operand.ToInt64();
+				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue);
+				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -237,9 +237,9 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = curValue - operand.ToInt64();
-				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue);
-				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, CurrentValue);
+				var newValue = curValue - operand.ToInt64();
+				var oldValue = (T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue);
+				if (oldValue == curValue) return new TypedPtrExchangeRes(oldValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -253,9 +253,9 @@ namespace Egodystonic.Atomics {
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IAtomic<IntPtr>.Get() => GetAsIntPtr();
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IAtomic<IntPtr>.GetUnsafe() => (IntPtr) GetUnsafe();
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void Set(IntPtr CurrentValue) => SetAsIntPtr(CurrentValue);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void SetUnsafe(IntPtr CurrentValue) => SetUnsafe((T*) CurrentValue);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.Exchange(IntPtr CurrentValue) => Exchange((T*) CurrentValue).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void Set(IntPtr newValue) => SetAsIntPtr(newValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void SetUnsafe(IntPtr newValue) => SetUnsafe((T*) newValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.Exchange(IntPtr newValue) => Exchange((T*) newValue).AsUntyped;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IAtomic<IntPtr>.SpinWaitForValue(IntPtr targetValue) => (IntPtr) SpinWaitForValue((T*) targetValue);
 
@@ -264,21 +264,21 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = GetAsIntPtr();
-				var CurrentValue = mapFunc(curValue, context);
+				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.SpinWaitForExchange(IntPtr CurrentValue, IntPtr comparand) => SpinWaitForExchange((T*) CurrentValue, (T*) comparand).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.SpinWaitForExchange(IntPtr newValue, IntPtr comparand) => SpinWaitForExchange((T*) newValue, (T*) comparand).AsUntyped;
 
 		(IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.SpinWaitForExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, TContext context, IntPtr comparand) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, comparand) == comparand) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -288,23 +288,23 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = GetAsIntPtr();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] (bool ValueWasSet, IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.TryExchange(IntPtr CurrentValue, IntPtr comparand) => TryExchange((T*) CurrentValue, (T*) comparand).AsUntyped;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] (bool ValueWasSet, IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.TryExchange(IntPtr newValue, IntPtr comparand) => TryExchange((T*) newValue, (T*) comparand).AsUntyped;
 
 		(bool ValueWasSet, IntPtr PreviousValue, IntPtr CurrentValue) IAtomic<IntPtr>.TryExchange<TContext>(Func<IntPtr, TContext, IntPtr> mapFunc, TContext context, IntPtr comparand) {
-			var CurrentValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
-			var prevValue = Interlocked.CompareExchange(ref _value, CurrentValue, comparand);
-			if (prevValue == comparand) return (true, prevValue, CurrentValue);
+			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
+			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
+			if (prevValue == comparand) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -313,10 +313,10 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = GetAsIntPtr();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValue, curValue) == curValue) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -350,32 +350,32 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TypedPtrExchangeRes Exchange(AtomicPtrMap mapFunc) => Exchange((curVal, ctx) => ctx(curVal), mapFunc);
 
-		public TypedPtrExchangeRes SpinWaitForExchange(T* CurrentValue, AtomicPtrPredicate predicate) {
+		public TypedPtrExchangeRes SpinWaitForExchange(T* newValue, AtomicPtrPredicate predicate) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (!predicate(curValue, CurrentValue)) {
+				if (!predicate(curValue, newValue)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public TypedPtrExchangeRes SpinWaitForExchange<TContext>(T* CurrentValue, AtomicPtrPredicate<TContext> predicate, TContext context) {
+		public TypedPtrExchangeRes SpinWaitForExchange<TContext>(T* newValue, AtomicPtrPredicate<TContext> predicate, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (!predicate(curValue, CurrentValue, context)) {
+				if (!predicate(curValue, newValue, context)) {
 					spinner.SpinOnce();
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == (IntPtr) curValue) return new TypedPtrExchangeRes(curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -405,27 +405,27 @@ namespace Egodystonic.Atomics {
 			return SpinWaitForExchange(mapFunc, predicate, context, context);
 		}
 
-		public TypedPtrTryExchangeRes TryExchange(T* CurrentValue, AtomicPtrPredicate predicate) {
+		public TypedPtrTryExchangeRes TryExchange(T* newValue, AtomicPtrPredicate predicate) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (!predicate(curValue, CurrentValue)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
+				if (!predicate(curValue, newValue)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
 
-				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, CurrentValue);
+				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
 		}
 
-		public TypedPtrTryExchangeRes TryExchange<TContext>(T* CurrentValue, AtomicPtrPredicate<TContext> predicate, TContext context) {
+		public TypedPtrTryExchangeRes TryExchange<TContext>(T* newValue, AtomicPtrPredicate<TContext> predicate, TContext context) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
-				if (!predicate(curValue, CurrentValue, context)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
+				if (!predicate(curValue, newValue, context)) return new TypedPtrTryExchangeRes(false, curValue, curValue);
 
-				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) CurrentValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, CurrentValue);
+				if ((T*) Interlocked.CompareExchange(ref _value, (IntPtr) newValue, (IntPtr) curValue) == curValue) return new TypedPtrTryExchangeRes(true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}

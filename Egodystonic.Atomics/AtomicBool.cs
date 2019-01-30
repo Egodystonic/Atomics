@@ -29,16 +29,16 @@ namespace Egodystonic.Atomics {
 		public bool GetUnsafe() => Convert(_value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(bool CurrentValue) => SetValueAsInt(Convert(CurrentValue));
+		public void Set(bool newValue) => SetValueAsInt(Convert(newValue));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetValueAsInt(int CurrentValue) => Volatile.Write(ref _value, CurrentValue);
+		void SetValueAsInt(int newValue) => Volatile.Write(ref _value, newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(bool CurrentValue) => _value = Convert(CurrentValue);
+		public void SetUnsafe(bool newValue) => _value = Convert(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool PreviousValue, bool CurrentValue) Exchange(bool CurrentValue) => (Convert(Interlocked.Exchange(ref _value, Convert(CurrentValue))), CurrentValue);
+		public (bool PreviousValue, bool CurrentValue) Exchange(bool newValue) => (Convert(Interlocked.Exchange(ref _value, Convert(newValue))), newValue);
 
 		public (bool PreviousValue, bool CurrentValue) Exchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context) {
 			var spinner = new SpinWait();
@@ -46,10 +46,10 @@ namespace Egodystonic.Atomics {
 			while (true) {
 				var curValue = Get();
 				var curValueAsInt = Convert(curValue);
-				var CurrentValue = mapFunc(curValue, context);
-				var CurrentValueAsInt = Convert(CurrentValue);
+				var newValue = mapFunc(curValue, context);
+				var newValueAsInt = Convert(newValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -62,25 +62,25 @@ namespace Egodystonic.Atomics {
 			return targetValue;
 		}
 
-		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange(bool CurrentValue, bool comparand) {
+		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange(bool newValue, bool comparand) {
 			var spinner = new SpinWait();
-			var CurrentValueAsInt = Convert(CurrentValue);
+			var newValueAsInt = Convert(newValue);
 			var comparandAsInt = Convert(comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
 		public (bool PreviousValue, bool CurrentValue) SpinWaitForExchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context, bool comparand) {
 			var spinner = new SpinWait();
-			var CurrentValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
-			var CurrentValueAsInt = Convert(CurrentValue);
+			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
+			var newValueAsInt = Convert(newValue);
 			var comparandAsInt = Convert(comparand);
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt) == comparandAsInt) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -90,35 +90,35 @@ namespace Egodystonic.Atomics {
 			
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
 				var curValueAsInt = Convert(curValue);
-				var CurrentValueAsInt = Convert(CurrentValue);
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, CurrentValue);
+				var newValueAsInt = Convert(newValue);
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
 
-		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange(bool CurrentValue, bool comparand) {
-			var CurrentValueAsInt = Convert(CurrentValue);
+		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange(bool newValue, bool comparand) {
+			var newValueAsInt = Convert(newValue);
 			var comparandAsInt = Convert(comparand);
-			var oldIntValue = Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt);
+			var oldIntValue = Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt);
 			var wasSet = oldIntValue == comparandAsInt;
 			var oldValue = Convert(oldIntValue);
-			return (wasSet, oldValue, wasSet ? CurrentValue : oldValue);
+			return (wasSet, oldValue, wasSet ? newValue : oldValue);
 		}
 
 		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context, bool comparand) {
-			var CurrentValue = mapFunc(comparand, context); // Can just use the map func here as by the time we return, curValue MUST have been the same as comparand
-			var CurrentValueAsInt = Convert(CurrentValue);
+			var newValue = mapFunc(comparand, context); // Can just use the map func here as by the time we return, curValue MUST have been the same as comparand
+			var newValueAsInt = Convert(newValue);
 			var comparandAsInt = Convert(comparand);
 
-			var prevValueAsInt = Interlocked.CompareExchange(ref _value, CurrentValueAsInt, comparandAsInt);
+			var prevValueAsInt = Interlocked.CompareExchange(ref _value, newValueAsInt, comparandAsInt);
 			var prevValue = Convert(prevValueAsInt);
-			if (prevValueAsInt == comparandAsInt) return (true, prevValue, CurrentValue);
+			if (prevValueAsInt == comparandAsInt) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -127,13 +127,13 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = Get();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) return (false, curValue, curValue);
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
 				var curValueAsInt = Convert(curValue);
-				var CurrentValueAsInt = Convert(CurrentValue);
+				var newValueAsInt = Convert(newValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) return (true, curValue, CurrentValue);
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}
@@ -142,19 +142,19 @@ namespace Egodystonic.Atomics {
 		public (bool PreviousValue, bool CurrentValue) Negate() {
 			var spinner = new SpinWait();
 			bool curValue;
-			bool CurrentValue;
+			bool newValue;
 
 			while (true) {
 				curValue = Get();
 				var curValueAsInt = Convert(curValue);
-				CurrentValue = !curValue;
-				var CurrentValueAsInt = Convert(CurrentValue);
+				newValue = !curValue;
+				var newValueAsInt = Convert(newValue);
 
-				if (Interlocked.CompareExchange(ref _value, CurrentValueAsInt, curValueAsInt) == curValueAsInt) break;
+				if (Interlocked.CompareExchange(ref _value, newValueAsInt, curValueAsInt) == curValueAsInt) break;
 				spinner.SpinOnce();
 			}
 
-			return (curValue, CurrentValue);
+			return (curValue, newValue);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

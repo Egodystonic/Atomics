@@ -25,16 +25,16 @@ namespace Egodystonic.Atomics {
 		public T GetUnsafe() => _asUnmanaged.GetUnsafe();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(T CurrentValue) => _asUnmanaged.Set(CurrentValue);
+		public void Set(T newValue) => _asUnmanaged.Set(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T CurrentValue) => _asUnmanaged.SetUnsafe(CurrentValue);
+		public void SetUnsafe(T newValue) => _asUnmanaged.SetUnsafe(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) => _asUnmanaged.Exchange(CurrentValue);
+		public (T PreviousValue, T CurrentValue) Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) => _asUnmanaged.TryExchange(CurrentValue, comparand);
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T SpinWaitForValue(T targetValue) => _asUnmanaged.SpinWaitForValue(targetValue);
@@ -43,7 +43,7 @@ namespace Egodystonic.Atomics {
 		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) => _asUnmanaged.Exchange(mapFunc, context);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) => _asUnmanaged.SpinWaitForExchange(CurrentValue, comparand);
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand) => _asUnmanaged.SpinWaitForExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) => _asUnmanaged.SpinWaitForExchange(mapFunc, context, comparand);

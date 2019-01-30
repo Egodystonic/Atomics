@@ -6,8 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
-	public sealed class 
-		AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
+	public sealed class AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
 		public readonly struct ScopedReadonlyRefToken : IDisposable, IEquatable<ScopedReadonlyRefToken> {
 			readonly AtomicVal<T> _owner;
 			public ref readonly T Value => ref _owner._value;
@@ -73,14 +72,14 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() => _value;
 
-		public void Set(T CurrentValue) {
+		public void Set(T newValue) {
 			EnterLockAsWriter();
-			_value = CurrentValue;
+			_value = newValue;
 			ExitLockAsWriter();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void SetUnsafe(T CurrentValue) => _value = CurrentValue;
+		public void SetUnsafe(T newValue) => _value = newValue;
 
 		public T SpinWaitForValue(T targetValue) {
 			var spinner = new SpinWait();
@@ -92,28 +91,28 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
-		public (T PreviousValue, T CurrentValue) Exchange(T CurrentValue) {
+		public (T PreviousValue, T CurrentValue) Exchange(T newValue) {
 			EnterLockAsWriter();
 			var oldValue = _value;
-			_value = CurrentValue;
+			_value = newValue;
 			ExitLockAsWriter();
-			return (oldValue, CurrentValue);
+			return (oldValue, newValue);
 		}
 
 		public (T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context) {
 			try {
 				EnterLockAsWriter();
 				var oldValue = _value;
-				var CurrentValue = mapFunc(oldValue, context);
-				_value = CurrentValue;
-				return (oldValue, CurrentValue);
+				var newValue = mapFunc(oldValue, context);
+				_value = newValue;
+				return (oldValue, newValue);
 			}
 			finally { // Necessary in case map func throws exception
 				ExitLockAsWriter();
 			}
 		}
 
-		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand) {
+		public (T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand) {
 			var spinner = new SpinWait();
 
 			while (true) {
@@ -130,9 +129,9 @@ namespace Egodystonic.Atomics {
 					continue;
 				}
 
-				_value = CurrentValue;
+				_value = newValue;
 				ExitLockAsWriter();
-				return (curValue, CurrentValue);
+				return (curValue, newValue);
 			}
 		}
 
@@ -145,8 +144,8 @@ namespace Egodystonic.Atomics {
 
 			while (true) {
 				var curValue = GetUnsafe();
-				var CurrentValue = mapFunc(curValue, mapContext);
-				if (!predicate(curValue, CurrentValue, predicateContext)) {
+				var newValue = mapFunc(curValue, mapContext);
+				if (!predicate(curValue, newValue, predicateContext)) {
 					spinner.SpinOnce();
 					continue;
 				}
@@ -158,19 +157,19 @@ namespace Egodystonic.Atomics {
 					continue;
 				}
 
-				_value = CurrentValue;
+				_value = newValue;
 				ExitLockAsWriter();
-				return (curValue, CurrentValue);
+				return (curValue, newValue);
 			}
 		}
 
-		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand) {
+		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
 			EnterLockAsWriter();
 			var oldValue = _value;
 			if (oldValue.Equals(comparand)) {
-				_value = CurrentValue;
+				_value = newValue;
 				ExitLockAsWriter();
-				return (true, oldValue, CurrentValue);
+				return (true, oldValue, newValue);
 			}
 			else {
 				ExitLockAsWriter();
@@ -182,10 +181,10 @@ namespace Egodystonic.Atomics {
 			EnterLockAsWriter();
 			try {
 				var oldValue = _value;
-				var CurrentValue = mapFunc(oldValue, context);
+				var newValue = mapFunc(oldValue, context);
 				if (oldValue.Equals(comparand)) {
-					_value = CurrentValue;
-					return (true, oldValue, CurrentValue);
+					_value = newValue;
+					return (true, oldValue, newValue);
 				}
 				else return (false, oldValue, oldValue);
 			}
@@ -198,10 +197,10 @@ namespace Egodystonic.Atomics {
 			EnterLockAsWriter();
 			try {
 				var oldValue = _value;
-				var CurrentValue = mapFunc(oldValue, mapContext);
-				if (predicate(oldValue, CurrentValue, predicateContext)) {
-					_value = CurrentValue;
-					return (true, oldValue, CurrentValue);
+				var newValue = mapFunc(oldValue, mapContext);
+				if (predicate(oldValue, newValue, predicateContext)) {
+					_value = newValue;
+					return (true, oldValue, newValue);
 				}
 				else return (false, oldValue, oldValue);
 			}

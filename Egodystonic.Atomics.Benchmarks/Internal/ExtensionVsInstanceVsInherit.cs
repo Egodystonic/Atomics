@@ -63,7 +63,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 	}
 
 	/// <summary>
-	/// Benchmark used to show
+	/// Benchmark used to test various ways of sharing common functions across all atomic types. In C#8 this will likely be replaced by default interface methods anyway.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class ExtensionVsInstanceVsInherit {

@@ -11,19 +11,19 @@ namespace Egodystonic.Atomics {
 		T Get();
 		T GetUnsafe();
 
-		void Set(T CurrentValue);
-		void SetUnsafe(T CurrentValue);
+		void Set(T newValue);
+		void SetUnsafe(T newValue);
 
 		T SpinWaitForValue(T targetValue);
 
-		(T PreviousValue, T CurrentValue) Exchange(T CurrentValue);
+		(T PreviousValue, T CurrentValue) Exchange(T newValue);
 		(T PreviousValue, T CurrentValue) Exchange<TContext>(Func<T, TContext, T> mapFunc, TContext context);
 
-		(T PreviousValue, T CurrentValue) SpinWaitForExchange(T CurrentValue, T comparand);
+		(T PreviousValue, T CurrentValue) SpinWaitForExchange(T newValue, T comparand);
 		(T PreviousValue, T CurrentValue) SpinWaitForExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand); // TODO replace this with an extension method once we can farm out the comparand equality comparison to a static internal interface method (C# future)
 		(T PreviousValue, T CurrentValue) SpinWaitForExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext);
 
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T CurrentValue, T comparand);
+		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand);
 		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand); // TODO replace this with an extension method once we can farm out the comparand equality comparison to a static internal interface method (C# future)
 		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext);
 	}
@@ -65,13 +65,13 @@ namespace Egodystonic.Atomics {
 
 		#region SpinWaitForExchange
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T PreviousValue, T CurrentValue) SpinWaitForExchange<T>(this IAtomic<T> @this, T CurrentValue, Func<T, T, bool> predicate) {
-			return @this.SpinWaitForExchange((_, ctx) => ctx, CurrentValue, (curVal, newVal, ctx) => ctx(curVal, newVal), predicate);
+		public static (T PreviousValue, T CurrentValue) SpinWaitForExchange<T>(this IAtomic<T> @this, T newValue, Func<T, T, bool> predicate) {
+			return @this.SpinWaitForExchange((_, ctx) => ctx, newValue, (curVal, newVal, ctx) => ctx(curVal, newVal), predicate);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T PreviousValue, T CurrentValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, T CurrentValue, Func<T, T, TContext, bool> predicate, TContext context) {
-			return @this.SpinWaitForExchange((_, ctx) => ctx, CurrentValue, predicate, context);
+		public static (T PreviousValue, T CurrentValue) SpinWaitForExchange<T, TContext>(this IAtomic<T> @this, T newValue, Func<T, T, TContext, bool> predicate, TContext context) {
+			return @this.SpinWaitForExchange((_, ctx) => ctx, newValue, predicate, context);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,13 +97,13 @@ namespace Egodystonic.Atomics {
 
 		#region TryExchange
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T>(this IAtomic<T> @this, T CurrentValue, Func<T, T, bool> predicate) {
-			return @this.TryExchange((_, ctx) => ctx, CurrentValue, (curVal, newVal, ctx) => ctx(curVal, newVal), predicate);
+		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T>(this IAtomic<T> @this, T newValue, Func<T, T, bool> predicate) {
+			return @this.TryExchange((_, ctx) => ctx, newValue, (curVal, newVal, ctx) => ctx(curVal, newVal), predicate);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T, TContext>(this IAtomic<T> @this, T CurrentValue, Func<T, T, TContext, bool> predicate, TContext context) {
-			return @this.TryExchange((_, ctx) => ctx, CurrentValue, predicate, context);
+		public static (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<T, TContext>(this IAtomic<T> @this, T newValue, Func<T, T, TContext, bool> predicate, TContext context) {
+			return @this.TryExchange((_, ctx) => ctx, newValue, predicate, context);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
