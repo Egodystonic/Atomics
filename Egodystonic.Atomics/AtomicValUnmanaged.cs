@@ -178,13 +178,13 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static void WriteToLong(long* target, T val) => Buffer.MemoryCopy(&val, target, sizeof(long), sizeof(T)); // TODO replace with faster solution
+		static void WriteToLong(long* target, T val) {
+			*((T*) target) = val;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static T ReadFromLong(long* src) { // TODO replace with faster solution
-			T result;
-			Buffer.MemoryCopy(src, &result, sizeof(T), sizeof(T));
-			return result;
+		static T ReadFromLong(long* src) {
+			return *((T*) src);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

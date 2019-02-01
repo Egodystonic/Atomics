@@ -10,7 +10,6 @@ using Egodystonic.Atomics.Numerics;
 namespace Egodystonic.Atomics.Benchmarks.External {
 	/// <summary>
 	/// Benchmark comparing atomic lib's unmanaged val vs a highly bespoke solution that uses built-in interlocked functionality and a union of the type with long to achieve this.
-	/// It is expected that the bespoke solution will outperform our general-purpose option; but this benchmark attempts to quantify by how much.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class UnmanagedValVsManualLoop {

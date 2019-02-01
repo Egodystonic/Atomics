@@ -91,6 +91,7 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) Exchange(T newValue) {
 			EnterLockAsWriter();
 			var oldValue = _value;
@@ -163,6 +164,7 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
 			EnterLockAsWriter();
 			var oldValue = _value;

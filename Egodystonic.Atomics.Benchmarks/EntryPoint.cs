@@ -14,7 +14,9 @@ using Egodystonic.Atomics.Benchmarks.Internal;
 namespace Egodystonic.Atomics.Benchmarks {
 	static class EntryPoint {
 		public static void Main(string[] args) {
-			BenchmarkRunner.Run<FuncOverheads>();
+			BenchmarkRunner.Run<AtomicValFastWrites>();
+			//BenchmarkRunner.Run<ReadWriteLongPtrMethods>();
+			//BenchmarkRunner.Run<FuncOverheads>();
 			//BenchmarkRunner.Run<TupleReturnVsSingleValueReturn>();
 			//BenchmarkRunner.Run<UnmanagedValVsManualLoop>();
 			//BenchmarkRunner.Run<LongConcurrentOperations>();
