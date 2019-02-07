@@ -17,6 +17,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 	class AtomicValTest : CommonAtomicValTestSuite<AtomicVal<ImmutableVal>> {
 		#region Test Fields
 		RunnerFactory<SixteenVal, AtomicVal<SixteenVal>> _sixteenByteRunnerFactory;
+		RunnerFactory<Dummy128ByteVal, AtomicVal<Dummy128ByteVal>> _oneTwentyEightByteRunnerFactory;
 
 		protected override ImmutableVal Alpha { get; } = new ImmutableVal(1, 1);
 		protected override ImmutableVal Bravo { get; } = new ImmutableVal(2, 2);
@@ -29,6 +30,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[OneTimeSetUp]
 		public void SetUpClass() {
 			_sixteenByteRunnerFactory = new RunnerFactory<SixteenVal, AtomicVal<SixteenVal>>();
+			_oneTwentyEightByteRunnerFactory = new RunnerFactory<Dummy128ByteVal, AtomicVal<Dummy128ByteVal>>();
 		}
 
 		[OneTimeTearDown]
@@ -732,155 +734,659 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		}
 		#endregion
 
-		#region Borrow Methods
+		#region Very Oversized Value Type Test
 		[Test]
-		public void API_CreateScopedReadonlyRef() {
-			var target = new AtomicVal<SixteenVal>(new SixteenVal(5, 20));
+		public void GetAndSetAndValue_VeryOversized() {
+			const int NumIterations = 1_000_000;
+			var atomicLong = new AtomicLong(0L);
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
-			var token = target.CreateScopedReadonlyRef();
-			Assert.AreEqual(new SixteenVal(5, 20), token.Value);
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					unsafe {
+						var newLongVal = atomicLong.Increment().CurrentValue;
+						target.Set(*(Dummy128ByteVal*) &newLongVal);
+					}
+				},
+				NumIterations,
+				target => target.Get(),
+				(prev, cur) => {
+					unsafe {
+						AssertTrue(*(long*) &prev <= *(long*) &cur);
+					}
+				}
+			);
 
-			// Assert a read lock is taken until we dispose the token
-
-			var getTask = Task.Run(() => target.Get());
-			var setTask = Task.Run(() => target.Set(new SixteenVal(100, 100)));
-			Thread.Sleep(400); // Give the test 'time to fail'
-
-			Assert.AreEqual(false, setTask.IsCompleted);
-			Assert.AreEqual(new SixteenVal(5, 20), token.Value);
-
-			Assert.AreEqual(new SixteenVal(5, 20), getTask.Result);
-
-			token.Dispose();
-
-			setTask.Wait();
-			Assert.AreEqual(new SixteenVal(100, 100), target.Value);
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					unsafe {
+						var newLongVal = atomicLong.Increment().CurrentValue;
+						target.Value = *(Dummy128ByteVal*) &newLongVal;
+					}
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => {
+					unsafe {
+						AssertTrue(*(long*) &prev <= *(long*) &cur);
+					}
+				}
+			);
 		}
 
 		[Test]
-		public void API_CreateScopedMutableRef() {
-			var target = new AtomicVal<SixteenVal>(new SixteenVal(5, 20));
+		public void SpinWaitForValue_VeryOversized() {
+			const int NumIterations = 300_000;
 
-			var token = target.CreateScopedMutableRef();
-			Assert.AreEqual(new SixteenVal(5, 20), token.Value);
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
-			// Assert a write lock is taken until we dispose the token
-
-			var getTask = Task.Run(() => target.Get());
-			var setTask = Task.Run(() => target.CreateScopedMutableRef());
-			Thread.Sleep(400); // Give the test 'time to fail'
-
-			Assert.AreEqual(false, getTask.IsCompleted);
-			Assert.AreEqual(false, setTask.IsCompleted);
-			Assert.AreEqual(new SixteenVal(5, 20), token.Value);
-
-			token.Value = new SixteenVal(20, 20);
-
-			token.Dispose();
-			setTask.Result.Dispose();
-
-			Assert.AreEqual(new SixteenVal(20, 20), target.Value);
-			Assert.AreEqual(new SixteenVal(20, 20), getTask.Result);
-		}
-
-		[Test]
-		public void ScopedReadonlyRefShouldAllowMultipleConcurrentReaders() {
-			const int NumIterations = 200_000;
-
-			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(1, 2));
-
-			var remainingReadThreads = new AtomicInt(0);
-			AtomicVal<SixteenVal>.ScopedReadonlyRefToken persistedReadToken = default;
-			runner.GlobalSetUp = (target, threadConfig) => {
-				persistedReadToken = target.CreateScopedReadonlyRef();
-				remainingReadThreads.Set(threadConfig.ReaderThreadCount);
-			};
-			runner.AllThreadsTearDown = target => Assert.AreEqual(new SixteenVal(3, 4), target.Value);
-			runner.ExecuteSingleWriterTests(
-				writerFunction: target => target.Set(new SixteenVal(3, 4)),
-				readerFunction: target => {
-					for (var i = 0; i < NumIterations; i++) {
-						AssertAreEqual(new SixteenVal(1, 2), target.Value);
-						using (var tok = target.CreateScopedReadonlyRef()) {
-							AssertAreEqual(new SixteenVal(1, 2), tok.Value);
+			// (T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						if ((curVal.Alpha & 1) == 0) {
+							AssertAreEqual(curVal.Alpha + 1, target.SpinWaitForValue(new Dummy128ByteVal(curVal.Alpha + 1, 0)).Alpha);
+						}
+						else {
+							target.Value = new Dummy128ByteVal(curVal.Alpha + 1, 0);
 						}
 					}
-					
-					if (remainingReadThreads.Decrement().CurrentValue == 0) persistedReadToken.Dispose();
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						if ((curVal.Alpha & 1) == 1) {
+							AssertAreEqual(curVal.Alpha + 1, target.SpinWaitForValue(new Dummy128ByteVal(curVal.Alpha + 1, 0)).Alpha);
+						}
+						else {
+							target.Value = new Dummy128ByteVal(curVal.Alpha + 1, 0);
+						}
+					}
+				}
+			);
+
+			// (Func<T, bool>)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						target.TryExchange(new Dummy128ByteVal(curVal.Alpha + 1, 0), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						AssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
+					}
+				}
+			);
+
+			// (Func<T, TContext, bool>, TContext)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.ExecuteWriterReaderTests(
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						target.TryExchange(new Dummy128ByteVal(curVal.Alpha + 1, 0), curVal);
+					}
+				},
+				target => {
+					while (true) {
+						var curVal = target.Value;
+						if (curVal.Alpha == NumIterations) break;
+						AssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
+					}
 				}
 			);
 		}
 
 		[Test]
-		public void ScopedReadonlyRefShouldAllowDirectReadActionsOnTarget() {
+		public void Exchange_VeryOversized() {
+			const int NumIterations = 300_000;
+
+			var atomicIntA = new AtomicInt(0);
+			var atomicIntB = new AtomicInt(0);
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
+
+			// (T)
+			runner.GlobalSetUp = (_, __) => { atomicIntA.Set(0); atomicIntB.Set(0); };
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					var newA = atomicIntA.Increment().CurrentValue;
+					var newB = atomicIntB.Increment().CurrentValue;
+					var CurrentValue = new Dummy128ByteVal(newA, newB);
+					var prev = target.Exchange(CurrentValue).PreviousValue;
+					AssertAreEqual(prev.Alpha, newA - 1);
+					AssertAreEqual(prev.Bravo, newB - 1);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => {
+					AssertTrue(prev.Alpha <= cur.Alpha);
+					AssertTrue(prev.Bravo <= cur.Bravo);
+				}
+			);
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var exchRes = target.Exchange(t => new Dummy128ByteVal(t.Alpha + 1, t.Bravo + 1));
+					AssertAreEqual(exchRes.PreviousValue.Alpha + 1, exchRes.CurrentValue.Alpha);
+					AssertAreEqual(exchRes.PreviousValue.Bravo + 1, exchRes.CurrentValue.Bravo);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations * 2, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var exchRes = target.Exchange((t, ctx) => new Dummy128ByteVal(t.Alpha + 1, t.Bravo + ctx), 2);
+					AssertAreEqual(exchRes.PreviousValue.Alpha + 1, exchRes.CurrentValue.Alpha);
+					AssertAreEqual(exchRes.PreviousValue.Bravo + 2, exchRes.CurrentValue.Bravo);
+				},
+				NumIterations
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void SpinWaitForExchangeWithoutContext_VeryOversized() {
+			const int NumIterations = 100_000;
+
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), new Dummy128ByteVal(nextVal, nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), new Dummy128ByteVal(nextVal, nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, T)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), new Dummy128ByteVal(nextVal, -nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(-nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(-(nextVal + 1), exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), new Dummy128ByteVal(nextVal, -nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(-nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(-(nextVal + 1), exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(nextVal + 1, c.Bravo + 1), (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(nextVal + 1, c.Bravo + 1), (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void SpinWaitForExchangeWithContext_VeryOversized() {
+			const int NumIterations = 100_000;
+
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
+
+			// (Func<T, TContext, T>, T)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, new Dummy128ByteVal(nextVal, nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, new Dummy128ByteVal(nextVal, nextVal));
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (T, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(new Dummy128ByteVal(nextVal + 1, nextVal + 1), (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange((c, ctx) => new Dummy128ByteVal(ctx, c.Bravo + 1), nextVal + 1, (c, n) => n.Alpha == c.Alpha + 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteSingleWriterSingleReaderTests(
+				target => {
+					for (var i = 0; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(nextVal + 1, c.Bravo + 1), (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				},
+				target => {
+					for (var i = 1; i < NumIterations; i += 2) {
+						var nextVal = i;
+						var exchRes = target.SpinWaitForExchange(c => new Dummy128ByteVal(nextVal + 1, c.Bravo + 1), (c, n, ctx) => n.Alpha == c.Alpha + ctx, 1);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Alpha);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Alpha);
+						AssertAreEqual(nextVal, exchRes.PreviousValue.Bravo);
+						AssertAreEqual(nextVal + 1, exchRes.CurrentValue.Bravo);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void TryExchangeWithoutContext_VeryOversized() {
 			const int NumIterations = 200_000;
 
-			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(1, 2));
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
-			var remainingReadThreads = new AtomicInt(0);
-			AtomicVal<SixteenVal>.ScopedReadonlyRefToken persistedReadToken = default;
-			runner.GlobalSetUp = (target, threadConfig) => {
-				persistedReadToken = target.CreateScopedReadonlyRef();
-				remainingReadThreads.Set(threadConfig.ReaderThreadCount);
-				AssertReads(target);
-			};
-			runner.AllThreadsTearDown = target => Assert.AreEqual(new SixteenVal(3, 4), target.Value);
-			runner.ExecuteSingleWriterTests(
-				writerFunction: target => target.Set(new SixteenVal(3, 4)),
-				readerFunction: target => {
-					for (var i = 0; i < NumIterations; i++) {
-						AssertReads(target);
-					}
-
-					if (remainingReadThreads.Decrement().CurrentValue == 0) persistedReadToken.Dispose();
-				}
+			// (T, T)
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curValue = target.Value;
+					var CurrentValue = new Dummy128ByteVal(0, curValue.Bravo + 1);
+					target.TryExchange(CurrentValue, curValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
 			);
 
+			// (T, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var CurrentValue = new Dummy128ByteVal(curValue.Alpha + 1, curValue.Bravo - 1);
+						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
+						if (wasSet) {
+							AssertAreEqual(curValue, prevValue);
+							AssertAreEqual(CurrentValue, setValue);
+						}
+						else {
+							AssertAreNotEqual(curValue, prevValue);
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
 
-			void AssertReads(AtomicVal<SixteenVal> target) {
-				AssertAreEqual(new SixteenVal(1, 2), target.Value);
-				AssertAreEqual(new SixteenVal(1, 2), target.Get());
-				AssertAreEqual(new SixteenVal(1, 2), target.SpinWaitForValue(new SixteenVal(1, 2)));
-			}
+			// (Func<T, T>, T)
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var curValue = target.Value;
+
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(
+						c => c.Bravo < c.Alpha
+							? new Dummy128ByteVal(c.Alpha, c.Bravo + 1)
+							: new Dummy128ByteVal(c.Alpha + 1, c.Bravo),
+						curValue
+					);
+
+					if (wasSet) {
+						AssertAreEqual(curValue, prevValue);
+						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+					}
+
+					else AssertAreNotEqual(curValue, prevValue);
+				},
+				NumIterations
+			);
+
+			// (Func<T, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
+						if (wasSet) {
+							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							AssertTrue(CurrentValue.Alpha <= NumIterations);
+						}
+						else AssertAreEqual(prevValue, CurrentValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
 		}
 
 		[Test]
-		public void ScopedMutableRefShouldNotAllowConcurrentAccess() {
-			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(1, 2));
+		public void TryExchangeWithContext_VeryOversized() {
+			const int NumIterations = 300_000;
 
-			var readThreadCount = new AtomicInt(0);
-			AtomicVal<SixteenVal>.ScopedMutableRefToken persistedWriteToken = default;
-			runner.GlobalSetUp = (target, threadConfig) => {
-				persistedWriteToken = target.CreateScopedMutableRef();
-				readThreadCount.Set(threadConfig.ReaderThreadCount);
+			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
+
+			// (T, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
 			};
-			runner.AllThreadsTearDown = target => Assert.AreEqual(new SixteenVal(3, 4), target.Value);
-			runner.ExecuteSingleWriterTests(
-				writerFunction: target => {
-					Thread.Sleep(200);
-					persistedWriteToken.Value = new SixteenVal(3, 4);
-					persistedWriteToken.Dispose();
-				},
-				readerFunction: target => {
-					var readRes = target.Value;
-					AssertAreEqual(3, readRes.Alpha);
-					AssertAreEqual(4, readRes.Bravo);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var CurrentValue = new Dummy128ByteVal(curValue.Alpha + 1, curValue.Bravo - 1);
+						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
+						if (wasSet) {
+							AssertAreEqual(curValue, prevValue);
+							AssertAreEqual(CurrentValue, setValue);
+						}
+						else {
+							AssertAreNotEqual(curValue, prevValue);
+							AssertAreEqual(setValue, prevValue);
+						}
+					}
 				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TContext, T>, T)
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					var curValue = target.Value;
+
+					var (wasSet, prevValue, CurrentValue) = target.TryExchange(
+						(c, ctx) => c.Bravo < c.Alpha
+							? new Dummy128ByteVal(c.Alpha, c.Bravo + ctx)
+							: new Dummy128ByteVal(c.Alpha + ctx, c.Bravo),
+						1, curValue);
+
+					if (wasSet) {
+						AssertAreEqual(curValue, prevValue);
+						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+					}
+					else AssertAreNotEqual(curValue, prevValue);
+				},
+				NumIterations
 			);
 
-			runner.AllThreadsTearDown = target => Assert.AreEqual(new SixteenVal(3 + readThreadCount, 4 + readThreadCount), target.Value);
-			runner.ExecuteSingleWriterTests(
-				writerFunction: target => {
-					Thread.Sleep(200);
-					persistedWriteToken.Value = new SixteenVal(3, 4);
-					persistedWriteToken.Dispose();
-				},
-				readerFunction: target => {
-					var exchRes = target.Exchange(old => new SixteenVal(old.Alpha + 1, old.Bravo + 1));
-					AssertTrue(3 <= exchRes.PreviousValue.Alpha);
-					AssertTrue(4 <= exchRes.PreviousValue.Bravo);
+			// (Func<T, TContext, T>, Func<T, T, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new Dummy128ByteVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
+						if (wasSet) {
+							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							AssertTrue(CurrentValue.Alpha <= NumIterations);
+						}
+						else AssertAreEqual(CurrentValue, prevValue);
+					}
 				}
 			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, T>, Func<T, T, TContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo && c.Alpha < NumIterations, 1);
+						if (wasSet) {
+							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							AssertTrue(CurrentValue.Alpha <= NumIterations);
+						}
+						else AssertAreEqual(CurrentValue, prevValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.Alpha == NumIterations) return;
+						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new Dummy128ByteVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n, ctx) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < ctx, NumIterations);
+						if (wasSet) {
+							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							AssertTrue(CurrentValue.Alpha <= NumIterations);
+						}
+						else AssertAreEqual(CurrentValue, prevValue);
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
 		}
 		#endregion
 	}

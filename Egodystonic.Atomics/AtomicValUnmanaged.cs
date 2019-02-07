@@ -35,7 +35,10 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		long GetLong() => Interlocked.Read(ref _valueAsLong);
+		long GetLong() {
+			if (IntPtr.Size == sizeof(long)) return Volatile.Read(ref _valueAsLong);
+			else return Interlocked.Read(ref _valueAsLong);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T GetUnsafe() {
@@ -51,7 +54,10 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void SetLong(long newValueAsLong) => Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+		void SetLong(long newValueAsLong) {
+			if (IntPtr.Size == sizeof(long)) Volatile.Write(ref _valueAsLong, newValueAsLong);
+			else Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(T newValue) {

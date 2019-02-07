@@ -19,7 +19,9 @@ namespace Egodystonic.Atomics.Numerics {
 		public AtomicDouble() : this(default) { }
 		public AtomicDouble(double initialValue) => Set(initialValue);
 
-		public double Get() { // TODO benchmark whether this is better than turning _value in to a union struct and using Interlocked.Read(ref long) (I'm guessing probably not)
+		public double Get() {
+			if (IntPtr.Size == sizeof(long)) return Volatile.Read(ref _value);
+
 			var spinner = new SpinWait();
 			while (true) {
 				var valueLocal = Volatile.Read(ref _value);
@@ -33,7 +35,10 @@ namespace Egodystonic.Atomics.Numerics {
 		public double GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(double newValue) => Interlocked.Exchange(ref _value, newValue);
+		public void Set(double newValue) {
+			if (IntPtr.Size == sizeof(long)) Volatile.Write(ref _value, newValue);
+			else Interlocked.Exchange(ref _value, newValue);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(double newValue) => _value = newValue;

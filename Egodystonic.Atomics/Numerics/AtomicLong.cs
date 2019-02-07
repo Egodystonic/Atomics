@@ -20,13 +20,19 @@ namespace Egodystonic.Atomics.Numerics {
 		public AtomicLong(long initialValue) => Set(initialValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public long Get() => Interlocked.Read(ref _value);
+		public long Get() {
+			if (IntPtr.Size == sizeof(long)) return Volatile.Read(ref _value);
+			else return Interlocked.Read(ref _value);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long GetUnsafe() => _value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(long newValue) => Interlocked.Exchange(ref _value, newValue);
+		public void Set(long newValue) {
+			if (IntPtr.Size == sizeof(long)) Volatile.Write(ref _value, newValue);
+			else Interlocked.Exchange(ref _value, newValue);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetUnsafe(long newValue) => _value = newValue;
