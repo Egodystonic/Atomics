@@ -39,6 +39,12 @@ namespace Egodystonic.Atomics.Numerics {
 		(T PreviousValue, T CurrentValue) Subtract(T operand);
 		(T PreviousValue, T CurrentValue) MultiplyBy(T operand);
 		(T PreviousValue, T CurrentValue) DivideBy(T operand);
+
+		// "Fast" API
+		T FastIncrement();
+		T FastDecrement();
+		T FastAdd(T operand);
+		T FastSubtract(T operand);
 	}
 
 	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {

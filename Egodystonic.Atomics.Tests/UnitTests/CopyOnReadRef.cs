@@ -76,6 +76,62 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		}
 
 		[Test]
+		public void API_FastTryExchange_NonEquatable() {
+			var target = new CopyOnReadRef<DummyImmutableRef>(i => i == null ? null : new DummyImmutableRef(i.StringProp, i.LongProp, i.RefProp));
+
+			var alpha = new DummyImmutableRef("Alpha", 111L, null);
+			var bravo = new DummyImmutableRef("Bravo", 222L, null);
+			var charlie = new DummyImmutableRef("Charlie", 333L, null);
+			var delta = new DummyImmutableRef("Delta", 444L, null);
+
+			// (T, T)
+			target.Set(alpha);
+			var newValue = bravo;
+			var prevValue = target.FastTryExchange(newValue, alpha);
+			var wasSet = AreValueEqual(newValue, target.Value);
+			var setValue = wasSet ? newValue : prevValue;
+			Assert.AreEqual(true, wasSet);
+			Assert.True(AreValueEqual(alpha, prevValue));
+			Assert.True(AreValueEqual(bravo, setValue));
+
+			newValue = delta;
+			prevValue = target.FastTryExchange(newValue, charlie);
+			wasSet = AreValueEqual(newValue, target.Value);
+			setValue = wasSet ? newValue : prevValue;
+			Assert.AreEqual(false, wasSet);
+			Assert.True(AreValueEqual(bravo, prevValue));
+			Assert.True(AreValueEqual(bravo, setValue));
+		}
+
+		[Test]
+		public void API_FastTryExchangeRefOnly() {
+			var target = new CopyOnReadRef<DummyEquatableRef>(i => i == null ? null : new DummyEquatableRef(i.StringProp, i.LongProp, i.RefProp));
+
+			var alpha = new DummyEquatableRef("Alpha", 111L, null);
+			var bravo = new DummyEquatableRef("Bravo", 222L, null);
+			var charlie = new DummyEquatableRef("Charlie", 333L, null);
+
+			// (T, T)
+			target.Set(alpha);
+			var newValue = bravo;
+			var prevValue = target.FastTryExchangeRefOnly(newValue, alpha);
+			var wasSet = AreValueEqual(newValue, target.Value);
+			var setValue = wasSet ? newValue : prevValue;
+			Assert.AreEqual(true, wasSet);
+			Assert.True(alpha.Equals(prevValue));
+			Assert.True(bravo.Equals(setValue));
+
+			newValue = charlie;
+			prevValue = target.FastTryExchangeRefOnly(newValue, new DummyEquatableRef(bravo.StringProp, bravo.LongProp, bravo.RefProp));
+			wasSet = AreValueEqual(newValue, target.Value);
+			setValue = wasSet ? newValue : prevValue;
+			Assert.AreEqual(false, wasSet);
+			Assert.True(bravo.Equals(prevValue));
+			Assert.True(bravo.Equals(setValue));
+			Assert.True(bravo.Equals(target.Value));
+		}
+
+		[Test]
 		public void API_TryExchange_NonEquatable() {
 			var target = new CopyOnReadRef<DummyImmutableRef>(i => i == null ? null : new DummyImmutableRef(i.StringProp, i.LongProp, i.RefProp));
 
@@ -108,6 +164,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		}
 
 		bool AreValueEqual(DummyImmutableRef lhs, DummyImmutableRef rhs) {
+			return lhs == null && rhs == null
+				|| lhs.StringProp == rhs.StringProp && lhs.LongProp == rhs.LongProp && AreValueEqual(lhs.RefProp, rhs.RefProp);
+		}
+
+		bool AreValueEqual(DummyEquatableRef lhs, DummyEquatableRef rhs) {
 			return lhs == null && rhs == null
 				|| lhs.StringProp == rhs.StringProp && lhs.LongProp == rhs.LongProp && AreValueEqual(lhs.RefProp, rhs.RefProp);
 		}
@@ -818,6 +879,64 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		}
 
 		[Test]
+		public void FastTryExchangeRefOnly() {
+			const int NumIterations = 30_000;
+
+			var runner = NewImmutableRunner(new DummyImmutableRef("0", 0L));
+
+			// (T, T)
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					while (true) {
+						var curValue = target.GetWithoutCopy();
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var prevValue = target.FastTryExchangeRefOnly(newValue, curValue);
+						AssertTrue(prevValue.LongProp >= curValue.LongProp);
+						if (prevValue.LongProp >= NumIterations) return;
+					}
+				},
+				t => t.Value.LongProp,
+				(prev, cur) => AssertTrue(prev <= cur),
+				l => l >= NumIterations
+			);
+		}
+
+		[Test]
+		public void FastTryExchange() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(new DummyCopyCountingRef(0L));
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
+						var prevValue = target.FastTryExchange(newValue, curValue);
+						var wasSet = prevValue.Equals(curValue);
+						var setValue = wasSet ? newValue : prevValue;
+						if (wasSet) {
+							AssertAreEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(newValue, setValue);
+							AssertIsCopy(curValue, prevValue);
+						}
+						else {
+							AssertAreNotEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(setValue, prevValue);
+							AssertIsCopy(prevValue);
+							AssertIsCopy(setValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void TryExchangeWithoutContext() {
 			const int NumIterations = 100_000;
 
@@ -830,13 +949,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var CurrentValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, curValue);
+						var newValue= new DummyCopyCountingRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
 						if (wasSet) {
 							AssertAreEqualObjects(curValue, prevValue);
-							AssertAreEqualObjects(CurrentValue, setValue);
+							AssertAreEqualObjects(newValue, setValue);
 							AssertIsCopy(curValue, prevValue);
-							AssertIsCopy(CurrentValue, setValue);
+							AssertIsCopy(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqualObjects(curValue, prevValue);
@@ -853,11 +972,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
-					var tryExchRes = target.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					var newValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
+					var tryExchRes = target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 					if (tryExchRes.ValueWasSet) {
 						AssertIsCopy(curValue, tryExchRes.PreviousValue);
-						AssertIsCopy(CurrentValue, tryExchRes.CurrentValue);
+						AssertIsCopy(newValue, tryExchRes.CurrentValue);
 					}
 					else {
 						AssertIsCopy(tryExchRes.PreviousValue);
@@ -924,11 +1043,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
-					var tryExchRes = target.TryExchange(CurrentValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					var newValue = new DummyCopyCountingRef(curValue.LongProp + 1L);
+					var tryExchRes = target.TryExchange(newValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
 					if (tryExchRes.ValueWasSet) {
 						AssertIsCopy(curValue, tryExchRes.PreviousValue);
-						AssertIsCopy(CurrentValue, tryExchRes.CurrentValue);
+						AssertIsCopy(newValue, tryExchRes.CurrentValue);
 					}
 					else {
 						AssertIsCopy(tryExchRes.PreviousValue);
@@ -1100,6 +1219,68 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		}
 
 		[Test]
+		public void FastTryExchangeRefOnly_NonEquatable() {
+			const int NumIterations = 30_000;
+
+			var runner = NewImmutableRunner(new DummyImmutableRef("0", 0L));
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.GetWithoutCopy();
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var prevValue = target.FastTryExchangeRefOnly(newValue, curValue);
+						var wasSet = ReferenceEquals(prevValue, curValue);
+						var setValue = wasSet ? newValue : prevValue;
+						if (wasSet) {
+							AssertIsCopy(curValue, prevValue);
+							AssertIsCopy(newValue, setValue);
+						}
+						else {
+							AssertAreNotEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void FastTryExchange_NonEquatable() {
+			const int NumIterations = 30_000;
+
+			var runner = NewImmutableRunner(new DummyImmutableRef("0", 0L));
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.GetWithoutCopy();
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var prevValue = target.FastTryExchange(newValue, curValue);
+						var wasSet = ReferenceEquals(prevValue, curValue);
+						var setValue = wasSet ? newValue : prevValue;
+						if (wasSet) {
+							AssertIsCopy(curValue, prevValue);
+							AssertIsCopy(newValue, setValue);
+						}
+						else {
+							AssertAreNotEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void TryExchangeWithoutContext_NonEquatable() {
 			const int NumIterations = 30_000;
 
@@ -1112,11 +1293,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.GetWithoutCopy();
 						if (curValue.LongProp == NumIterations) return;
-						var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, curValue);
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
 						if (wasSet) {
 							AssertIsCopy(curValue, prevValue);
-							AssertIsCopy(CurrentValue, setValue);
+							AssertIsCopy(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqualObjects(curValue, prevValue);
@@ -1167,6 +1348,16 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				AssertAreEqualObjects(lhs.RefProp, rhs.RefProp);
 			}
 			
+			AssertTrue(!ReferenceEquals(lhs, rhs));
+		}
+
+		void AssertIsCopy(DummyEquatableRef lhs, DummyEquatableRef rhs) {
+			if (lhs != null && rhs != null) {
+				AssertAreEqual(lhs.LongProp, rhs.LongProp);
+				AssertAreEqual(lhs.StringProp, rhs.StringProp);
+				AssertAreEqualObjects(lhs.RefProp, rhs.RefProp);
+			}
+
 			AssertTrue(!ReferenceEquals(lhs, rhs));
 		}
 

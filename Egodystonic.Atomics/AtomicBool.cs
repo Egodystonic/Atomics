@@ -38,6 +38,9 @@ namespace Egodystonic.Atomics {
 		public void SetUnsafe(bool newValue) => _value = Convert(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool FastExchange(bool newValue) => Convert(Interlocked.Exchange(ref _value, Convert(newValue)));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool PreviousValue, bool CurrentValue) Exchange(bool newValue) => (Convert(Interlocked.Exchange(ref _value, Convert(newValue))), newValue);
 
 		public (bool PreviousValue, bool CurrentValue) Exchange<TContext>(Func<bool, TContext, bool> mapFunc, TContext context) {
@@ -101,6 +104,9 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool FastTryExchange(bool newValue, bool comparand) => Convert(Interlocked.CompareExchange(ref _value, Convert(newValue), Convert(comparand)));
 
 		public (bool ValueWasSet, bool PreviousValue, bool CurrentValue) TryExchange(bool newValue, bool comparand) {
 			var newValueAsInt = Convert(newValue);

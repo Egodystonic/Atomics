@@ -126,6 +126,34 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastExchange() {
+			const int NumIterations = 3_000_000;
+
+			var runner = NewRunner(Zero);
+
+			// (T)
+			var atomicInt = new AtomicInt(0);
+			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
+			runner.AllThreadsTearDown = target => {
+				Assert.AreEqual(Convert(NumIterations), target.Value);
+			};
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					var newValue = Convert(atomicInt.Increment().CurrentValue);
+					var prev = target.FastExchange(newValue);
+					Assert.AreEqual(prev, Sub(newValue, One));
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => {
+					Assert.LessOrEqual(prev, cur);
+				}
+			);
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void Exchange() {
 			const int NumIterations = 300_000;
 
@@ -139,9 +167,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			};
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
-					var CurrentValue = Convert(atomicInt.Increment().CurrentValue);
-					var prev = target.Exchange(CurrentValue).PreviousValue;
-					Assert.AreEqual(prev, Sub(CurrentValue, One));
+					var newValue = Convert(atomicInt.Increment().CurrentValue);
+					var prev = target.Exchange(newValue).PreviousValue;
+					Assert.AreEqual(prev, Sub(newValue, One));
 				},
 				NumIterations,
 				target => target.Value,
@@ -394,6 +422,25 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastTryExchange() {
+			const int NumIterations = 2_000_000;
+
+			var runner = NewRunner(Zero);
+
+			// (T, T)
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curValue = target.Value;
+					var newValue = Add(curValue, One);
+					target.FastTryExchange(newValue, curValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(GreaterThanOrEqualTo(cur, prev))
+			);
+		}
+
+		[Test]
 		public void TryExchangeWithoutContext() {
 			const int NumIterations = 200_000;
 
@@ -403,8 +450,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = Add(curValue, One);
-					target.TryExchange(CurrentValue, curValue);
+					var newValue = Add(curValue, One);
+					target.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -418,11 +465,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var CurrentValue = Add(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n) => Equals(Add(c, One), n));
+						var newValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => Equals(Add(c, One), n));
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -489,11 +536,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Convert(NumIterations))) return;
-						var CurrentValue = Add(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n, ctx) => Equals(Add(c, ctx), n), One);
+						var newValue = Add(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => Equals(Add(c, ctx), n), One);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -1063,6 +1110,39 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastIncrementDecrement() {
+			const int NumIterations = 1_000_000;
+
+			var runner = NewRunner(Zero);
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curVal = target.Value;
+					var newVal = target.FastIncrement();
+					AssertTrue(GreaterThan(newVal, curVal));
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.GreaterOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curVal = target.Value;
+					var newVal = target.FastDecrement();
+					AssertTrue(LessThan(newVal, curVal));
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void IncrementDecrement() {
 			const int NumIterations = 100_000;
 
@@ -1119,6 +1199,39 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var (prevValue, CurrentValue) = target.Decrement();
 					Assert.AreEqual(Sub(prevValue, One), CurrentValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.LessOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
+		public void FastAddSub() {
+			const int NumIterations = 100_000;
+
+			var runner = NewRunner(Zero);
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(NumIterations * 9), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curValue = target.Value;
+					var newValue = target.FastAdd(Convert(9));
+					AssertTrue(GreaterThan(newValue, curValue));
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => Assert.GreaterOrEqual(cur, prev)
+			);
+			runner.AllThreadsTearDown = null;
+
+			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(-NumIterations * 9), target.Value);
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curValue = target.Value;
+					var newValue = target.FastSubtract(Convert(9));
+					AssertTrue(LessThan(newValue, curValue));
 				},
 				NumIterations,
 				target => target.Value,
@@ -1555,6 +1668,54 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.AreEqual(true, exchRes.ValueWasSet);
 			Assert.AreEqual(Convert(300), exchRes.PreviousValue);
 			Assert.AreEqual(Convert(30), exchRes.CurrentValue);
+		}
+
+		[Test]
+		public void API_FastIncrement() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var prevVal = target.Value;
+
+			var incRes = target.FastIncrement();
+			Assert.AreEqual(Convert(100), prevVal);
+			Assert.AreEqual(Convert(101), incRes);
+		}
+
+		[Test]
+		public void API_FastDecrement() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var prevVal = target.Value;
+
+			var incRes = target.FastDecrement();
+			Assert.AreEqual(Convert(100), prevVal);
+			Assert.AreEqual(Convert(99), incRes);
+		}
+
+		[Test]
+		public void API_FastAdd() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var prevVal = target.Value;
+
+			var incRes = target.FastAdd(Convert(20));
+			Assert.AreEqual(Convert(100), prevVal);
+			Assert.AreEqual(Convert(120), incRes);
+		}
+
+		[Test]
+		public void API_FastSubtract() {
+			var target = new TTarget();
+
+			target.Set(Convert(100));
+			var prevVal = target.Value;
+
+			var incRes = target.FastSubtract(Convert(20));
+			Assert.AreEqual(Convert(100), prevVal);
+			Assert.AreEqual(Convert(80), incRes);
 		}
 
 		[Test]

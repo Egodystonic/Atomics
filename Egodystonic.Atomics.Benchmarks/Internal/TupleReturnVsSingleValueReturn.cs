@@ -13,9 +13,7 @@ using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {
 	/// <summary>
-	/// Benchmark used to measure difference between tuple return type on various methods against a simpler but less explicit API that returns an arbitrary/nominal value.
-	/// It is expected that tuple return types will be slower-than-or-equal-to less large value return types but this test measures how much difference it makes in
-	/// a fairly unrealistic high-hit-rate scenario.
+	/// Benchmark used to justify FastXYZ() methods. A small but measurable difference is expected.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class TupleReturnVsSingleValueReturn {
@@ -87,28 +85,28 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		}
 		#endregion
 
-		#region Benchmark: Simple Returns
-		NonTupledAtomicLong _nonTupledAtomicLong;
-		NonTupledAtomicInt _nonTupledAtomicInt;
-		NonTupledAtomicRef<User> _nonTupledAtomicRef;
-		NonTupledAtomicVal<Val8> _nonTupledAtomicVal8;
-		NonTupledAtomicVal<Val16> _nonTupledAtomicVal16;
-		NonTupledAtomicVal<Val32> _nonTupledAtomicVal32;
-		NonTupledAtomicVal<Val64> _nonTupledAtomicVal64;
+		#region Benchmark: Tuple Returns
+		AtomicLong _fastAtomicLong;
+		AtomicInt _fastAtomicInt;
+		AtomicRef<User> _fastAtomicRef;
+		AtomicVal<Val8> _fastAtomicVal8;
+		AtomicVal<Val16> _fastAtomicVal16;
+		AtomicVal<Val32> _fastAtomicVal32;
+		AtomicVal<Val64> _fastAtomicVal64;
 
-		[IterationSetup(Target = nameof(WithNonTupleReturns))]
-		public void CreateNonTupleReturnsContext() {
-			_nonTupledAtomicLong = new NonTupledAtomicLong(0L);
-			_nonTupledAtomicInt = new NonTupledAtomicInt(0);
-			_nonTupledAtomicRef = new NonTupledAtomicRef<User>(new User(0, ""));
-			_nonTupledAtomicVal8 = new NonTupledAtomicVal<Val8>(new Val8(0L));
-			_nonTupledAtomicVal16 = new NonTupledAtomicVal<Val16>(new Val16(0L));
-			_nonTupledAtomicVal32 = new NonTupledAtomicVal<Val32>(new Val32(0L));
-			_nonTupledAtomicVal64 = new NonTupledAtomicVal<Val64>(new Val64(0L));
+		[IterationSetup(Target = nameof(WithSingleValueReturns))]
+		public void CreateSingleValueReturnsContext() {
+			_fastAtomicLong = new AtomicLong(0L);
+			_fastAtomicInt = new AtomicInt(0);
+			_fastAtomicRef = new AtomicRef<User>(new User(0, ""));
+			_fastAtomicVal8 = new AtomicVal<Val8>(new Val8(0L));
+			_fastAtomicVal16 = new AtomicVal<Val16>(new Val16(0L));
+			_fastAtomicVal32 = new AtomicVal<Val32>(new Val32(0L));
+			_fastAtomicVal64 = new AtomicVal<Val64>(new Val64(0L));
 		}
 
 		[Benchmark]
-		public void WithNonTupleReturns() {
+		public void WithSingleValueReturns() {
 			// These vars basically used to ensure the compiler doesn't optimise away the return values entirely
 			var longResultVar = 0L;
 			var intResultVar = 0;
@@ -116,22 +114,22 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var valResultVar = 0L;
 
 			for (var i = 0; i < NumIterations; ++i) {
-				longResultVar += _nonTupledAtomicLong.Increment();
-				longResultVar += _nonTupledAtomicLong.Decrement();
-				longResultVar += _nonTupledAtomicLong.Exchange(i);
+				longResultVar += _fastAtomicLong.FastIncrement();
+				longResultVar += _fastAtomicLong.FastDecrement();
+				longResultVar += _fastAtomicLong.FastExchange(i);
 
-				intResultVar += _nonTupledAtomicInt.Increment();
-				intResultVar += _nonTupledAtomicInt.Decrement();
-				intResultVar += _nonTupledAtomicInt.TryExchange(i, i - 1) ? 1 : 0;
+				intResultVar += _fastAtomicInt.FastIncrement();
+				intResultVar += _fastAtomicInt.FastDecrement();
+				intResultVar += _fastAtomicInt.FastTryExchange(i, i - 1) == i - 1 ? 1 : 0;
 
 				var newUser = new User(i, "Xenoprimate");
-				refResultVar = _nonTupledAtomicRef.Exchange(newUser).Name;
-				refResultVar = _nonTupledAtomicRef.TryExchange(new User(i * 2, "Ben"), newUser) ? refResultVar : String.Empty;
+				refResultVar = _fastAtomicRef.FastExchange(newUser).Name;
+				refResultVar = _fastAtomicRef.FastTryExchange(new User(i * 2, "Ben"), newUser).LoginID == newUser.LoginID ? refResultVar : String.Empty;
 
-				valResultVar += _nonTupledAtomicVal8.Exchange(new Val8(i)).A;
-				valResultVar += _nonTupledAtomicVal16.TryExchange(new Val16(i + 1), new Val16(i)) ? 0 : 1;
-				valResultVar += _nonTupledAtomicVal32.Exchange(new Val32(i)).A;
-				valResultVar += _nonTupledAtomicVal64.TryExchange(new Val64(i + 1), new Val64(i)) ? 0 : 1;
+				valResultVar += _fastAtomicVal8.FastExchange(new Val8(i)).A;
+				valResultVar += _fastAtomicVal16.FastTryExchange(new Val16(i + 1), new Val16(i)).A == i ? 0 : 1;
+				valResultVar += _fastAtomicVal32.FastExchange(new Val32(i)).A;
+				valResultVar += _fastAtomicVal64.FastTryExchange(new Val64(i + 1), new Val64(i)).A == i ? 0 : 1;
 
 				SimulateContention(ContentionLevel);
 			}

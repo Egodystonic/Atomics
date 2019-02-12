@@ -31,7 +31,13 @@ namespace Egodystonic.Atomics {
 		public void SetUnsafe(T newValue) => _asUnmanaged.SetUnsafe(newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastExchange(T newValue) => _asUnmanaged.FastExchange(newValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) Exchange(T newValue) => _asUnmanaged.Exchange(newValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastTryExchange(T newValue, T comparand) => _asUnmanaged.FastTryExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) => _asUnmanaged.TryExchange(newValue, comparand);

@@ -236,6 +236,16 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void API_FastExchange() {
+			var target = new TTarget();
+
+			target.Set(Alpha);
+
+			var exchRes = target.FastExchange(Bravo);
+			Assert.AreEqual(Alpha, exchRes);
+		}
+
+		[Test]
 		public void API_SpinWaitForExchange() {
 			var target = new TTarget();
 
@@ -370,6 +380,20 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			target.Set(Delta);
 			Assert.AreEqual(Delta, spinWaitTask.Result.PreviousValue);
 			Assert.AreEqual(Bravo, spinWaitTask.Result.CurrentValue);
+		}
+
+		[Test]
+		public void API_FastTryExchange() {
+			var target = new TTarget();
+
+			// (T, T)
+			target.Set(Alpha);
+			var exchRes = target.FastTryExchange(Bravo, Alpha);
+			Assert.AreEqual(Alpha, exchRes);
+			Assert.AreEqual(Bravo, target.Get());
+			exchRes = target.FastTryExchange(Delta, Charlie);
+			Assert.AreEqual(Bravo, exchRes);
+			Assert.AreEqual(Bravo, target.Get());
 		}
 
 		[Test]

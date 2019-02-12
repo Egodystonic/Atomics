@@ -118,6 +118,10 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetAsIntPtr(IntPtr newValue) => Volatile.Write(ref _value, newValue);
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IntPtr FastExchange(IntPtr newValue) => Interlocked.Exchange(ref _value, newValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TypedPtrExchangeRes Exchange(T* newValue) => new TypedPtrExchangeRes((T*) Interlocked.Exchange(ref _value, (IntPtr) newValue), newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -173,6 +177,9 @@ namespace Egodystonic.Atomics {
 				spinner.SpinOnce();
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IntPtr FastTryExchange(IntPtr newValue, IntPtr comparand) => Interlocked.CompareExchange(ref _value, newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TypedPtrTryExchangeRes TryExchange(T* newValue, T* comparand) {

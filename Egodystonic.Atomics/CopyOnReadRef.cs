@@ -38,6 +38,9 @@ namespace Egodystonic.Atomics {
 		public void SetUnsafe(T newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastExchange(T newValue) => _copyFunc(Interlocked.Exchange(ref _value, newValue));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) Exchange(T newValue) => (_copyFunc(Interlocked.Exchange(ref _value, newValue)), _copyFunc(newValue));
 
 		public T SpinWaitForValue(T targetValue) {
@@ -105,6 +108,14 @@ namespace Egodystonic.Atomics {
 				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValueCopy, newValueCopy);
 				spinner.SpinOnce();
 			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastTryExchangeRefOnly(T newValue, T comparand) => _copyFunc(Interlocked.CompareExchange(ref _value, newValue, comparand));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastTryExchange(T newValue, T comparand) {
+			return TargetTypeIsEquatable ? TryExchange((_, ctx) => ctx, newValue, (c, _, ctx) => ValuesAreEqual(c, ctx), comparand).PreviousValue : _copyFunc(Interlocked.CompareExchange(ref _value, newValue, comparand));
 		}
 
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {

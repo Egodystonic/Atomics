@@ -78,6 +78,15 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastExchange(T newValue) {
+			long newValueAsLong;
+			WriteToLong(&newValueAsLong, newValue);
+			var previousValueAsLong = Interlocked.Exchange(ref _valueAsLong, newValueAsLong);
+			return ReadFromLong(&previousValueAsLong);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) Exchange(T newValue) {
 			long newValueAsLong;
 			WriteToLong(&newValueAsLong, newValue);
@@ -99,6 +108,16 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastTryExchange(T newValue, T comparand) {
+			long newValueAsLong, comparandAsLong;
+			WriteToLong(&newValueAsLong, newValue);
+			WriteToLong(&comparandAsLong, comparand);
+			var previousValueAsLong = Interlocked.CompareExchange(ref _valueAsLong, newValueAsLong, comparandAsLong);
+			return ReadFromLong(&previousValueAsLong);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
 			long newValueAsLong, comparandAsLong;
 			WriteToLong(&newValueAsLong, newValue);

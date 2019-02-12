@@ -135,33 +135,23 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 				lock (_lock) {
 					prevVal = _lockVal;
 					_lockVal = new Vector2(i, i);
-				}
 
-				lock (_lock) {
 					if (_lockVal == new Vector2(i, i)) _lockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
 					curVal = _lockVal;
 				}
-
 				BenchmarkUtils.SimulateContention(ContentionLevel);
-
 				lock (_lock) {
 					prevVal = _lockVal;
 					_lockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
-				}
 
-				lock (_lock) {
 					if (_lockVal == new Vector2(i, i)) _lockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
 					curVal = _lockVal;
 				}
-
 				BenchmarkUtils.SimulateContention(ContentionLevel);
-
 				lock (_lock) {
 					prevVal = _lockVal;
 					_lockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
-				}
 
-				lock (_lock) {
 					if (_lockVal == new Vector2(i, i)) _lockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
 				}
 
@@ -170,51 +160,51 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		}
 		#endregion
 
-		#region Benchmark: Less Granular LessGranularLock
-		ManualResetEvent _lessGranularLessGranularLockBarrier;
-		List<Thread> _lessGranularLessGranularLockThreads;
-		Vector2 _lessGranularLessGranularLockVal;
-		object _lessGranularLessGranularLock;
+		#region Benchmark: Less Granular Lock
+		ManualResetEvent _lessGranularLockBarrier;
+		List<Thread> _lessGranularLockThreads;
+		Vector2 _lessGranularLockVal;
+		object _lessGranularLock;
 
 		[IterationSetup(Target = nameof(WithLessGranularLock))]
 		public void CreateLessGranularLockContext() {
-			_lessGranularLessGranularLock = new object();
-			_lessGranularLessGranularLockVal = new Vector2(-1f, -1f);
-			_lessGranularLessGranularLockBarrier = new ManualResetEvent(false);
-			_lessGranularLessGranularLockThreads = new List<Thread>();
-			BenchmarkUtils.PrepareThreads(NumThreads, _lessGranularLessGranularLockBarrier, WithLessGranularLock_Entry, _lessGranularLessGranularLockThreads);
+			_lessGranularLock = new object();
+			_lessGranularLockVal = new Vector2(-1f, -1f);
+			_lessGranularLockBarrier = new ManualResetEvent(false);
+			_lessGranularLockThreads = new List<Thread>();
+			BenchmarkUtils.PrepareThreads(NumThreads, _lessGranularLockBarrier, WithLessGranularLock_Entry, _lessGranularLockThreads);
 		}
 
 		[Benchmark]
 		public void WithLessGranularLock() {
-			BenchmarkUtils.ExecutePreparedThreads(_lessGranularLessGranularLockBarrier, _lessGranularLessGranularLockThreads);
+			BenchmarkUtils.ExecutePreparedThreads(_lessGranularLockBarrier, _lessGranularLockThreads);
 		}
 
 		void WithLessGranularLock_Entry() {
 			for (var i = 0; i < NumIterations; i++) {
 				Vector2 prevVal, curVal;
 
-				lock (_lessGranularLessGranularLock) {
-					prevVal = _lessGranularLessGranularLockVal;
-					_lessGranularLessGranularLockVal = new Vector2(i, i);
+				lock (_lessGranularLock) {
+					prevVal = _lessGranularLockVal;
+					_lessGranularLockVal = new Vector2(i, i);
 
-					if (_lessGranularLessGranularLockVal == new Vector2(i, i)) _lessGranularLessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
-					curVal = _lessGranularLessGranularLockVal;
-				}
-				BenchmarkUtils.SimulateContention(ContentionLevel);
-				lock (_lessGranularLessGranularLock) {
-					prevVal = _lessGranularLessGranularLockVal;
-					_lessGranularLessGranularLockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
+					if (_lessGranularLockVal == new Vector2(i, i)) _lessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
+					curVal = _lessGranularLockVal;
 
-					if (_lessGranularLessGranularLockVal == new Vector2(i, i)) _lessGranularLessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
-					curVal = _lessGranularLessGranularLockVal;
-				}
-				BenchmarkUtils.SimulateContention(ContentionLevel);
-				lock (_lessGranularLessGranularLock) {
-					prevVal = _lessGranularLessGranularLockVal;
-					_lessGranularLessGranularLockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
+					BenchmarkUtils.SimulateContention(ContentionLevel);
 
-					if (_lessGranularLessGranularLockVal == new Vector2(i, i)) _lessGranularLessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
+					prevVal = _lessGranularLockVal;
+					_lessGranularLockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
+
+					if (_lessGranularLockVal == new Vector2(i, i)) _lessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
+					curVal = _lessGranularLockVal;
+
+					BenchmarkUtils.SimulateContention(ContentionLevel);
+
+					prevVal = _lessGranularLockVal;
+					_lessGranularLockVal = new Vector2(curVal.X + 1, curVal.Y + 1);
+
+					if (_lessGranularLockVal == new Vector2(i, i)) _lessGranularLockVal = new Vector2(prevVal.X + 2, prevVal.Y + 2);
 				}
 
 				BenchmarkUtils.SimulateContention(ContentionLevel);

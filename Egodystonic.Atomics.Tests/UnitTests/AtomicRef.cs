@@ -37,7 +37,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		#region Tests
 		[Test]
-		public void EquatableTryExchange() {
+		public void FastTryExchangeRefOnly() {
 			const int NumIterations = 100_000;
 
 			var runner = _equatableRefRunnerFactory.NewRunner(new DummyEquatableRef(0L));
@@ -46,11 +46,92 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteFreeThreadedTests(
 				atomicRef => {
 					var curValue = atomicRef.Value;
-					var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(CurrentValue, curValue);
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					var prevValue = atomicRef.FastTryExchangeRefOnly(newValue, curValue);
+					var wasSet = ReferenceEquals(prevValue, curValue);
+					var setValue = wasSet ? newValue : prevValue;
+					if (wasSet) {
+						Assert.True(ReferenceEquals(curValue, prevValue));
+						Assert.True(ReferenceEquals(newValue, setValue));
+					}
+					else {
+						Assert.False(ReferenceEquals(curValue, prevValue));
+						Assert.True(ReferenceEquals(setValue, prevValue));
+					}
+				},
+				NumIterations
+			);
+
+			// Test: Method does what is expected and is safe from race conditions
+			runner.AllThreadsTearDown = atomicRef => Assert.AreEqual(NumIterations, atomicRef.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				atomicRef => {
+					while (true) {
+						var curValue = atomicRef.Value;
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+						var prevValue = atomicRef.FastTryExchangeRefOnly(newValue, curValue);
+						var wasSet = ReferenceEquals(prevValue, curValue);
+						var setValue = wasSet ? newValue : prevValue;
+						if (wasSet) {
+							Assert.True(ReferenceEquals(curValue, prevValue));
+							Assert.True(ReferenceEquals(newValue, setValue));
+						}
+						else {
+							Assert.False(ReferenceEquals(curValue, prevValue));
+							Assert.True(ReferenceEquals(setValue, prevValue));
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// Test: Method always exhibits coherency for consecutive reads from external threads
+			runner.ExecuteContinuousCoherencyTests(
+				atomicRef => {
+					var curValue = atomicRef.Value;
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					atomicRef.FastTryExchangeRefOnly(newValue, curValue);
+				},
+				NumIterations,
+				atomicRef => atomicRef.Value,
+				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
+			);
+
+			// Test: Custom equality is used for types that provide it
+			var dummyImmutableA = new DummyImmutableRef("Xenoprimate Rules");
+			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
+			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
+			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
+			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
+			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+
+			atomicImmutable.Set(dummyImmutableA);
+			atomicImmutable.FastTryExchangeRefOnly(new DummyImmutableRef(), dummyImmutableB);
+			Assert.AreEqual(dummyImmutableA, atomicImmutable.Value);
+			atomicEquatable.Set(dummyEquatableA);
+			var newVal = new DummyEquatableRef();
+			atomicEquatable.FastTryExchangeRefOnly(newVal, dummyEquatableB);
+			Assert.AreEqual(dummyEquatableA, atomicEquatable.Value);
+		}
+
+		[Test]
+		public void EquatableFastTryExchange() {
+			const int NumIterations = 100_000;
+
+			var runner = _equatableRefRunnerFactory.NewRunner(new DummyEquatableRef(0L));
+
+			// Test: Return value of method is always consistent
+			runner.ExecuteFreeThreadedTests(
+				atomicRef => {
+					var curValue = atomicRef.Value;
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					var prevValue = atomicRef.FastTryExchange(newValue, curValue);
+					var wasSet = prevValue.Equals(curValue);
+					var setValue = wasSet ? newValue : prevValue;
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(CurrentValue, setValue);
+						Assert.AreEqual(newValue, setValue);
 					}
 					else {
 						Assert.AreNotEqual(curValue, prevValue);
@@ -67,11 +148,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = atomicRef.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(CurrentValue, curValue);
+						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+						var prevValue = atomicRef.FastTryExchange(newValue, curValue);
+						var wasSet = prevValue.Equals(curValue);
+						var setValue = wasSet ? newValue : prevValue;
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(CurrentValue, setValue);
+							Assert.AreEqual(newValue, setValue);
 						}
 						else {
 							Assert.AreNotEqual(curValue, prevValue);
@@ -86,8 +169,83 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteContinuousCoherencyTests(
 				atomicRef => {
 					var curValue = atomicRef.Value;
-					var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					atomicRef.TryExchange(CurrentValue, curValue);
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					atomicRef.FastTryExchange(newValue, curValue);
+				},
+				NumIterations,
+				atomicRef => atomicRef.Value,
+				(prev, cur) => Assert.True(cur.LongProp >= prev.LongProp)
+			);
+
+			// Test: Custom equality is used for types that provide it
+			var dummyImmutableA = new DummyImmutableRef("Xenoprimate Rules");
+			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
+			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
+			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
+			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
+			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+
+			atomicImmutable.Set(dummyImmutableA);
+			atomicImmutable.FastTryExchange(new DummyImmutableRef(), dummyImmutableB);
+			Assert.AreEqual(dummyImmutableA, atomicImmutable.Value);
+			atomicEquatable.Set(dummyEquatableA);
+			var newVal = new DummyEquatableRef();
+			atomicEquatable.FastTryExchange(newVal, dummyEquatableB);
+			Assert.AreEqual(newVal, atomicEquatable.Value);
+		}
+
+		[Test]
+		public void EquatableTryExchange() {
+			const int NumIterations = 100_000;
+
+			var runner = _equatableRefRunnerFactory.NewRunner(new DummyEquatableRef(0L));
+
+			// Test: Return value of method is always consistent
+			runner.ExecuteFreeThreadedTests(
+				atomicRef => {
+					var curValue = atomicRef.Value;
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, curValue);
+					if (wasSet) {
+						Assert.AreEqual(curValue, prevValue);
+						Assert.AreEqual(newValue, setValue);
+					}
+					else {
+						Assert.AreNotEqual(curValue, prevValue);
+						Assert.AreEqual(setValue, prevValue);
+					}
+				},
+				NumIterations
+			);
+
+			// Test: Method does what is expected and is safe from race conditions
+			runner.AllThreadsTearDown = atomicRef => Assert.AreEqual(NumIterations, atomicRef.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				atomicRef => {
+					while (true) {
+						var curValue = atomicRef.Value;
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, curValue);
+						if (wasSet) {
+							Assert.AreEqual(curValue, prevValue);
+							Assert.AreEqual(newValue, setValue);
+						}
+						else {
+							Assert.AreNotEqual(curValue, prevValue);
+							Assert.AreEqual(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+
+			// Test: Method always exhibits coherency for consecutive reads from external threads
+			runner.ExecuteContinuousCoherencyTests(
+				atomicRef => {
+					var curValue = atomicRef.Value;
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					atomicRef.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				atomicRef => atomicRef.Value,
@@ -118,11 +276,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			equatableRunner.ExecuteFreeThreadedTests(
 				atomicRef => {
 					var curValue = atomicRef.Value;
-					var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 					if (wasSet) {
 						Assert.AreEqual(curValue, prevValue);
-						Assert.AreEqual(CurrentValue, setValue);
+						Assert.AreEqual(newValue, setValue);
 					}
 					else {
 						Assert.AreNotEqual(curValue, prevValue);
@@ -139,11 +297,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = atomicRef.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
+						var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(CurrentValue, setValue);
+							Assert.AreEqual(newValue, setValue);
 						}
 						else {
 							Assert.AreNotEqual(curValue, prevValue);
@@ -158,8 +316,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			equatableRunner.ExecuteContinuousCoherencyTests(
 				atomicRef => {
 					var curValue = atomicRef.Value;
-					var CurrentValue = new DummyEquatableRef(curValue.LongProp + 1L);
-					atomicRef.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					var newValue = new DummyEquatableRef(curValue.LongProp + 1L);
+					atomicRef.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 				},
 				NumIterations,
 				atomicRef => atomicRef.Value,

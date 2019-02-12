@@ -66,6 +66,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			return _ref.TryExchange(mapFunc, mapContext, predicate, predicateContext);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableRef FastExchange(DummyImmutableRef newValue) { return _ref.FastExchange(newValue); }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableRef FastTryExchangeRefOnly(DummyImmutableRef newValue, DummyImmutableRef comparand) { return _ref.FastTryExchangeRefOnly(newValue, comparand); }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableRef FastTryExchange(DummyImmutableRef newValue, DummyImmutableRef comparand) { return _ref.FastTryExchange(newValue, comparand); }
+
 		static DummyImmutableRef Copy(DummyImmutableRef r) => r == null ? null : new DummyImmutableRef(r.StringProp, r.LongProp, Copy(r.RefProp));
 	}
 }

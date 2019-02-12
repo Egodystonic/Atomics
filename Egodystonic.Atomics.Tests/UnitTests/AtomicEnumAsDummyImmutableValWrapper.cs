@@ -34,6 +34,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => Cast(_enum.TryExchange(CurrentValue, (DummyEnum) comparand));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableVal FastExchange(DummyImmutableVal CurrentValue) => _enum.FastExchange(CurrentValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableVal FastTryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => _enum.FastTryExchange(CurrentValue, comparand);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyImmutableVal SpinWaitForValue(DummyImmutableVal targetValue) => _enum.SpinWaitForValue((DummyEnum) targetValue);
 
 		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {

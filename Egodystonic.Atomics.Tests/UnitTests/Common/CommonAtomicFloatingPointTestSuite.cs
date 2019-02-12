@@ -33,11 +33,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Equals(Zero)) return;
-						var CurrentValue = Sub(curValue, One);
-						var (wasSet, prevValue, setValue) = target.TryExchangeWithMaxDelta(CurrentValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+						var newValue = Sub(curValue, One);
+						var (wasSet, prevValue, setValue) = target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 						if (wasSet) {
 							Assert.AreEqual(curValue, prevValue);
-							Assert.AreEqual(CurrentValue, setValue);
+							Assert.AreEqual(newValue, setValue);
 						}
 						else {
 							Assert.AreNotEqual(curValue, prevValue);
@@ -52,8 +52,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = Sub(curValue, One);
-					target.TryExchangeWithMaxDelta(CurrentValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
+					var newValue = Sub(curValue, One);
+					target.TryExchangeWithMaxDelta(newValue, Sub(curValue, Convert(0.25f)), Convert(0.5f));
 				},
 				NumIterations,
 				target => target.Value,

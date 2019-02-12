@@ -91,6 +91,15 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastExchange(T newValue) {
+			lock (_writeLock) {
+				var oldValue = GetUnsafe();
+				Set(newValue);
+				return oldValue;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T PreviousValue, T CurrentValue) Exchange(T newValue) {
 			lock (_writeLock) {
 				var oldValue = GetUnsafe();
@@ -135,6 +144,15 @@ namespace Egodystonic.Atomics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T FastTryExchange(T newValue, T comparand) {
+			lock (_writeLock) {
+				var oldValue = GetUnsafe();
+				if (oldValue.Equals(comparand)) Set(newValue);
+				return oldValue;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand) {
 			lock (_writeLock) {
 				var oldValue = GetUnsafe();
@@ -144,6 +162,7 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand) {
 			return TryExchange(mapFunc, context, (curVal, _, ctx) => curVal.Equals(ctx), comparand);
 		}

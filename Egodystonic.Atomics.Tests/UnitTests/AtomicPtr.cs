@@ -275,9 +275,9 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newInt = atomicInt.Increment().CurrentValue;
-					var CurrentValue = initialValue + newInt;
-					var prev = target.Exchange(CurrentValue).PreviousValue;
-					AssertAreEqual(prev, CurrentValue - 1);
+					var newValue = initialValue + newInt;
+					var prev = target.Exchange(newValue).PreviousValue;
+					AssertAreEqual(prev, newValue - 1);
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
@@ -582,8 +582,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = curValue + 1;
-					target.TryExchange(CurrentValue, curValue);
+					var newValue = curValue + 1;
+					target.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
@@ -599,11 +599,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n) => c + 1 == n);
+						var newValue = curValue + 1;
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c + 1 == n);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -667,11 +667,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n, ctx) => c + ctx == n, 1);
+						var newValue = curValue + 1;
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c + ctx == n, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -707,11 +707,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
-						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n) => n == CurrentValue, 1);
+						var newValue = curValue + 1;
+						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n) => n == newValue, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -731,11 +731,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
-						var (wasSet, prevValue, setValue) = target.TryExchange(c => c + 1, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, ((IntPtr) CurrentValue).ToInt64());
+						var newValue = curValue + 1;
+						var (wasSet, prevValue, setValue) = target.TryExchange(c => c + 1, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, ((IntPtr) newValue).ToInt64());
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -755,11 +755,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
+						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n, ctx) => n == curValue + ctx, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -779,11 +779,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue == initialValue + NumIterations) return;
-						var CurrentValue = curValue + 1;
-						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, 1, ((IntPtr) CurrentValue).ToInt64());
+						var newValue = curValue + 1;
+						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, 1, ((IntPtr) newValue).ToInt64());
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);

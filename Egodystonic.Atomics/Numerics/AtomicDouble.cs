@@ -44,6 +44,9 @@ namespace Egodystonic.Atomics.Numerics {
 		public void SetUnsafe(double newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public double FastExchange(double newValue) => Interlocked.Exchange(ref _value, newValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (double PreviousValue, double CurrentValue) Exchange(double newValue) => (Interlocked.Exchange(ref _value, newValue), newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -304,6 +307,9 @@ namespace Egodystonic.Atomics.Numerics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public double FastTryExchange(double newValue, double comparand) => Interlocked.CompareExchange(ref _value, newValue, comparand);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, double PreviousValue, double CurrentValue) TryExchange(double newValue, double comparand) {
 			var oldValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
 			var wasSet = oldValue == comparand;
@@ -405,6 +411,36 @@ namespace Egodystonic.Atomics.Numerics {
 				var newValue = mapFunc(curValue, context);
 
 				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public double FastIncrement() => FastAdd(1f);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public double FastDecrement() => FastSubtract(1f);
+
+		public double FastAdd(double operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue + operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return newValue;
+				spinner.SpinOnce();
+			}
+		}
+
+		public double FastSubtract(double operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue - operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return newValue;
 				spinner.SpinOnce();
 			}
 		}

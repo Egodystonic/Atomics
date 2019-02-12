@@ -39,6 +39,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => Cast(_castPtr.TryExchange(CurrentValue, (IntPtr) comparand));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableVal FastExchange(DummyImmutableVal CurrentValue) => _castPtr.FastExchange((IntPtr) CurrentValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public DummyImmutableVal FastTryExchange(DummyImmutableVal CurrentValue, DummyImmutableVal comparand) => _castPtr.FastTryExchange(CurrentValue, (IntPtr) comparand);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public DummyImmutableVal SpinWaitForValue(DummyImmutableVal targetValue) => _castPtr.SpinWaitForValue((IntPtr) targetValue);
 
 		public (DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) Exchange<TContext>(Func<DummyImmutableVal, TContext, DummyImmutableVal> mapFunc, TContext context) {
@@ -65,6 +71,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public (bool ValueWasSet, DummyImmutableVal PreviousValue, DummyImmutableVal CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<DummyImmutableVal, TMapContext, DummyImmutableVal> mapFunc, TMapContext mapContext, Func<DummyImmutableVal, DummyImmutableVal, TPredicateContext, bool> predicate, TPredicateContext predicateContext) {
 			return Cast(_castPtr.TryExchange((cur, ctx) => (IntPtr) mapFunc(cur, ctx), mapContext, (c, n, ctx) => predicate(c, n, ctx), predicateContext));
 		}
+
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static (DummyImmutableVal, DummyImmutableVal) Cast((IntPtr, IntPtr) operand) => (operand.Item1, operand.Item2);

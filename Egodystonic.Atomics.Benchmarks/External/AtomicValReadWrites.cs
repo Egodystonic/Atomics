@@ -9,9 +9,7 @@ using Egodystonic.Atomics.Numerics;
 
 namespace Egodystonic.Atomics.Benchmarks.External {
 	/// <summary>
-	/// Benchmark comparing various atomic value methods.
-	/// Should be noted that the scenario this is testing (many concurrent, consecutive accesses with a lot of writes and little time between them)
-	/// is specifically one where we're hoping this library will excel (at least the unmanaged val); it shouldn't be taken to mean 'Atomic types are always faster than X'.
+	/// Benchmark comparing various atomic value methods for scenarios where reads outnumber writes.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class AtomicValReadWrites {
@@ -335,6 +333,116 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 					}
 
 					_lockSyncBarrier.SignalAndWait();
+				}
+
+				BenchmarkUtils.SimulateContention(ContentionLevel);
+			}
+
+			if (result == 0L) Console.Beep(1000, 100);
+		}
+		#endregion
+
+		#region Benchmark: Less Granular Lock
+		ManualResetEvent _lessGranularLockBarrier;
+		List<Thread> _lessGranularLockThreads;
+		Vector2 _lessGranularLockVal;
+		object _lessGranularLock;
+		Barrier _lessGranularLockSyncBarrier;
+
+		[IterationSetup(Target = nameof(WithLessGranularLock))]
+		public void CreateLessGranularLockContext() {
+			_lessGranularLock = new object();
+			_lessGranularLockVal = new Vector2(-1f, -1f);
+			_lessGranularLockBarrier = new ManualResetEvent(false);
+			_lessGranularLockThreads = new List<Thread>();
+			_lessGranularLockSyncBarrier = new Barrier(NumThreads);
+			BenchmarkUtils.PrepareThreads(NumThreads, _lessGranularLockBarrier, WithLessGranularLock_Entry, _lessGranularLockThreads);
+		}
+
+		[Benchmark]
+		public void WithLessGranularLock() {
+			BenchmarkUtils.ExecutePreparedThreads(_lessGranularLockBarrier, _lessGranularLockThreads);
+		}
+
+		void WithLessGranularLock_Entry() {
+			var result = 0L;
+
+			for (var i = 0; i < NumIterations; i++) {
+				Vector2 curVal;
+
+				lock (_lessGranularLock) {
+					if (_lessGranularLockVal.L < i) {
+						result += _lessGranularLockVal.L;
+					}
+					else {
+						result -= _lessGranularLockVal.L;
+					}
+
+					BenchmarkUtils.SimulateContention(ContentionLevel);
+
+					curVal = _lessGranularLockVal;
+
+					BenchmarkUtils.SimulateContention(ContentionLevel);
+
+					if (curVal.L >= _lessGranularLockVal.L) {
+						if (_lessGranularLockVal.X > _lessGranularLockVal.Y) {
+							result += (long) _lessGranularLockVal.Y;
+						}
+						else {
+							result += (long) _lessGranularLockVal.X;
+						}
+					}
+					else {
+						if (_lessGranularLockVal.X > _lessGranularLockVal.Y) {
+							result += (long) _lessGranularLockVal.X;
+						}
+						else {
+							result += (long) _lessGranularLockVal.Y;
+						}
+					}
+
+					if (_lessGranularLockVal.L < i) {
+						result += _lessGranularLockVal.L;
+					}
+					else {
+						result -= _lessGranularLockVal.L;
+					}
+
+					curVal = _lessGranularLockVal;
+
+					if (curVal.L >= _lessGranularLockVal.L) {
+						if (_lessGranularLockVal.X > _lessGranularLockVal.Y) {
+							result += (long) _lessGranularLockVal.Y;
+						}
+						else {
+							result += (long) _lessGranularLockVal.X;
+						}
+					}
+					else {
+						if (_lessGranularLockVal.X > _lessGranularLockVal.Y) {
+							result += (long) _lessGranularLockVal.X;
+						}
+						else {
+							result += (long) _lessGranularLockVal.Y;
+						}
+					}
+				}
+
+				BenchmarkUtils.SimulateContention(ContentionLevel);
+
+				if (i % IterationsPerBarrier == 0) {
+					lock (_lessGranularLock) {
+						if (_lessGranularLockVal.X < curVal.L) {
+							if (_lessGranularLockVal == curVal) _lessGranularLockVal = new Vector2(curVal.L - 1L);
+							result += _lessGranularLockVal.L;
+						}
+						else {
+							if (_lessGranularLockVal == curVal) _lessGranularLockVal = new Vector2(curVal.L + 1L);
+							result += _lessGranularLockVal.L;
+						}
+					}
+
+					_lessGranularLockSyncBarrier.SignalAndWait();
 				}
 
 				BenchmarkUtils.SimulateContention(ContentionLevel);

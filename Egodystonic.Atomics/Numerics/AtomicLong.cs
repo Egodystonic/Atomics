@@ -38,6 +38,9 @@ namespace Egodystonic.Atomics.Numerics {
 		public void SetUnsafe(long newValue) => _value = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastExchange(long newValue) => Interlocked.Exchange(ref _value, newValue);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long CurrentValue) Exchange(long newValue) => (Interlocked.Exchange(ref _value, newValue), newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,6 +96,9 @@ namespace Egodystonic.Atomics.Numerics {
 				spinner.SpinOnce();
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastTryExchange(long newValue, long comparand) => Interlocked.CompareExchange(ref _value, newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (bool ValueWasSet, long PreviousValue, long CurrentValue) TryExchange(long newValue, long comparand) {
@@ -402,6 +408,18 @@ namespace Egodystonic.Atomics.Numerics {
 				spinner.SpinOnce();
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastIncrement() => Interlocked.Increment(ref _value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastDecrement() => Interlocked.Decrement(ref _value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastAdd(long operand) => Interlocked.Add(ref _value, operand);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long FastSubtract(long operand) => Interlocked.Add(ref _value, -operand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (long PreviousValue, long CurrentValue) Increment() {

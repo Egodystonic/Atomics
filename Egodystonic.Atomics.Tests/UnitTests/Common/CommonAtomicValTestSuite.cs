@@ -127,6 +127,40 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastExchange() {
+			const int NumIterations = 3_000_000;
+
+			var atomicIntA = new AtomicInt(0);
+			var atomicIntB = new AtomicInt(0);
+			var runner = NewRunner(new DummyImmutableVal(0, 0));
+
+			// (T)
+			runner.GlobalSetUp = (_, __) => { atomicIntA.Set(0); atomicIntB.Set(0); };
+			runner.AllThreadsTearDown = target => {
+				AssertAreEqual(NumIterations, target.Value.Alpha);
+				AssertAreEqual(NumIterations, target.Value.Bravo);
+			};
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					var newA = atomicIntA.Increment().CurrentValue;
+					var newB = atomicIntB.Increment().CurrentValue;
+					var newValue = new DummyImmutableVal(newA, newB);
+					var prev = target.FastExchange(newValue);
+					AssertAreEqual(prev.Alpha, newA - 1);
+					AssertAreEqual(prev.Bravo, newB - 1);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => {
+					AssertTrue(prev.Alpha <= cur.Alpha);
+					AssertTrue(prev.Bravo <= cur.Bravo);
+				}
+			);
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void Exchange() {
 			const int NumIterations = 300_000;
 
@@ -144,8 +178,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => {
 					var newA = atomicIntA.Increment().CurrentValue;
 					var newB = atomicIntB.Increment().CurrentValue;
-					var CurrentValue = new DummyImmutableVal(newA, newB);
-					var prev = target.Exchange(CurrentValue).PreviousValue;
+					var newValue = new DummyImmutableVal(newA, newB);
+					var prev = target.Exchange(newValue).PreviousValue;
 					AssertAreEqual(prev.Alpha, newA - 1);
 					AssertAreEqual(prev.Bravo, newB - 1);
 				},
@@ -466,6 +500,25 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastTryExchange() {
+			const int NumIterations = 2_000_000;
+
+			var runner = NewRunner(new DummyImmutableVal(0, 0));
+
+			// (T, T)
+			runner.ExecuteContinuousCoherencyTests(
+				target => {
+					var curValue = target.Value;
+					var newValue = new DummyImmutableVal(0, curValue.Bravo + 1);
+					target.FastTryExchange(newValue, curValue);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
+			);
+		}
+
+		[Test]
 		public void TryExchangeWithoutContext() {
 			const int NumIterations = 200_000;
 
@@ -475,8 +528,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = new DummyImmutableVal(0, curValue.Bravo + 1);
-					target.TryExchange(CurrentValue, curValue);
+					var newValue = new DummyImmutableVal(0, curValue.Bravo + 1);
+					target.TryExchange(newValue, curValue);
 				},
 				NumIterations,
 				target => target.Value,
@@ -493,11 +546,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Alpha == NumIterations) return;
-						var CurrentValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
+						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -568,11 +621,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.Alpha == NumIterations) return;
-						var CurrentValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
+						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(CurrentValue, setValue);
+							AssertAreEqual(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);

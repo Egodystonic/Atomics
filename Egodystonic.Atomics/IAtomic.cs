@@ -26,6 +26,10 @@ namespace Egodystonic.Atomics {
 		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange(T newValue, T comparand);
 		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TContext>(Func<T, TContext, T> mapFunc, TContext context, T comparand); // TODO replace this with an extension method once we can farm out the comparand equality comparison to a static internal interface method (C# future)
 		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchange<TMapContext, TPredicateContext>(Func<T, TMapContext, T> mapFunc, TMapContext mapContext, Func<T, T, TPredicateContext, bool> predicate, TPredicateContext predicateContext);
+
+		// "Fast" API 
+		T FastExchange(T newValue);
+		T FastTryExchange(T newValue, T comparand);
 	}
 
 	// TODO C# 8- replace these with default interface implementations that we redeclare in each class.

@@ -110,6 +110,29 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastExchange() {
+			const int NumIterations = 1_000_000;
+			var runner = NewRunner(new DummyImmutableRef(0L));
+
+			// (T)
+			var atomicLong = new AtomicLong(0L);
+			runner.GlobalSetUp = (_, __) => atomicLong.Set(0L);
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteContinuousSingleWriterCoherencyTests(
+				target => {
+					var newLongValue = atomicLong.Increment().CurrentValue;
+					var prev = target.FastExchange(new DummyImmutableRef(newLongValue));
+					AssertAreEqual(prev.LongProp, newLongValue - 1L);
+				},
+				NumIterations,
+				target => target.Value,
+				(prev, cur) => AssertTrue(cur.LongProp >= prev.LongProp)
+			);
+			runner.GlobalSetUp = null;
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void Exchange() {
 			const int NumIterations = 300_000;
 			var runner = NewRunner(new DummyImmutableRef(0L));
@@ -470,6 +493,37 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		}
 
 		[Test]
+		public void FastTryExchange() {
+			const int NumIterations = 1_000_000;
+
+			var runner = NewRunner(new DummyImmutableRef(0L));
+
+			// (T, T)
+			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
+			runner.ExecuteFreeThreadedTests(
+				target => {
+					while (true) {
+						var curValue = target.Value;
+						if (curValue.LongProp == NumIterations) return;
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var prevValue = target.FastTryExchange(newValue, curValue);
+						var wasSet = prevValue.Equals(curValue);
+						var setValue = wasSet ? newValue : prevValue;
+						if (wasSet) {
+							AssertAreEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(newValue, setValue);
+						}
+						else {
+							AssertAreNotEqualObjects(curValue, prevValue);
+							AssertAreEqualObjects(setValue, prevValue);
+						}
+					}
+				}
+			);
+			runner.AllThreadsTearDown = null;
+		}
+
+		[Test]
 		public void TryExchangeWithoutContext() {
 			const int NumIterations = 100_000;
 
@@ -482,11 +536,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curValue = target.Value;
 						if (curValue.LongProp == NumIterations) return;
-						var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
-						var (wasSet, prevValue, setValue) = target.TryExchange(CurrentValue, curValue);
+						var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, curValue);
 						if (wasSet) {
 							AssertAreEqualObjects(curValue, prevValue);
-							AssertAreEqualObjects(CurrentValue, setValue);
+							AssertAreEqualObjects(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqualObjects(curValue, prevValue);
@@ -501,8 +555,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(CurrentValue, (c, n) => c.LongProp == n.LongProp - 1L);
+					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+					target.TryExchange(newValue, (c, n) => c.LongProp == n.LongProp - 1L);
 				},
 				NumIterations,
 				target => target.Value,
@@ -548,8 +602,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var curValue = target.Value;
-					var CurrentValue = new DummyImmutableRef(curValue.LongProp + 1L);
-					target.TryExchange(CurrentValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
+					var newValue = new DummyImmutableRef(curValue.LongProp + 1L);
+					target.TryExchange(newValue, (c, n, ctx) => c.LongProp == n.LongProp - ctx, 1L);
 				},
 				NumIterations,
 				target => target.Value,
