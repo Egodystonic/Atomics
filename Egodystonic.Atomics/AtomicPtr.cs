@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Egodystonic.Atomics.Numerics;
 
 namespace Egodystonic.Atomics {
 	public sealed unsafe class AtomicPtr<T> : IAtomic<IntPtr> where T : unmanaged {
@@ -462,5 +460,7 @@ namespace Egodystonic.Atomics {
 		public TypedPtrTryExchangeRes TryExchange<TContext>(AtomicPtrMap<TContext> mapFunc, AtomicPtrPredicate<TContext> predicate, TContext context) {
 			return TryExchange(mapFunc, predicate, context, context);
 		}
+
+		public override string ToString() => GetAsIntPtr().ToString("x");
 	}
 }

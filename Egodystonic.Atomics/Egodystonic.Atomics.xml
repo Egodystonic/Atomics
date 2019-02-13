@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Egodystonic.Atomics</name>
+    </assembly>
+    <members>
+        <member name="T:Egodystonic.Atomics.AtomicValUnmanaged`1">
+            <summary>
+            TODO document the max struct size and also the fact that IEquatable overrides are not used here (if they are required, AtomicVal should be used)
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+    </members>
+</doc>

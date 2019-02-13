@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
 using Egodystonic.Atomics.Benchmarks.DummyObjects;
-using Egodystonic.Atomics.Numerics;
 
 namespace Egodystonic.Atomics.Benchmarks.External {
 	/// <summary>

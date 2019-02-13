@@ -1,10 +1,6 @@
-﻿// Created on 2018-09-19 by Ben Bowen
-// (c) Amber Kinetics 2018
-
-
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Egodystonic.Atomics.Numerics {
 	public interface INumericAtomic<T> : IAtomic<T> {

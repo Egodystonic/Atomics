@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	public sealed class CopyOnReadRef<T> : IAtomic<T> where T : class {
@@ -161,5 +160,7 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(CopyOnReadRef<T> operand) => operand.Get();
+
+		public override string ToString() => Get()?.ToString() ?? "null";
 	}
 }

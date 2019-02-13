@@ -1,8 +1,6 @@
 ﻿// (c) Egodystonic Studios 2018
-
+// Author: Ben Bowen
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Egodystonic.Atomics.Tests")]

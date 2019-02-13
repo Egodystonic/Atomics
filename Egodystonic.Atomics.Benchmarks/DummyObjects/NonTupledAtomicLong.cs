@@ -1,11 +1,10 @@
 ﻿// ReSharper disable CompareOfFloatsByEqualityOperator Direct comparison is correct behaviour here; we're using as a bitwise equality check, not interpreting sameness/value
+
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Egodystonic.Atomics.Numerics {
+namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 	public sealed class NonTupledAtomicLong {
 		long _value;
 

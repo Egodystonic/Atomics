@@ -2,8 +2,6 @@
 
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Egodystonic.Atomics.Tests.Harness {
 	sealed class IterativeConcurrentTestCase<T> : IConcurrentTestCase<T> {

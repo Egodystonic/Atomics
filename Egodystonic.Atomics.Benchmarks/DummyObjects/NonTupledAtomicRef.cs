@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace Egodystonic.Atomics {
+namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 	public sealed class NonTupledAtomicRef<T> where T : class {
 		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
 		T _value;

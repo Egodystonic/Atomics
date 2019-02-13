@@ -1,13 +1,10 @@
 ﻿// (c) Egodystonic Studios 2018
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
-using Egodystonic.Atomics.Numerics;
+using Egodystonic.Atomics.Benchmarks.DummyObjects;
 using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {

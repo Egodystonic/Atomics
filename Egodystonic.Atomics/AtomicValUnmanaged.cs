@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	/// <summary>
@@ -214,5 +213,7 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicValUnmanaged<T> operand) => operand.Get();
+
+		public override string ToString() => Get().ToString();
 	}
 }

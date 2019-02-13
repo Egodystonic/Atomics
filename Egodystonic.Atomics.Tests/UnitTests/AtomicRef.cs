@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Threading;
-using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
 using Egodystonic.Atomics.Tests.Harness;
 using Egodystonic.Atomics.Tests.UnitTests.Common;

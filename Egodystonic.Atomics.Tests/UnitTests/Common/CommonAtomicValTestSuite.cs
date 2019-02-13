@@ -2,13 +2,8 @@
 
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
-using Egodystonic.Atomics.Tests.Harness;
 using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.UnitTests.Common {

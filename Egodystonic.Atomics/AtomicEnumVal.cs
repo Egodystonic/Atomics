@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicEnumVal<T> : IAtomic<T> where T : unmanaged, Enum {
@@ -65,5 +63,7 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicEnumVal<T> operand) => operand.Get();
+
+		public override string ToString() => Get().ToString();
 	}
 }

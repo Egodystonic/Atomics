@@ -1,8 +1,6 @@
 ﻿// (c) Egodystonic Studios 2018
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Egodystonic.Atomics.Tests.DummyObjects {
 	public enum DummyEnum : long {

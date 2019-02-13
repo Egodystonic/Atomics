@@ -1,11 +1,6 @@
 ﻿// (c) Egodystonic Studios 2018
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using BenchmarkDotNet.Attributes;
 using Egodystonic.Atomics.Benchmarks.DummyObjects;
 using Egodystonic.Atomics.Numerics;

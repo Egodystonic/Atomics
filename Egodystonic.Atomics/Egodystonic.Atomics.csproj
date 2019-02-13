@@ -3,6 +3,18 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <ApplicationIcon>egdLogo.ico</ApplicationIcon>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Version>1.0.0-alpha1</Version>
+    <Authors>Egodystonic Studios</Authors>
+    <Description>Library for managing multithreaded program state; providing lock-free, fast, scalable data wrappers for shared variables.</Description>
+    <Copyright>Egodystonic Studios 2018 to present</Copyright>
+    <PackageLicenseUrl>https://github.com/Egodystonic/Atomics/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Egodystonic/Atomics</PackageProjectUrl>
+    <PackageIconUrl>http://www.egodystonic.com/egdLogo.ico</PackageIconUrl>
+    <RepositoryUrl></RepositoryUrl>
+    <PackageTags>egodystonic ego dystonic atomic atomics multithreading parallelism concurrent lockfree lock</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -12,6 +24,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>C:\Users\Ben\Documents\Egodystonic\Atomics\Repository\Egodystonic.Atomics\Egodystonic.Atomics.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

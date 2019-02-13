@@ -1,12 +1,12 @@
-﻿// ReSharper disable CompareOfFloatsByEqualityOperator Direct comparison is correct behaviour here; we're using as a bitwise equality check, not interpreting sameness/value
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+// ReSharper disable CompareOfFloatsByEqualityOperator Direct comparisons are correct throughout this file.
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicDouble : IFloatingPointAtomic<double> {
+	public sealed class AtomicDouble : IFloatingPointAtomic<double>, IFormattable {
 		double _value;
 
 		public double Value {
@@ -601,5 +601,11 @@ namespace Egodystonic.Atomics.Numerics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator double(AtomicDouble operand) => operand.Get();
+
+		// ReSharper disable once SpecifyACultureInStringConversionExplicitly Overloads are provided to leave this decision to the user.
+		public override string ToString() => Get().ToString();
+		public string ToString(IFormatProvider provider) => Get().ToString(provider);
+		public string ToString(string format) => Get().ToString(format);
+		public string ToString(string format, IFormatProvider provider) => Get().ToString(format, provider);
 	}
 }

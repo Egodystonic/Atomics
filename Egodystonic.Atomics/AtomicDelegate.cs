@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Egodystonic.Atomics {
 	// TODO mention that reference equality is used throughout
@@ -209,6 +208,8 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator T(AtomicDelegate<T> operand) => operand.Get();
+
+		public override string ToString() => Get()?.ToString() ?? "null";
 	}
 
 	public static class AtomicDelegateExtensions {

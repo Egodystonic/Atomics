@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
+using Egodystonic.Atomics.Benchmarks.DummyObjects;
 
 namespace Egodystonic.Atomics.Benchmarks.External {
 	/// <summary>

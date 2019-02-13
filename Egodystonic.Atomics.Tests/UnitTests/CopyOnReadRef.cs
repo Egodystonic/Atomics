@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -10,7 +9,6 @@ using Egodystonic.Atomics.Tests.DummyObjects;
 using Egodystonic.Atomics.Tests.Harness;
 using Egodystonic.Atomics.Tests.UnitTests.Common;
 using NUnit.Framework;
-using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]

@@ -1,12 +1,11 @@
-﻿// ReSharper disable CompareOfFloatsByEqualityOperator Direct comparison is correct behaviour here; we're using as a bitwise equality check, not interpreting sameness/value
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicInt : INumericAtomic<int> {
+	public sealed class AtomicInt : INumericAtomic<int>, IFormattable {
 		int _value;
 
 		public int Value {
@@ -465,5 +464,10 @@ namespace Egodystonic.Atomics.Numerics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator int(AtomicInt operand) => operand.Get();
+
+		public override string ToString() => Get().ToString();
+		public string ToString(IFormatProvider provider) => Get().ToString(provider);
+		public string ToString(string format) => Get().ToString(format);
+		public string ToString(string format, IFormatProvider provider) => Get().ToString(format, provider);
 	}
 }

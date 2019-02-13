@@ -1,10 +1,7 @@
 ﻿// (c) Egodystonic Studios 2018
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using Egodystonic.Atomics.Numerics;
 using Egodystonic.Atomics.Tests.DummyObjects;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {

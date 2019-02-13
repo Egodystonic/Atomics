@@ -1,8 +1,6 @@
 ﻿// (c) Egodystonic Studios 2019
-
+// Author: Ben Bowen
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Egodystonic.Atomics {
 	struct AtomicValBufferSlot<T> where T : struct {

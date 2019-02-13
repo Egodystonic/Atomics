@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 
 namespace Egodystonic.Atomics {

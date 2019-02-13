@@ -2,10 +2,8 @@
 
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace Egodystonic.Atomics.Benchmarks {
+namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 	public sealed class User {
 		public int LoginID { get; }
 		public string Name { get; }

@@ -1,7 +1,8 @@
-﻿using System;
+﻿// (c) Egodystonic Studios 2018
+// Author: Ben Bowen
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Egodystonic.Atomics.Numerics;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicBool : IAtomic<bool> {
@@ -171,5 +172,7 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator bool(AtomicBool operand) => operand.Get();
+
+		public override string ToString() => Get().ToString();
 	}
 }
