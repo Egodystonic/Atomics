@@ -9,7 +9,7 @@ using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {
 	/// <summary>
-	/// Benchmark used to justify custom implementation for AtomicInt and other numeric types; as opposed to delegation/deferral to
+	/// Benchmark used to justify custom implementation for AtomicInt32 and other numeric types; as opposed to delegation/deferral to
 	/// an AtomicValUnmanaged.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
@@ -30,11 +30,11 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Custom Int
 		ManualResetEvent _customIntBarrier;
 		List<Thread> _customIntThreads;
-		AtomicInt _customInt;
+		AtomicInt32 _customInt32;
 
 		[IterationSetup(Target = nameof(WithCustomInt))]
 		public void CreateCustomIntContext() {
-			_customInt = new AtomicInt(0);
+			_customInt32 = new AtomicInt32(0);
 			_customIntBarrier = new ManualResetEvent(false);
 			_customIntThreads = new List<Thread>();
 			PrepareThreads(NumThreads, _customIntBarrier, WithCustomInt_Entry, _customIntThreads);
@@ -48,19 +48,19 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		void WithCustomInt_Entry() {
 			const int Bitmask = 0b101010101;
 			for (var i = 0; i < NumIterations; ++i) {
-				var incResult = _customInt.Increment();
+				var incResult = _customInt32.Increment();
 				Assert(incResult.CurrentValue == incResult.PreviousValue + 1);
-				var addResult = _customInt.Add(10);
+				var addResult = _customInt32.Add(10);
 				Assert(addResult.CurrentValue == addResult.PreviousValue + 10);
-				var subResult = _customInt.Subtract(9);
+				var subResult = _customInt32.Subtract(9);
 				Assert(subResult.CurrentValue == subResult.PreviousValue - 9);
-				var multResult = _customInt.MultiplyBy(3);
+				var multResult = _customInt32.MultiplyBy(3);
 				Assert(multResult.CurrentValue == multResult.PreviousValue * 3);
-				var divResult = _customInt.DivideBy(4);
+				var divResult = _customInt32.DivideBy(4);
 				Assert(divResult.CurrentValue == divResult.PreviousValue / 4);
-				var decResult = _customInt.Decrement();
+				var decResult = _customInt32.Decrement();
 				Assert(decResult.CurrentValue == decResult.PreviousValue - 1);
-				var exchangeResult = _customInt.Exchange(curVal => curVal & Bitmask);
+				var exchangeResult = _customInt32.Exchange(curVal => curVal & Bitmask);
 				Assert(exchangeResult.CurrentValue == (exchangeResult.PreviousValue & Bitmask));
 			}
 		}

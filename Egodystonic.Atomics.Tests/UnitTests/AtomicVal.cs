@@ -79,7 +79,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[Test]
 		public void GetAndSetAndValue_Oversized() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicLong(0L);
+			var atomicLong = new AtomicInt64(0L);
 			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(0, 0));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -193,8 +193,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void Exchange_Oversized() {
 			const int NumIterations = 300_000;
 
-			var atomicIntA = new AtomicInt(0);
-			var atomicIntB = new AtomicInt(0);
+			var atomicIntA = new AtomicInt32(0);
+			var atomicIntB = new AtomicInt32(0);
 			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(0, 0));
 
 			// (T)
@@ -735,7 +735,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[Test]
 		public void GetAndSetAndValue_VeryOversized() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicLong(0L);
+			var atomicLong = new AtomicInt64(0L);
 			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -849,8 +849,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void Exchange_VeryOversized() {
 			const int NumIterations = 300_000;
 
-			var atomicIntA = new AtomicInt(0);
-			var atomicIntB = new AtomicInt(0);
+			var atomicIntA = new AtomicInt32(0);
+			var atomicIntB = new AtomicInt32(0);
 			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
 			// (T)

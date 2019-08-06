@@ -35,14 +35,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _closureCapturingFuncsBarrier;
 		List<Thread> _closureCapturingFuncsThreads;
 		AtomicRef<User> _closureCapturingFuncsUser;
-		AtomicLong _closureCapturingFuncsLong;
+		AtomicInt64 _closureCapturingFuncsInt64;
 
 		[IterationSetup(Target = nameof(WithClosureCapturingFuncs))]
 		public void CreateClosureCapturingFuncsContext() {
 			_closureCapturingFuncsBarrier = new ManualResetEvent(false);
 			_closureCapturingFuncsThreads = new List<Thread>();
 			_closureCapturingFuncsUser = new AtomicRef<User>(new User(0, ""));
-			_closureCapturingFuncsLong = new AtomicLong(0L);
+			_closureCapturingFuncsInt64 = new AtomicInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _closureCapturingFuncsBarrier, WithClosureCapturingFuncs_Entry, _closureCapturingFuncsThreads);
 		}
 
@@ -58,9 +58,9 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 				_closureCapturingFuncsUser.Exchange(u => new User(u.LoginID, (i & 1) == 0 ? usernameA : usernameB));
 				_closureCapturingFuncsUser.TryExchange(u => new User(u.LoginID, (i & 1) == 0 ? usernameA : usernameB), (cur, next) => cur.Name == usernameA || next.Name == usernameA);
 
-				_closureCapturingFuncsLong.TryBoundedExchange(l => l + i, 0L, NumIterations);
-				_closureCapturingFuncsLong.TryMinimumExchange(l => l + i, 0L);
-				_closureCapturingFuncsLong.TryMaximumExchange(l => l + i, NumIterations);
+				_closureCapturingFuncsInt64.TryBoundedExchange(l => l + i, 0L, NumIterations);
+				_closureCapturingFuncsInt64.TryMinimumExchange(l => l + i, 0L);
+				_closureCapturingFuncsInt64.TryMaximumExchange(l => l + i, NumIterations);
 
 				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
@@ -71,14 +71,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _contextualFuncsBarrier;
 		List<Thread> _contextualFuncsThreads;
 		AtomicRef<User> _contextualFuncsUser;
-		AtomicLong _contextualFuncsLong;
+		AtomicInt64 _contextualFuncsInt64;
 
 		[IterationSetup(Target = nameof(WithContextualFuncs))]
 		public void CreateContextualFuncsContext() {
 			_contextualFuncsBarrier = new ManualResetEvent(false);
 			_contextualFuncsThreads = new List<Thread>();
 			_contextualFuncsUser = new AtomicRef<User>(new User(0, ""));
-			_contextualFuncsLong = new AtomicLong(0L);
+			_contextualFuncsInt64 = new AtomicInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _contextualFuncsBarrier, WithContextualFuncs_Entry, _contextualFuncsThreads);
 		}
 
@@ -94,9 +94,9 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 				_contextualFuncsUser.Exchange((u, ctx) => new User(u.LoginID, ctx), (i & 1) == 0 ? usernameA : usernameB);
 				_contextualFuncsUser.TryExchange((u, ctx) => new User(u.LoginID, ctx), (i & 1) == 0 ? usernameA : usernameB, (cur, next, ctx) => cur.Name == ctx || next.Name == ctx, usernameA);
 
-				_contextualFuncsLong.TryBoundedExchange((l, ctx) => l + ctx, i, 0L, NumIterations);
-				_contextualFuncsLong.TryMinimumExchange((l, ctx) => l + ctx, i, 0L);
-				_contextualFuncsLong.TryMaximumExchange((l, ctx) => l + ctx, i, NumIterations);
+				_contextualFuncsInt64.TryBoundedExchange((l, ctx) => l + ctx, i, 0L, NumIterations);
+				_contextualFuncsInt64.TryMinimumExchange((l, ctx) => l + ctx, i, 0L);
+				_contextualFuncsInt64.TryMaximumExchange((l, ctx) => l + ctx, i, NumIterations);
 
 				BenchmarkUtils.SimulateContention(ContentionLevel);
 			}
@@ -107,14 +107,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _manualLoopsBarrier;
 		List<Thread> _manualLoopsThreads;
 		AtomicRef<User> _manualLoopsUser;
-		AtomicLong _manualLoopsLong;
+		AtomicInt64 _manualLoopsInt64;
 
 		[IterationSetup(Target = nameof(WithManualLoops))]
 		public void CreateManualLoopsContext() {
 			_manualLoopsBarrier = new ManualResetEvent(false);
 			_manualLoopsThreads = new List<Thread>();
 			_manualLoopsUser = new AtomicRef<User>(new User(0, ""));
-			_manualLoopsLong = new AtomicLong(0L);
+			_manualLoopsInt64 = new AtomicInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _manualLoopsBarrier, WithManualLoops_Entry, _manualLoopsThreads);
 		}
 
@@ -168,10 +168,10 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var spinner = new SpinWait();
 
 			while (true) {
-				var curValue = _manualLoopsLong.Get();
+				var curValue = _manualLoopsInt64.Get();
 				if (curValue < lowerBoundInc || curValue >= upperBoundEx) return;
 				var newValue = curValue + context;
-				if (_manualLoopsLong.TryExchange(newValue, curValue).ValueWasSet) return;
+				if (_manualLoopsInt64.TryExchange(newValue, curValue).ValueWasSet) return;
 				spinner.SpinOnce();
 			}
 		}
@@ -180,10 +180,10 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var spinner = new SpinWait();
 
 			while (true) {
-				var curValue = _manualLoopsLong.Get();
+				var curValue = _manualLoopsInt64.Get();
 				if (curValue < min) return;
 				var newValue = curValue + context;
-				if (_manualLoopsLong.TryExchange(newValue, curValue).ValueWasSet) return;
+				if (_manualLoopsInt64.TryExchange(newValue, curValue).ValueWasSet) return;
 				spinner.SpinOnce();
 			}
 		}
@@ -192,10 +192,10 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var spinner = new SpinWait();
 
 			while (true) {
-				var curValue = _manualLoopsLong.Get();
+				var curValue = _manualLoopsInt64.Get();
 				if (curValue > max) return;
 				var newValue = curValue + context;
-				if (_manualLoopsLong.TryExchange(newValue, curValue).ValueWasSet) return;
+				if (_manualLoopsInt64.TryExchange(newValue, curValue).ValueWasSet) return;
 				spinner.SpinOnce();
 			}
 		}

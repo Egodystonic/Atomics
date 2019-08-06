@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.UnitTests.Numerics {
 	[TestFixture]
-	class AtomicLongTest : CommonAtomicNumericTestSuite<long, AtomicLong> {
+	class AtomicInt64Test : CommonAtomicNumericTestSuite<long, AtomicInt64> {
 		#region Test Fields
 		protected override long Alpha { get; } = 111L;
 		protected override long Bravo { get; } = 222L;

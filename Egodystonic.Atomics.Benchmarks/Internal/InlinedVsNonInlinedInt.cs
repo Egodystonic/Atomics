@@ -30,11 +30,11 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Inlined
 		ManualResetEvent _inlinedBarrier;
 		List<Thread> _inlinedThreads;
-		AtomicInt _inlined;
+		AtomicInt32 _inlined;
 
 		[IterationSetup(Target = nameof(WithInlined))]
 		public void CreateInlinedContext() {
-			_inlined = new AtomicInt(0);
+			_inlined = new AtomicInt32(0);
 			_inlinedBarrier = new ManualResetEvent(false);
 			_inlinedThreads = new List<Thread>();
 			PrepareThreads(NumThreads, _inlinedBarrier, WithInlined_Entry, _inlinedThreads);

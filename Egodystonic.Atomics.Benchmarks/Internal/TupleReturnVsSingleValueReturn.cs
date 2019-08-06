@@ -26,8 +26,8 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#endregion
 
 		#region Benchmark: Tuple Returns
-		AtomicLong _atomicLong;
-		AtomicInt _atomicInt;
+		AtomicInt64 _atomicInt64;
+		AtomicInt32 _atomicInt32;
 		AtomicRef<User> _atomicRef;
 		AtomicVal<Val8> _atomicVal8;
 		AtomicVal<Val16> _atomicVal16;
@@ -36,8 +36,8 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 
 		[IterationSetup(Target = nameof(WithTupleReturns))]
 		public void CreateTupleReturnsContext() {
-			_atomicLong = new AtomicLong(0L);
-			_atomicInt = new AtomicInt(0);
+			_atomicInt64 = new AtomicInt64(0L);
+			_atomicInt32 = new AtomicInt32(0);
 			_atomicRef = new AtomicRef<User>(new User(0, ""));
 			_atomicVal8 = new AtomicVal<Val8>(new Val8(0L));
 			_atomicVal16 = new AtomicVal<Val16>(new Val16(0L));
@@ -54,13 +54,13 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var valResultVar = 0L;
 
 			for (var i = 0; i < NumIterations; ++i) {
-				longResultVar += _atomicLong.Increment().CurrentValue;
-				longResultVar += _atomicLong.Decrement().CurrentValue;
-				longResultVar += _atomicLong.Exchange(i).PreviousValue;
+				longResultVar += _atomicInt64.Increment().CurrentValue;
+				longResultVar += _atomicInt64.Decrement().CurrentValue;
+				longResultVar += _atomicInt64.Exchange(i).PreviousValue;
 
-				intResultVar += _atomicInt.Increment().CurrentValue;
-				intResultVar += _atomicInt.Decrement().CurrentValue;
-				intResultVar += _atomicInt.TryExchange(i, i - 1).ValueWasSet ? 1 : 0;
+				intResultVar += _atomicInt32.Increment().CurrentValue;
+				intResultVar += _atomicInt32.Decrement().CurrentValue;
+				intResultVar += _atomicInt32.TryExchange(i, i - 1).ValueWasSet ? 1 : 0;
 
 				var newUser = new User(i, "Xenoprimate");
 				refResultVar = _atomicRef.Exchange(newUser).PreviousValue.Name;
@@ -81,8 +81,8 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#endregion
 
 		#region Benchmark: Tuple Returns
-		AtomicLong _fastAtomicLong;
-		AtomicInt _fastAtomicInt;
+		AtomicInt64 _fastAtomicInt64;
+		AtomicInt32 _fastAtomicInt32;
 		AtomicRef<User> _fastAtomicRef;
 		AtomicVal<Val8> _fastAtomicVal8;
 		AtomicVal<Val16> _fastAtomicVal16;
@@ -91,8 +91,8 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 
 		[IterationSetup(Target = nameof(WithSingleValueReturns))]
 		public void CreateSingleValueReturnsContext() {
-			_fastAtomicLong = new AtomicLong(0L);
-			_fastAtomicInt = new AtomicInt(0);
+			_fastAtomicInt64 = new AtomicInt64(0L);
+			_fastAtomicInt32 = new AtomicInt32(0);
 			_fastAtomicRef = new AtomicRef<User>(new User(0, ""));
 			_fastAtomicVal8 = new AtomicVal<Val8>(new Val8(0L));
 			_fastAtomicVal16 = new AtomicVal<Val16>(new Val16(0L));
@@ -109,13 +109,13 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 			var valResultVar = 0L;
 
 			for (var i = 0; i < NumIterations; ++i) {
-				longResultVar += _fastAtomicLong.FastIncrement();
-				longResultVar += _fastAtomicLong.FastDecrement();
-				longResultVar += _fastAtomicLong.FastExchange(i);
+				longResultVar += _fastAtomicInt64.FastIncrement();
+				longResultVar += _fastAtomicInt64.FastDecrement();
+				longResultVar += _fastAtomicInt64.FastExchange(i);
 
-				intResultVar += _fastAtomicInt.FastIncrement();
-				intResultVar += _fastAtomicInt.FastDecrement();
-				intResultVar += _fastAtomicInt.FastTryExchange(i, i - 1) == i - 1 ? 1 : 0;
+				intResultVar += _fastAtomicInt32.FastIncrement();
+				intResultVar += _fastAtomicInt32.FastDecrement();
+				intResultVar += _fastAtomicInt32.FastTryExchange(i, i - 1) == i - 1 ? 1 : 0;
 
 				var newUser = new User(i, "Xenoprimate");
 				refResultVar = _fastAtomicRef.FastExchange(newUser).Name;

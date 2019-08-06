@@ -48,7 +48,7 @@ namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 				var curValue = Get();
 				var newValue = mapFunc(curValue, context);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue: newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -67,7 +67,7 @@ namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 			var newValue = mapFunc(comparand, context); // curValue will always be comparand when this method returns
 
 			while (true) {
-				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue: newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, comparand) == comparand) return (comparand, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -83,7 +83,7 @@ namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 					continue;
 				}
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue: newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
 			}
 		}
@@ -99,7 +99,7 @@ namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 		public (bool ValueWasSet, int PreviousValue, int CurrentValue) TryExchange<TContext>(Func<int, TContext, int> mapFunc, TContext context, int comparand) {
 			var newValue = mapFunc(comparand, context); // Comparand will always be curValue if the interlocked call passes
 			var prevValue = Interlocked.CompareExchange(ref _value, newValue, comparand);
-			if (prevValue == comparand) return (true, prevValue, newValue: newValue);
+			if (prevValue == comparand) return (true, prevValue, newValue);
 			else return (false, prevValue, prevValue);
 		}
 
@@ -111,7 +111,7 @@ namespace Egodystonic.Atomics.Benchmarks.DummyObjects {
 				var newValue = mapFunc(curValue, mapContext);
 				if (!predicate(curValue, newValue, predicateContext)) return (false, curValue, curValue);
 
-				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue: newValue);
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (true, curValue, newValue);
 
 				spinner.SpinOnce();
 			}

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicFloat : IFloatingPointAtomic<float>, IFormattable {
+	public sealed class AtomicSingle : IFloatingPointAtomic<float>, IFormattable {
 		float _value;
 
 		public float Value {
@@ -16,8 +16,8 @@ namespace Egodystonic.Atomics.Numerics {
 			set => Set(value);
 		}
 
-		public AtomicFloat() : this(default) { }
-		public AtomicFloat(float initialValue) => Set(initialValue);
+		public AtomicSingle() : this(default) { }
+		public AtomicSingle(float initialValue) => Set(initialValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public float Get() => Volatile.Read(ref _value);
@@ -588,7 +588,7 @@ namespace Egodystonic.Atomics.Numerics {
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator float(AtomicFloat operand) => operand.Get();
+		public static implicit operator float(AtomicSingle operand) => operand.Get();
 
 		// ReSharper disable once SpecifyACultureInStringConversionExplicitly Overloads are provided to leave this decision to the user.
 		public override string ToString() => Get().ToString();

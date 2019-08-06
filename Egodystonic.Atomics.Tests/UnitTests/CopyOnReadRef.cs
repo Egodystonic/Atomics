@@ -319,7 +319,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[Test]
 		public void GetAndSetAndValue() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicLong(0L);
+			var atomicLong = new AtomicInt64(0L);
 			var runner = NewRunner(new DummyCopyCountingRef(0L));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -466,7 +466,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var runner = NewRunner(new DummyCopyCountingRef(0L));
 
 			// (T)
-			var atomicLong = new AtomicLong(0L);
+			var atomicLong = new AtomicInt64(0L);
 			runner.GlobalSetUp = (_, __) => atomicLong.Set(0L);
 			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.LongProp);
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
