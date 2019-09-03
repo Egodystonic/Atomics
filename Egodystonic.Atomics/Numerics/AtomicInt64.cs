@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicInt64 : INumericAtomic<long>, IFormattable {
+	public sealed class AtomicInt64 : IIntegerAtomic<long>, IFormattable {
 		long _value;
 
 		public long Value {

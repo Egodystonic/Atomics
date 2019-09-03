@@ -80,7 +80,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		}
 		#endregion
 
-		#region Benchmark: Tuple Returns
+		#region Benchmark: Single Value Returns
 		AtomicInt64 _fastAtomicInt64;
 		AtomicInt32 _fastAtomicInt32;
 		AtomicRef<User> _fastAtomicRef;

@@ -30,12 +30,12 @@ namespace Egodystonic.Atomics {
 				var lastWriteID = Volatile.Read(ref _lastWriteID);
 				var index = lastWriteID & SlotMask;
 
-				var expectedWritecount = Volatile.Read(ref _slots[index].WriteCount);
+				var expectedWriteCount = Volatile.Read(ref _slots[index].WriteCount);
 				var result = _slots[index].Value;
 				Thread.MemoryBarrier();
 				var actualWriteCount = _slots[index].WriteCount;
 
-				if (expectedWritecount == actualWriteCount) return result;
+				if (expectedWriteCount == actualWriteCount) return result;
 
 				spinner.SpinOnce();
 			}
@@ -48,11 +48,11 @@ namespace Egodystonic.Atomics {
 				var lastWriteID = Interlocked.Read(ref _lastWriteID);
 				var index = lastWriteID & SlotMask;
 
-				var expectedWritecount = Interlocked.Read(ref _slots[index].WriteCount);
+				var expectedWriteCount = Interlocked.Read(ref _slots[index].WriteCount);
 				var result = _slots[index].Value;
 				var actualWriteCount = Interlocked.Read(ref _slots[index].WriteCount);
 
-				if (expectedWritecount == actualWriteCount) return result;
+				if (expectedWriteCount == actualWriteCount) return result;
 
 				spinner.SpinOnce();
 			}

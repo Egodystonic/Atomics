@@ -3,55 +3,55 @@
 using System;
 
 namespace Egodystonic.Atomics.Numerics {
-	public interface INumericAtomic<T> : IAtomic<T> {
-		T SpinWaitForMinimumValue(T minValue);
-		T SpinWaitForMaximumValue(T maxValue);
-		T SpinWaitForBoundedValue(T lowerBoundInclusive, T upperBoundExclusive);
+	// Notes on this interface:
+	// Increment, Decrement, Add and Subtract are all reversible operations
+	// Therefore offering only the fast path (XAndGet) makes sense. If the user
+	// needs the 'previous' value they can just reverse the operation manually
+	// (which is all we'd be doing for them anyway, it's not like we have some
+	// 'faster' API internally to do that).
+	// On the other hand, multiply and divide can be irreversible (multiplication
+	// that overflows and any division that has a remainder > 0). So knowing the
+	// previous value is not always possible for the caller of this API. I'm not
+	// too bothered about offering overloads that provide a single return value
+	// because the multiply/divide op is probably going to shadow the performance
+	// loss from return 2 values anyway. And if they're desperate they can use
+	// GetRefUnsafe and do it themselves.
+	public interface IScalableNumericAtomic<T> : IAtomic<T> {
+		T IncrementAndGet();
+		T DecrementAndGet();
+		T AddAndGet(T operand);
+		T SubtractAndGet(T operand);
 
-		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange(T newValue, T minValue);
-		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange(Func<T, T> mapFunc, T minValue);
-		(T PreviousValue, T CurrentValue) SpinWaitForMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
-		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange(T newValue, T maxValue);
-		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange(Func<T, T> mapFunc, T maxValue);
-		(T PreviousValue, T CurrentValue) SpinWaitForMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
-		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange(T newValue, T lowerBoundInclusive, T upperBoundExclusive);
-		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
-		(T PreviousValue, T CurrentValue) SpinWaitForBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
-
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange(T newValue, T minValue);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange(Func<T, T> mapFunc, T minValue);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMinimumExchange<TContext>(Func<T, TContext, T> mapFunc, T minValue, TContext context);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange(T newValue, T maxValue);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange(Func<T, T> mapFunc, T maxValue);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryMaximumExchange<TContext>(Func<T, TContext, T> mapFunc, T maxValue, TContext context);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange(T newValue, T lowerBoundInclusive, T upperBoundExclusive);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange(Func<T, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryBoundedExchange<TContext>(Func<T, TContext, T> mapFunc, T lowerBoundInclusive, T upperBoundExclusive, TContext context);
-
-		(T PreviousValue, T CurrentValue) Increment();
-		(T PreviousValue, T CurrentValue) Decrement();
-
-		(T PreviousValue, T CurrentValue) Add(T operand);
-		(T PreviousValue, T CurrentValue) Subtract(T operand);
-		(T PreviousValue, T CurrentValue) MultiplyBy(T operand);
-		(T PreviousValue, T CurrentValue) DivideBy(T operand);
-
-		// "Fast" API
-		T FastIncrement();
-		T FastDecrement();
-		T FastAdd(T operand);
-		T FastSubtract(T operand);
+		ExchangeResult<T> Multiply(T operand);
+		ExchangeResult<T> Divide(T operand);
 	}
 
-	public interface IFloatingPointAtomic<T> : INumericAtomic<T> {
-		T SpinWaitForValueWithMaxDelta(T targetValue, T maxDelta);
+	// There is a tradeoff here. There may be call for GetAndXYZ variants of these
+	// for extreme performance scenarios at some point. But I think this API
+	// works best in terms of consistency with how IScalableNumericAtomic<T> is
+	// laid out and still giving an option of a fast path and a path that doesn't
+	// lose any information.
+	public interface IScalableIntegerAtomic<T> : IScalableNumericAtomic<T> {
+		T BitwiseAndAndGet(T operand);
+		ExchangeResult<T> BitwiseAnd(T operand);
 
-		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta(T newValue, T comparand, T maxDelta);
-		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
-		(T PreviousValue, T CurrentValue) SpinWaitForExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
+		T BitwiseOrAndGet(T operand);
+		ExchangeResult<T> BitwiseOr(T operand);
 
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta(T newValue, T comparand, T maxDelta);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta(Func<T, T> mapFunc, T comparand, T maxDelta);
-		(bool ValueWasSet, T PreviousValue, T CurrentValue) TryExchangeWithMaxDelta<TContext>(Func<T, TContext, T> mapFunc, T comparand, T maxDelta, TContext context);
+		T BitwiseExclusiveOrAndGet(T operand);
+		ExchangeResult<T> BitwiseExclusiveOr(T operand);
+
+		T BitwiseNegateAndGet();
+		ExchangeResult<T> BitwiseNegate();
+
+		T BitwiseLeftShiftAndGet(int operand);
+		ExchangeResult<T> BitwiseLeftShift(int operand);
+
+		T BitwiseRightShiftAndGet(int operand);
+		ExchangeResult<T> BitwiseRightShift(int operand);
+	}
+
+	public interface INonScalableFloatingPointAtomic<T> : IScalableNumericAtomic<T> {
+		T TryExchange(T newValue, T comparand, T maxDelta);
 	}
 }

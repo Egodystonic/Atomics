@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics.Numerics {
-	public sealed class AtomicInt32 : INumericAtomic<int>, IFormattable {
+	public sealed class AtomicInt32 : IIntegerAtomic<int>, IFormattable {
 		int _value;
 
 		public int Value {
@@ -438,12 +438,21 @@ namespace Egodystonic.Atomics.Numerics {
 			return (newVal + operand, newVal);
 		}
 
+		IScalableAtomic<int> GetSA() { }
+
+		ref int Test() => ref _value;
+
 		public (int PreviousValue, int CurrentValue) MultiplyBy(int operand) {
 			var spinner = new SpinWait();
 
 			while (true) {
 				var curValue = Get();
 				var newValue = curValue * operand;
+
+				var s = GetSA();
+				ref var f = ref s.GetRefUnsafe();
+				Interlocked.Exchange(ref f, 3);
+				s.SetRefUnsafe(ref f);
 
 				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
 				spinner.SpinOnce();
@@ -461,6 +470,87 @@ namespace Egodystonic.Atomics.Numerics {
 				spinner.SpinOnce();
 			}
 		}
+
+		// ============================ Integer API ============================
+
+		public (int PreviousValue, int CurrentValue) BitwiseAnd(int operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue & operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (int PreviousValue, int CurrentValue) BitwiseOr(int operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue | operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (int PreviousValue, int CurrentValue) BitwiseExclusiveOr(int operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue ^ operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (int PreviousValue, int CurrentValue) BitwiseNegate() {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = ~curValue;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (int PreviousValue, int CurrentValue) BitwiseLeftShift(int operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue << operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public (int PreviousValue, int CurrentValue) BitwiseRightShift(int operand) {
+			var spinner = new SpinWait();
+
+			while (true) {
+				var curValue = Get();
+				var newValue = curValue >> operand;
+
+				if (Interlocked.CompareExchange(ref _value, newValue, curValue) == curValue) return (curValue, newValue);
+				spinner.SpinOnce();
+			}
+		}
+
+		public int FastBitwiseAnd(int operand) { return 0; }
+		public int FastBitwiseOr(int operand) { return 0; }
+		public int FastBitwiseExclusiveOr(int operand) { return 0; }
+		public int FastBitwiseNegate() { return 0; }
+		public int FastBitwiseLeftShift(int operand) { return 0; }
+		public int FastBitwiseRightShift(int operand) { return 0; }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator int(AtomicInt32 operand) => operand.Get();
