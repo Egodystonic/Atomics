@@ -7,11 +7,10 @@ using System.Threading;
 namespace Egodystonic.Atomics {
 	public interface IScalableAtomic<T> : IAtomic<T> {
 		T GetUnsafe();
-		ref T GetUnsafeRef();
 		void SetUnsafe(T newValue);
-		ref T SetUnsafeRef(ref T newValueRef);
+		ref T GetUnsafeRef();
 
-		T Exchange(T newValue);
-		T TryExchange(T newValue, T comparand);
+		T Swap(T newValue);
+		T TrySwap(T newValue, T comparand);
 	}
 }

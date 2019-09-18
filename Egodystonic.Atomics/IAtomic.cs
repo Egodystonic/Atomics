@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
-	public interface IAtomic<T> {
+	public interface IAtomic<T> : IEquatable<T>, IEquatable<IAtomic<T>> {
 		T Value { get; set; }
 
 		T Get();

@@ -52,6 +52,6 @@ namespace Egodystonic.Atomics.Numerics {
 	}
 
 	public interface INonScalableFloatingPointAtomic<T> : IScalableNumericAtomic<T> {
-		T TryExchange(T newValue, T comparand, T maxDelta);
+		T TrySwap(T newValue, T comparand, T maxDelta);
 	}
 }

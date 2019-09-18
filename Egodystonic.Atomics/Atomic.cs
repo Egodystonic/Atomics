@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Egodystonic.Atomics {
-	public sealed class Atomic<T> : INonScalableAtomic<T> {
+	public sealed class Atomic<T> : INonScalableAtomic<T>, IEquatable<Atomic<T>> {
 		readonly object _instanceMutationLock = new object();
 		T _value;
 
@@ -20,12 +20,125 @@ namespace Egodystonic.Atomics {
 			}
 		}
 
+		public Atomic() : this(default) { }
+		public Atomic(T value) => _value = value;
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public T Get() => Value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(T newValue) => Value = newValue;
 
-		
+		public void Set(T newValue, out T previousValue) {
+			lock (_instanceMutationLock) {
+				previousValue = _value;
+				_value = newValue;
+			}
+		}
+
+		public T Set(Func<T, T> valueMapFunc) {
+			lock (_instanceMutationLock) {
+				return _value = valueMapFunc(_value);
+			}
+		}
+
+		public T Set(Func<T, T> valueMapFunc, out T previousValue) {
+			lock (_instanceMutationLock) {
+				previousValue = _value;
+				return _value = valueMapFunc(_value);
+			}
+		}
+
+		public bool TryGet(Func<T, bool> valueComparisonPredicate, out T currentValue) {
+			lock (_instanceMutationLock) {
+				currentValue = _value;
+			}
+			return valueComparisonPredicate(currentValue);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySet(T newValue, Func<T, bool> setPredicate) => TrySet(newValue, setPredicate, out _);
+		public bool TrySet(T newValue, Func<T, bool> setPredicate, out T previousValue) {
+			lock (_instanceMutationLock) {
+				previousValue = _value;
+				if (setPredicate(_value)) {
+					_value = newValue;
+					return true;
+				}
+				else return false;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, bool> setPredicate) => TrySet(valueMapFunc, setPredicate, out _);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, bool> setPredicate, out T previousValue) => TrySet(valueMapFunc, setPredicate, out previousValue, out _);
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, bool> setPredicate, out T previousValue, out T newValue) {
+			lock (_instanceMutationLock) {
+				previousValue = _value;
+				if (setPredicate(_value)) {
+					newValue = _value = valueMapFunc(_value);
+					return true;
+				}
+				else {
+					newValue = previousValue;
+					return false;
+				}
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, T, bool> setPredicate) => TrySet(valueMapFunc, setPredicate, out _);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, T, bool> setPredicate, out T previousValue) => TrySet(valueMapFunc, setPredicate, out previousValue, out _);
+		public bool TrySet(Func<T, T> valueMapFunc, Func<T, T, bool> setPredicate, out T previousValue, out T newValue) {
+			lock (_instanceMutationLock) {
+				previousValue = _value;
+				var potentialNewValue = valueMapFunc(previousValue);
+				if (setPredicate(_value, potentialNewValue)) {
+					newValue = _value = potentialNewValue;
+					return true;
+				}
+				else {
+					newValue = previousValue;
+					return false;
+				}
+			}
+		}
+
+		public override string ToString() => Value?.ToString() ?? AtomicUtils.NullValueString;
+
+		#region Equality
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Atomic<T> other) => Equals((IAtomic<T>) other);
+		public bool Equals(IAtomic<T> other) {
+			if (ReferenceEquals(null, other)) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return Equals(other.Value);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(T other) => EqualityComparer<T>.Default.Equals(Value, other);
+
+		public override bool Equals(object obj) {
+			return ReferenceEquals(this, obj) 
+				|| obj is Atomic<T> atomic && Equals(atomic)
+				|| obj is IAtomic<T> atomicInterface && Equals(atomicInterface)
+				|| obj is T value && Equals(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, Atomic<T> right) => Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, Atomic<T> right) => !Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, IAtomic<T> right) => Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, IAtomic<T> right) => !Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(IAtomic<T> left, Atomic<T> right) => Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(IAtomic<T> left, Atomic<T> right) => !Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, T right) => Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, T right) => !Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(T left, Atomic<T> right) => Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(T left, Atomic<T> right) => !Equals(left, right);
+		#endregion
 	}
 }

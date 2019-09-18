@@ -5,11 +5,17 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
+	// TODO rename as OptimisticRWStruct<> or something
 	public sealed class AtomicVal<T> : IAtomic<T> where T : struct, IEquatable<T> {
+		struct BufferSlot<TSlot> where TSlot : struct {
+			public long WriteCount;
+			public TSlot Value;
+		}
+
 		const int NumSlots = 32;
 		const int SlotMask = NumSlots - 1;
 		readonly object _writeLock = new object();
-		readonly AtomicValBufferSlot<T>[] _slots = new AtomicValBufferSlot<T>[NumSlots];
+		readonly BufferSlot<T>[] _slots = new BufferSlot<T>[NumSlots];
 		long _lastWriteID;
 
 		public T Value {
