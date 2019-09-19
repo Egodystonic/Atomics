@@ -169,7 +169,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		[Test]
 		public void API_CombineRemoveRemoveAll() {
-			var lastRecordedInput = new AtomicRef<string>();
+			var lastRecordedInput = new LockFreeReference<string>();
 			Func<string, string> initialValue = s => { lastRecordedInput.Set(s); return s.ToUpper(); };
 
 			var target = new AtomicDelegate<Func<string, string>>(initialValue);

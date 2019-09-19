@@ -35,7 +35,7 @@ namespace Egodystonic.Atomics.Tests.Examples {
 		_index.TryMinimumExchange(i => i / 2, 100);
 	}
 
-	readonly AtomicRef<User> _sessionUser = new AtomicRef<User>(new User("Xenoprimate", 45067));
+	readonly LockFreeReference<User> _sessionUser = new LockFreeReference<User>(new User("Xenoprimate", 45067));
 
 	public void ChangeUserName(string newUsername) {
 		// Atomically swap the _sessionUser for a new User object with the new username and same ID; then print out the old name
@@ -44,7 +44,7 @@ namespace Egodystonic.Atomics.Tests.Examples {
 		Console.WriteLine($"Session user '{previousName}' has changed name to {newUsername}.");
 	}
 
-		readonly AtomicRef<string> _currentBuffer = new AtomicRef<string>();
+		readonly LockFreeReference<string> _currentBuffer = new LockFreeReference<string>();
 	}
 
 	class User {

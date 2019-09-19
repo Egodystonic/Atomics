@@ -72,11 +72,11 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		#region Benchmark: Atomic Val Unmanaged
 		ManualResetEvent _atomicValUnmanagedBarrier;
 		List<Thread> _atomicValUnmanagedThreads;
-		AtomicValUnmanaged<Vector2> _atomicValUnmanaged;
+		LockFreeValue<Vector2> _atomicValUnmanaged;
 
 		[IterationSetup(Target = nameof(WithAtomicValUnmanaged))]
 		public void CreateAtomicValUnmanagedContext() {
-			_atomicValUnmanaged = new AtomicValUnmanaged<Vector2>(new Vector2(-1f, -1f));
+			_atomicValUnmanaged = new LockFreeValue<Vector2>(new Vector2(-1f, -1f));
 			_atomicValUnmanagedBarrier = new ManualResetEvent(false);
 			_atomicValUnmanagedThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumThreads, _atomicValUnmanagedBarrier, WithAtomicValUnmanaged_Entry, _atomicValUnmanagedThreads);

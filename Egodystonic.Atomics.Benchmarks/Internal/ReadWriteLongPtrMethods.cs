@@ -6,7 +6,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace Egodystonic.Atomics.Benchmarks.Internal {
 	/// <summary>
-	/// Benchmark used to determine the fastest way to copy to/from a long* (used by <see cref="AtomicValUnmanaged{T}"/>).
+	/// Benchmark used to determine the fastest way to copy to/from a long* (used by <see cref="LockFreeValue{T}"/>).
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public unsafe class ReadWriteLongPtrMethods {

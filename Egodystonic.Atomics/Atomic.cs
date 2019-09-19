@@ -110,35 +110,20 @@ namespace Egodystonic.Atomics {
 
 		#region Equality
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(Atomic<T> other) => Equals((IAtomic<T>) other);
-		public bool Equals(IAtomic<T> other) {
-			if (ReferenceEquals(null, other)) return false;
-			if (ReferenceEquals(this, other)) return true;
-			return Equals(other.Value);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(T other) => EqualityComparer<T>.Default.Equals(Value, other);
 
 		public override bool Equals(object obj) {
-			return ReferenceEquals(this, obj) 
-				|| obj is Atomic<T> atomic && Equals(atomic)
-				|| obj is IAtomic<T> atomicInterface && Equals(atomicInterface)
-				|| obj is T value && Equals(value);
+			if (obj is T value) return Equals(value);
+			return ReferenceEquals(this, obj);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
+		// ReSharper disable once BaseObjectGetHashCodeCallInGetHashCode Base GetHashCode() is appropriate here.
+		public override int GetHashCode() => base.GetHashCode();
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, Atomic<T> right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, Atomic<T> right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, IAtomic<T> right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, IAtomic<T> right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(IAtomic<T> left, Atomic<T> right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(IAtomic<T> left, Atomic<T> right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, T right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, T right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(T left, Atomic<T> right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(T left, Atomic<T> right) => !Equals(left, right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(Atomic<T> left, T right) => left?.Equals(right) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(Atomic<T> left, T right) => !(left == right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(T left, Atomic<T> right) => right?.Equals(left) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(T left, Atomic<T> right) => !(right == left);
 		#endregion
 	}
 }

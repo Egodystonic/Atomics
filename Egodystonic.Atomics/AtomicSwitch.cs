@@ -7,11 +7,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Convertible = Egodystonic.Atomics.AtomicUtils.Union<int, bool>;
+using IntBool = Egodystonic.Atomics.AtomicUtils.Union<int, bool>;
 
 namespace Egodystonic.Atomics {
 	public sealed class AtomicSwitch : IScalableAtomic<bool> {
-		Convertible _value;
+		IntBool _value;
 
 		public bool IsFlipped {
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,16 +34,16 @@ namespace Egodystonic.Atomics {
 		public AtomicSwitch(bool isFlipped) => VolatileWrite(isFlipped);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool VolatileRead() => (Convertible) Volatile.Read(ref _value.AsTypeOne);
+		bool VolatileRead() => (IntBool) Volatile.Read(ref _value.AsTypeOne);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void VolatileWrite(bool newValue) => Volatile.Write(ref _value.AsTypeOne, (Convertible) newValue);
+		void VolatileWrite(bool newValue) => Volatile.Write(ref _value.AsTypeOne, (IntBool) newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool CompareExchange(bool newValue, bool comparand) => (Convertible) Interlocked.CompareExchange(ref _value.AsTypeOne, (Convertible) newValue, (Convertible) comparand);
+		bool CompareExchange(bool newValue, bool comparand) => (IntBool) Interlocked.CompareExchange(ref _value.AsTypeOne, (IntBool) newValue, (IntBool) comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool Exchange(bool newValue) => (Convertible) Interlocked.Exchange(ref _value.AsTypeOne, (Convertible) newValue);
+		bool Exchange(bool newValue) => (IntBool) Interlocked.Exchange(ref _value.AsTypeOne, (IntBool) newValue);
 
 		// AtomicSwitch implementation
 		public bool FlipAndGet() {
@@ -88,39 +88,24 @@ namespace Egodystonic.Atomics {
 		bool IScalableAtomic<bool>.TrySwap(bool newValue, bool comparand) => CompareExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => IsFlipped ? "Switch (Flipped)" : "Switch (Non-flipped)";
+		public override string ToString() => IsFlipped ? "Switch (Flipped)" : "Switch (Not flipped)";
 
 		#region Equality
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(AtomicSwitch other) => Equals((IAtomic<bool>) other);
-		public bool Equals(IAtomic<bool> other) {
-			if (ReferenceEquals(null, other)) return false;
-			if (ReferenceEquals(this, other)) return true;
-			return Equals(other.Value);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(bool other) => IsFlipped = other;
+		public bool Equals(bool other) => other == Get();
 
 		public override bool Equals(object obj) {
-			return ReferenceEquals(this, obj)
-				|| obj is AtomicSwitch atomic && Equals(atomic)
-				|| obj is IAtomic<bool> atomicInterface && Equals(atomicInterface)
-				|| obj is bool value && Equals(value);
+			if (obj is bool value) return Equals(value);
+			return ReferenceEquals(this, obj);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => IsFlipped.GetHashCode();
+		// ReSharper disable once BaseObjectGetHashCodeCallInGetHashCode Base GetHashCode() is appropriate here.
+		public override int GetHashCode() => base.GetHashCode();
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicSwitch left, AtomicSwitch right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicSwitch left, AtomicSwitch right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicSwitch left, IAtomic<bool> right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicSwitch left, IAtomic<bool> right) => !Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(IAtomic<bool> left, AtomicSwitch right) => Equals(left, right);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(IAtomic<bool> left, AtomicSwitch right) => !Equals(left, right);
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicSwitch left, bool right) => left?.Equals(right) ?? false;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicSwitch left, bool right) => !(left?.Equals(right) ?? false);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicSwitch left, bool right) => !(left == right);
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(bool left, AtomicSwitch right) => right?.Equals(left) ?? false;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(bool left, AtomicSwitch right) => !(right?.Equals(left) ?? false);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(bool left, AtomicSwitch right) => !(right == left);
 		#endregion
 	}
 }

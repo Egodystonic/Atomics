@@ -117,7 +117,7 @@ namespace Egodystonic.Atomics.Tests.Harness.HarnessTests {
 		[Test]
 		public void ShouldCreateNewContextObjectForEachTestCase() {
 			_runner.ContextFactoryFunc = () => new DummyImmutableRef();
-			var lastSetContextObject = new AtomicRef<DummyImmutableRef>(null);
+			var lastSetContextObject = new LockFreeReference<DummyImmutableRef>(null);
 			var testCase = CreateNewTestCase(ctx => lastSetContextObject.Set(ctx));
 
 			_runner.ExecuteCustomTestCase(testCase);

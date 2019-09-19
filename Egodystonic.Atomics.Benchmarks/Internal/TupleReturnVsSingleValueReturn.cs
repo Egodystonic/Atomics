@@ -28,7 +28,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Tuple Returns
 		AtomicInt64 _atomicInt64;
 		AtomicInt32 _atomicInt32;
-		AtomicRef<User> _atomicRef;
+		LockFreeReference<User> _atomicRef;
 		AtomicVal<Val8> _atomicVal8;
 		AtomicVal<Val16> _atomicVal16;
 		AtomicVal<Val32> _atomicVal32;
@@ -38,7 +38,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		public void CreateTupleReturnsContext() {
 			_atomicInt64 = new AtomicInt64(0L);
 			_atomicInt32 = new AtomicInt32(0);
-			_atomicRef = new AtomicRef<User>(new User(0, ""));
+			_atomicRef = new LockFreeReference<User>(new User(0, ""));
 			_atomicVal8 = new AtomicVal<Val8>(new Val8(0L));
 			_atomicVal16 = new AtomicVal<Val16>(new Val16(0L));
 			_atomicVal32 = new AtomicVal<Val32>(new Val32(0L));
@@ -83,7 +83,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Single Value Returns
 		AtomicInt64 _fastAtomicInt64;
 		AtomicInt32 _fastAtomicInt32;
-		AtomicRef<User> _fastAtomicRef;
+		LockFreeReference<User> _fastAtomicRef;
 		AtomicVal<Val8> _fastAtomicVal8;
 		AtomicVal<Val16> _fastAtomicVal16;
 		AtomicVal<Val32> _fastAtomicVal32;
@@ -93,7 +93,7 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		public void CreateSingleValueReturnsContext() {
 			_fastAtomicInt64 = new AtomicInt64(0L);
 			_fastAtomicInt32 = new AtomicInt32(0);
-			_fastAtomicRef = new AtomicRef<User>(new User(0, ""));
+			_fastAtomicRef = new LockFreeReference<User>(new User(0, ""));
 			_fastAtomicVal8 = new AtomicVal<Val8>(new Val8(0L));
 			_fastAtomicVal16 = new AtomicVal<Val16>(new Val16(0L));
 			_fastAtomicVal32 = new AtomicVal<Val32>(new Val32(0L));

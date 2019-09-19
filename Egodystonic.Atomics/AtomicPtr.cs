@@ -1,6 +1,7 @@
 ﻿// (c) Egodystonic Studios 2018
 // Author: Ben Bowen
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -56,30 +57,39 @@ namespace Egodystonic.Atomics {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public T* TrySwap(T* newValue, T* comparand) => (T*) Interlocked.CompareExchange(ref _value.AsIntPtr, (IntPtr) newValue, (IntPtr) comparand);
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IScalableAtomic<IntPtr>.TrySwap(IntPtr newValue, IntPtr comparand) => Interlocked.CompareExchange(ref _value.AsIntPtr, newValue, comparand);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(AtomicPtr<T> other) => Equals((IAtomic<IntPtr>) other);
-		public bool Equals(IAtomic<IntPtr> other) {
-			if (ReferenceEquals(null, other)) return false;
-			if (ReferenceEquals(this, other)) return true;
-			return Equals(other.Value);
-		}
+		public override string ToString() => GetAsIntPtr().ToString("x");
+
+		#region Equality
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(T* other) => Value == other;
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(void* other) => Value == other;
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(IntPtr other) => GetAsIntPtr() == other;
 
 		public override bool Equals(object obj) {
-			return ReferenceEquals(this, obj)
-				|| obj is AtomicPtr<T> atomic && Equals(atomic)
-				|| obj is IAtomic<IntPtr> atomicInterface && Equals(atomicInterface)
-				|| obj is IntPtr value && Equals(value);
+			if (obj is IntPtr value) return Equals(value);
+			return ReferenceEquals(this, obj);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => GetAsIntPtr().GetHashCode();
+		// ReSharper disable once BaseObjectGetHashCodeCallInGetHashCode Base GetHashCode() is appropriate here.
+		public override int GetHashCode() => base.GetHashCode();
 
-		public override string ToString() => GetAsIntPtr().ToString("x");
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicPtr<T> left, T* right) => left?.Equals(right) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicPtr<T> left, T* right) => !(left == right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(T* left, AtomicPtr<T> right) => right?.Equals(left) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(T* left, AtomicPtr<T> right) => !(right == left);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicPtr<T> left, IntPtr right) => left?.Equals(right) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicPtr<T> left, IntPtr right) => !(left == right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(IntPtr left, AtomicPtr<T> right) => right?.Equals(left) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(IntPtr left, AtomicPtr<T> right) => !(right == left);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(AtomicPtr<T> left, void* right) => left?.Equals(right) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(AtomicPtr<T> left, void* right) => !(left == right);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator ==(void* left, AtomicPtr<T> right) => right?.Equals(left) ?? false;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool operator !=(void* left, AtomicPtr<T> right) => !(right == left);
+		#endregion
+
 	}
 }

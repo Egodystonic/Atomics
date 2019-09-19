@@ -7,9 +7,9 @@ using static Egodystonic.Atomics.Tests.Harness.ConcurrentTestCaseRunner;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicRefTest : CommonAtomicRefTestSuite<AtomicRef<DummyImmutableRef>> {
+	class AtomicRefTest : CommonAtomicRefTestSuite<LockFreeReference<DummyImmutableRef>> {
 		#region Test Fields
-		RunnerFactory<DummyEquatableRef, AtomicRef<DummyEquatableRef>> _equatableRefRunnerFactory;
+		RunnerFactory<DummyEquatableRef, LockFreeReference<DummyEquatableRef>> _equatableRefRunnerFactory;
 
 		protected override DummyImmutableRef Alpha { get; } = new DummyImmutableRef();
 		protected override DummyImmutableRef Bravo { get; } = new DummyImmutableRef();
@@ -20,7 +20,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		#region Test Setup
 		[OneTimeSetUp]
-		public void SetUpClass() => _equatableRefRunnerFactory = new RunnerFactory<DummyEquatableRef, AtomicRef<DummyEquatableRef>>();
+		public void SetUpClass() => _equatableRefRunnerFactory = new RunnerFactory<DummyEquatableRef, LockFreeReference<DummyEquatableRef>>();
 
 		[OneTimeTearDown]
 		public void TearDownClass() { }
@@ -100,8 +100,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
 			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
 			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
-			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
-			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+			var atomicImmutable = new LockFreeReference<DummyImmutableRef>();
+			var atomicEquatable = new LockFreeReference<DummyEquatableRef>();
 
 			atomicImmutable.Set(dummyImmutableA);
 			atomicImmutable.FastTryExchangeRefOnly(new DummyImmutableRef(), dummyImmutableB);
@@ -179,8 +179,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
 			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
 			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
-			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
-			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+			var atomicImmutable = new LockFreeReference<DummyImmutableRef>();
+			var atomicEquatable = new LockFreeReference<DummyEquatableRef>();
 
 			atomicImmutable.Set(dummyImmutableA);
 			atomicImmutable.FastTryExchange(new DummyImmutableRef(), dummyImmutableB);
@@ -254,8 +254,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
 			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
 			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
-			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
-			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+			var atomicImmutable = new LockFreeReference<DummyImmutableRef>();
+			var atomicEquatable = new LockFreeReference<DummyEquatableRef>();
 
 			atomicImmutable.Set(dummyImmutableA);
 			Assert.AreEqual(false, atomicImmutable.TryExchange(new DummyImmutableRef(), dummyImmutableB).ValueWasSet);
@@ -376,8 +376,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var dummyImmutableB = new DummyImmutableRef("Xenoprimate Rules");
 			var dummyEquatableA = new DummyEquatableRef("Xenoprimate Rules");
 			var dummyEquatableB = new DummyEquatableRef("Xenoprimate Rules");
-			var atomicImmutable = new AtomicRef<DummyImmutableRef>();
-			var atomicEquatable = new AtomicRef<DummyEquatableRef>();
+			var atomicImmutable = new LockFreeReference<DummyImmutableRef>();
+			var atomicEquatable = new LockFreeReference<DummyEquatableRef>();
 
 			atomicImmutable.Set(dummyImmutableA);
 			Assert.AreEqual(false, atomicImmutable.TryExchange(c => new DummyImmutableRef(), dummyImmutableB).ValueWasSet);
@@ -431,7 +431,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			const int NumFreeThreadedIterations = 50_000;
 			const int NumCoherencyIterations = 15_000;
 
-			var runner = new ConcurrentTestCaseRunner<AtomicRef<string>>(() => new AtomicRef<string>("abcdefghijklmnopqrstuvwxyz"));
+			var runner = new ConcurrentTestCaseRunner<LockFreeReference<string>>(() => new LockFreeReference<string>("abcdefghijklmnopqrstuvwxyz"));
 
 			runner.ExecuteFreeThreadedTests(
 				ar => {

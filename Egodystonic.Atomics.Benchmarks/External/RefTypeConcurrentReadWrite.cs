@@ -67,11 +67,11 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		#region Benchmark: Atomic Ref
 		ManualResetEvent _atomicRefBarrier;
 		List<Thread> _atomicRefThreads;
-		AtomicRef<User> _atomicUser;
+		LockFreeReference<User> _atomicUser;
 
 		[IterationSetup(Target = nameof(WithAtomicRef))]
 		public void CreateAtomicRefContext() {
-			_atomicUser = new AtomicRef<User>(new User(0, _usernames[0]));
+			_atomicUser = new LockFreeReference<User>(new User(0, _usernames[0]));
 			_atomicRefBarrier = new ManualResetEvent(false);
 			_atomicRefThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumWriters, _atomicRefBarrier, WithAtomicRef_WriterEntry, _atomicRefThreads);

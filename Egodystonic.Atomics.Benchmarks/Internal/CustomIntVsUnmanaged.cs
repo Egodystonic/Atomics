@@ -10,7 +10,7 @@ using static Egodystonic.Atomics.Benchmarks.BenchmarkUtils;
 namespace Egodystonic.Atomics.Benchmarks.Internal {
 	/// <summary>
 	/// Benchmark used to justify custom implementation for AtomicInt32 and other numeric types; as opposed to delegation/deferral to
-	/// an AtomicValUnmanaged.
+	/// an LockFreeUnmanagedValue.
 	/// </summary>
 	[CoreJob, MemoryDiagnoser]
 	public class CustomIntVsUnmanaged {
@@ -69,11 +69,11 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Unmanaged Int
 		ManualResetEvent _unmanagedIntBarrier;
 		List<Thread> _unmanagedIntThreads;
-		AtomicValUnmanaged<int> _unmanagedInt;
+		LockFreeValue<int> _unmanagedInt;
 
 		[IterationSetup(Target = nameof(WithUnmanagedInt))]
 		public void CreateUnmanagedIntContext() {
-			_unmanagedInt = new AtomicValUnmanaged<int>(0);
+			_unmanagedInt = new LockFreeValue<int>(0);
 			_unmanagedIntBarrier = new ManualResetEvent(false);
 			_unmanagedIntThreads = new List<Thread>();
 			PrepareThreads(NumThreads, _unmanagedIntBarrier, WithUnmanagedInt_Entry, _unmanagedIntThreads);

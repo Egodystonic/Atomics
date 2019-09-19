@@ -3,7 +3,6 @@
 
 using System;
 
-// Note: Although these could arguably be in the "Numerics" folder, I wanted to keep them in the same namespace as Atomic<T>
 namespace Egodystonic.Atomics {
 	public static class NonScalableAtomicNumberExtensions {
 		#region SByte
