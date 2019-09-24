@@ -32,11 +32,11 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		#region Benchmark: Atomic Long
 		ManualResetEvent _atomicLongBarrier;
 		List<Thread> _atomicLongThreads;
-		AtomicInt64 _atomicInt64;
+		LockFreeInt64 _atomicInt64;
 
 		[IterationSetup(Target = nameof(WithAtomicLong))]
 		public void CreateAtomicLongContext() {
-			_atomicInt64 = new AtomicInt64(0L);
+			_atomicInt64 = new LockFreeInt64(0L);
 			_atomicLongBarrier = new ManualResetEvent(false);
 			_atomicLongThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumThreads, _atomicLongBarrier, WithAtomicLong_Entry, _atomicLongThreads);
@@ -78,7 +78,7 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		[IterationSetup(Target = nameof(WithLockedLong))]
 		public void CreateLockedLongContext() {
 			_lockedLongLock = new object();
-			_lockedLong = new AtomicInt64(0L);
+			_lockedLong = new LockFreeInt64(0L);
 			_lockedLongBarrier = new ManualResetEvent(false);
 			_lockedLongThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumThreads, _lockedLongBarrier, WithLockedLong_Entry, _lockedLongThreads);
@@ -132,7 +132,7 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		[IterationSetup(Target = nameof(WithLockedLongLessGranular))]
 		public void CreateLockedLongLessGranularContext() {
 			_lockedLessGranularLongLock = new object();
-			_lockedLessGranularLong = new AtomicInt64(0L);
+			_lockedLessGranularLong = new LockFreeInt64(0L);
 			_lockedLessGranularLongBarrier = new ManualResetEvent(false);
 			_lockedLessGranularLongThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumThreads, _lockedLessGranularLongBarrier, WithLockedLongLessGranular_Entry, _lockedLessGranularLongThreads);

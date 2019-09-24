@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
-	public sealed unsafe class LockFreeValue<T> : IScalableAtomic<T> where T : unmanaged {
+	public sealed unsafe class LockFreeValue<T> : INonLockingAtomic<T> where T : unmanaged {
 		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
 		long _valueAsLong;
 
@@ -20,7 +20,7 @@ namespace Egodystonic.Atomics {
 			if (sizeof(T) > sizeof(long)) {
 				throw new ArgumentException($"Generic type parameter in {typeof(LockFreeValue<>).Name} must not exceed {sizeof(long)} bytes. " +
 											$"Given type '{typeof(T)}' has a size of {sizeof(T)} bytes. " +
-											$"Use {typeof(AtomicVal<>).Name} instead for large unmanaged types.");
+											$"Use {typeof(LockFreeReadsValue<>).Name} instead for large unmanaged types.");
 			}
 			Set(initialValue);
 		}

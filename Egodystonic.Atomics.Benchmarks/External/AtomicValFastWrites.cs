@@ -34,11 +34,11 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		#region Benchmark: Atomic Val
 		ManualResetEvent _atomicValBarrier;
 		List<Thread> _atomicValThreads;
-		AtomicVal<Vector2> _atomicVal;
+		OptimisticallyLockedValue<Vector2> _atomicVal;
 
 		[IterationSetup(Target = nameof(WithAtomicVal))]
 		public void CreateAtomicValContext() {
-			_atomicVal = new AtomicVal<Vector2>(new Vector2(-1f, -1f));
+			_atomicVal = new OptimisticallyLockedValue<Vector2>(new Vector2(-1f, -1f));
 			_atomicValBarrier = new ManualResetEvent(false);
 			_atomicValThreads = new List<Thread>();
 			BenchmarkUtils.PrepareThreads(NumThreads, _atomicValBarrier, WithAtomicVal_Entry, _atomicValThreads);

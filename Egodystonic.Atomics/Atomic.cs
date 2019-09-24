@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Egodystonic.Atomics {
-	public sealed class Atomic<T> : INonScalableAtomic<T>, IEquatable<Atomic<T>> {
+	public sealed class Atomic<T> : ILockingAtomic<T> {
 		readonly object _instanceMutationLock = new object();
 		T _value;
 

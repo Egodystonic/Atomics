@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.UnitTests.Numerics {
 	[TestFixture]
-	class AtomicSingleTest : CommonAtomicFloatingPointTestSuite<float, AtomicSingle> {
+	class AtomicSingleTest : CommonAtomicFloatingPointTestSuite<float, LockFreeSingle> {
 		#region Test Fields
 		protected override float Alpha { get; } = 111f;
 		protected override float Bravo { get; } = 222f;

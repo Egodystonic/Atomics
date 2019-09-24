@@ -30,11 +30,11 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#region Benchmark: Custom Int
 		ManualResetEvent _customIntBarrier;
 		List<Thread> _customIntThreads;
-		AtomicInt32 _customInt32;
+		LockFreeInt32 _customInt32;
 
 		[IterationSetup(Target = nameof(WithCustomInt))]
 		public void CreateCustomIntContext() {
-			_customInt32 = new AtomicInt32(0);
+			_customInt32 = new LockFreeInt32(0);
 			_customIntBarrier = new ManualResetEvent(false);
 			_customIntThreads = new List<Thread>();
 			PrepareThreads(NumThreads, _customIntBarrier, WithCustomInt_Entry, _customIntThreads);

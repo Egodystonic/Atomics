@@ -11,7 +11,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		[Test]
 		public void GetAndSetAndValue() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicInt64(0L);
+			var atomicLong = new LockFreeInt64(0L);
 			var runner = NewRunner(new DummyImmutableVal(0, 0));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -125,8 +125,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		public void FastExchange() {
 			const int NumIterations = 3_000_000;
 
-			var atomicIntA = new AtomicInt32(0);
-			var atomicIntB = new AtomicInt32(0);
+			var atomicIntA = new LockFreeInt32(0);
+			var atomicIntB = new LockFreeInt32(0);
 			var runner = NewRunner(new DummyImmutableVal(0, 0));
 
 			// (T)
@@ -159,8 +159,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 		public void Exchange() {
 			const int NumIterations = 300_000;
 
-			var atomicIntA = new AtomicInt32(0);
-			var atomicIntB = new AtomicInt32(0);
+			var atomicIntA = new LockFreeInt32(0);
+			var atomicIntB = new LockFreeInt32(0);
 			var runner = NewRunner(new DummyImmutableVal(0, 0));
 
 			// (T)

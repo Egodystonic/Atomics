@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
-	public sealed unsafe class AtomicPtr<T> : IScalableAtomic<IntPtr> where T : unmanaged {
+	public sealed unsafe class AtomicPtr<T> : INonLockingAtomic<IntPtr> where T : unmanaged {
 		[StructLayout(LayoutKind.Explicit)]
 		struct PtrUnion {
 			// Note: Don't use AsTypedPtr except for the unsafe methods. It's only necessary to allow creating an unsafe ref
@@ -45,17 +45,17 @@ namespace Egodystonic.Atomics {
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public T* GetUnsafe() => _value.AsTypedPtr;
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public void SetUnsafe(T* newValue) => _value.AsTypedPtr = newValue;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IScalableAtomic<IntPtr>.GetUnsafe() => _value.AsIntPtr;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] void IScalableAtomic<IntPtr>.SetUnsafe(IntPtr newValue) => _value.AsIntPtr = newValue;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr INonLockingAtomic<IntPtr>.GetUnsafe() => _value.AsIntPtr;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] void INonLockingAtomic<IntPtr>.SetUnsafe(IntPtr newValue) => _value.AsIntPtr = newValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public ref T* GetUnsafeRef() => ref _value.AsTypedPtr;
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] ref IntPtr IScalableAtomic<IntPtr>.GetUnsafeRef() => ref _value.AsIntPtr;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] ref IntPtr INonLockingAtomic<IntPtr>.GetUnsafeRef() => ref _value.AsIntPtr;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public T* Swap(T* newValue) => (T*) Interlocked.Exchange(ref _value.AsIntPtr, (IntPtr) newValue);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IScalableAtomic<IntPtr>.Swap(IntPtr newValue) => Interlocked.Exchange(ref _value.AsIntPtr, newValue);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr INonLockingAtomic<IntPtr>.Swap(IntPtr newValue) => Interlocked.Exchange(ref _value.AsIntPtr, newValue);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] public T* TrySwap(T* newValue, T* comparand) => (T*) Interlocked.CompareExchange(ref _value.AsIntPtr, (IntPtr) newValue, (IntPtr) comparand);
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr IScalableAtomic<IntPtr>.TrySwap(IntPtr newValue, IntPtr comparand) => Interlocked.CompareExchange(ref _value.AsIntPtr, newValue, comparand);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] IntPtr INonLockingAtomic<IntPtr>.TrySwap(IntPtr newValue, IntPtr comparand) => Interlocked.CompareExchange(ref _value.AsIntPtr, newValue, comparand);
 
 		public override string ToString() => GetAsIntPtr().ToString("x");
 

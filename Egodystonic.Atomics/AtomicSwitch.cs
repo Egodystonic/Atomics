@@ -10,7 +10,7 @@ using System.Threading;
 using IntBool = Egodystonic.Atomics.AtomicUtils.Union<int, bool>;
 
 namespace Egodystonic.Atomics {
-	public sealed class AtomicSwitch : IScalableAtomic<bool> {
+	public sealed class AtomicSwitch : INonLockingAtomic<bool> {
 		IntBool _value;
 
 		public bool IsFlipped {
@@ -79,13 +79,13 @@ namespace Egodystonic.Atomics {
 
 		// Note: Hidden because it's slightly confusing in this class. "Swap" clashes too strongly with "flip", but does something different.
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IScalableAtomic<bool>.Swap(bool isFlipped) => Exchange(isFlipped);
+		bool INonLockingAtomic<bool>.Swap(bool isFlipped) => Exchange(isFlipped);
 
 		// Note: Hidden because it's confusing as fuck. The return value is the previously set value (like usual) but on this class in particular
 		// it's easy to misunderstand and assume it's some kind of "was set successfully" return value.
 		// Also... I'm not really sure what you'd ever want this for (watch someone complain now...).
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IScalableAtomic<bool>.TrySwap(bool newValue, bool comparand) => CompareExchange(newValue, comparand);
+		bool INonLockingAtomic<bool>.TrySwap(bool newValue, bool comparand) => CompareExchange(newValue, comparand);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override string ToString() => IsFlipped ? "Switch (Flipped)" : "Switch (Not flipped)";

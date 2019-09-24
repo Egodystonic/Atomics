@@ -35,14 +35,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _closureCapturingFuncsBarrier;
 		List<Thread> _closureCapturingFuncsThreads;
 		LockFreeReference<User> _closureCapturingFuncsUser;
-		AtomicInt64 _closureCapturingFuncsInt64;
+		LockFreeInt64 _closureCapturingFuncsInt64;
 
 		[IterationSetup(Target = nameof(WithClosureCapturingFuncs))]
 		public void CreateClosureCapturingFuncsContext() {
 			_closureCapturingFuncsBarrier = new ManualResetEvent(false);
 			_closureCapturingFuncsThreads = new List<Thread>();
 			_closureCapturingFuncsUser = new LockFreeReference<User>(new User(0, ""));
-			_closureCapturingFuncsInt64 = new AtomicInt64(0L);
+			_closureCapturingFuncsInt64 = new LockFreeInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _closureCapturingFuncsBarrier, WithClosureCapturingFuncs_Entry, _closureCapturingFuncsThreads);
 		}
 
@@ -71,14 +71,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _contextualFuncsBarrier;
 		List<Thread> _contextualFuncsThreads;
 		LockFreeReference<User> _contextualFuncsUser;
-		AtomicInt64 _contextualFuncsInt64;
+		LockFreeInt64 _contextualFuncsInt64;
 
 		[IterationSetup(Target = nameof(WithContextualFuncs))]
 		public void CreateContextualFuncsContext() {
 			_contextualFuncsBarrier = new ManualResetEvent(false);
 			_contextualFuncsThreads = new List<Thread>();
 			_contextualFuncsUser = new LockFreeReference<User>(new User(0, ""));
-			_contextualFuncsInt64 = new AtomicInt64(0L);
+			_contextualFuncsInt64 = new LockFreeInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _contextualFuncsBarrier, WithContextualFuncs_Entry, _contextualFuncsThreads);
 		}
 
@@ -107,14 +107,14 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		ManualResetEvent _manualLoopsBarrier;
 		List<Thread> _manualLoopsThreads;
 		LockFreeReference<User> _manualLoopsUser;
-		AtomicInt64 _manualLoopsInt64;
+		LockFreeInt64 _manualLoopsInt64;
 
 		[IterationSetup(Target = nameof(WithManualLoops))]
 		public void CreateManualLoopsContext() {
 			_manualLoopsBarrier = new ManualResetEvent(false);
 			_manualLoopsThreads = new List<Thread>();
 			_manualLoopsUser = new LockFreeReference<User>(new User(0, ""));
-			_manualLoopsInt64 = new AtomicInt64(0L);
+			_manualLoopsInt64 = new LockFreeInt64(0L);
 			BenchmarkUtils.PrepareThreads(NumThreads, _manualLoopsBarrier, WithManualLoops_Entry, _manualLoopsThreads);
 		}
 

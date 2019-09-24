@@ -43,8 +43,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			const int ActionInputValue = 3;
 
 			var runner = new ConcurrentTestCaseRunner<AtomicDelegate<Func<int, int>>>(() => new AtomicDelegate<Func<int, int>>());
-			var counter = new AtomicInt32();
-			var writerCount = new AtomicInt32();
+			var counter = new LockFreeInt32();
+			var writerCount = new LockFreeInt32();
 
 			var action = new Func<int, int>(n => counter.Add(n).CurrentValue);
 			CancellationTokenSource cts = null;
@@ -127,7 +127,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					// Note: The closure isn't just an inefficient way of testing- I'm also using it as a way to ensure the action isn't "cached" by the C# compiler. Not sure if it can do that here, but CBA to go spec-trawling to find out
-					var invocationCounter = new AtomicInt32();
+					var invocationCounter = new LockFreeInt32();
 					var action = new Action(() => invocationCounter.Increment());
 
 					AssertCount(0, action);
@@ -200,7 +200,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			Assert.AreEqual(removeRes.CurrentValue, removeRes.PreviousValue);
 			Assert.AreEqual(target.Value, removeRes.PreviousValue);
 
-			var invocationCounter = new AtomicInt32();
+			var invocationCounter = new LockFreeInt32();
 			Func<string, string> CurrentValue = s => { invocationCounter.Increment(); return s[0].ToString(); };
 			target.Combine(CurrentValue);
 			target.Combine(CurrentValue);
@@ -228,7 +228,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		[Test]
 		public void API_TryDynamicInvoke() {
-			var atomicInt = new AtomicInt32();
+			var atomicInt = new LockFreeInt32();
 
 			var targetA = new AtomicDelegate<Action<int>>();
 			Assert.AreEqual((false, (object) null), targetA.TryDynamicInvoke(10));
@@ -254,7 +254,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		[Test]
 		public void API_TryWrappedInvoke() {
-			var atomicInt = new AtomicInt32();
+			var atomicInt = new LockFreeInt32();
 
 			var target = new AtomicDelegate<Func<int, int>>();
 			Assert.AreEqual((false, default(int)), target.TryWrappedInvoke(f => f(10)));
@@ -290,7 +290,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void API_TryInvoke() {
 			// Someone smarter than me could automate this with a for loop and dynamic code gen. But all those smart people are off building things that are actually useful, so here we are.
 			// If you're reading this and want to take a crack at it though...
-			var actionTarget = new AtomicInt32();
+			var actionTarget = new LockFreeInt32();
 
 			Assert.AreEqual(false, new AtomicDelegate<Action>().TryInvoke());
 			Assert.AreEqual(true, new AtomicDelegate<Action>(() => actionTarget.Set(3)).TryInvoke());

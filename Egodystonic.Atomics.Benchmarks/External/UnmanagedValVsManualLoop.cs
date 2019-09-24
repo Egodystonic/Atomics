@@ -34,14 +34,14 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		ManualResetEvent _atomicValBarrier;
 		List<Thread> _atomicValThreads;
 		LockFreeValue<Vector2> _atomicVal;
-		AtomicInt32 _atomicValRemainingThreadCount;
+		LockFreeInt32 _atomicValRemainingThreadCount;
 
 		[IterationSetup(Target = nameof(WithAtomicVal))]
 		public void CreateAtomicValContext() {
 			_atomicVal = new LockFreeValue<Vector2>(new Vector2(5f, 10f));
 			_atomicValBarrier = new ManualResetEvent(false);
 			_atomicValThreads = new List<Thread>();
-			_atomicValRemainingThreadCount = new AtomicInt32(NumThreads);
+			_atomicValRemainingThreadCount = new LockFreeInt32(NumThreads);
 			BenchmarkUtils.PrepareThreads(NumThreads, _atomicValBarrier, WithAtomicVal_EntryA, _atomicValThreads);
 			BenchmarkUtils.PrepareThreads(NumThreads, _atomicValBarrier, WithAtomicVal_EntryB, _atomicValThreads);
 		}
@@ -80,14 +80,14 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		ManualResetEvent _manualLoopBarrier;
 		List<Thread> _manualLoopThreads;
 		Vector2 _manualLoopVector2;
-		AtomicInt32 _manualLoopRemainingThreadCount;
+		LockFreeInt32 _manualLoopRemainingThreadCount;
 
 		[IterationSetup(Target = nameof(WithManualLoop))]
 		public void CreateManualLoopContext() {
 			_manualLoopVector2 = new Vector2(5f, 10f);
 			_manualLoopBarrier = new ManualResetEvent(false);
 			_manualLoopThreads = new List<Thread>();
-			_manualLoopRemainingThreadCount = new AtomicInt32(NumThreads);
+			_manualLoopRemainingThreadCount = new LockFreeInt32(NumThreads);
 			BenchmarkUtils.PrepareThreads(NumThreads, _manualLoopBarrier, WithManualLoop_EntryA, _manualLoopThreads);
 			BenchmarkUtils.PrepareThreads(NumThreads, _manualLoopBarrier, WithManualLoop_EntryB, _manualLoopThreads);
 		}

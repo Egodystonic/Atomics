@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
-	public sealed class LockFreeReference<T> : IScalableAtomic<T> where T : class {
+	public sealed class LockFreeReference<T> : INonLockingAtomic<T> where T : class {
 		static readonly bool TargetTypeIsEquatable = typeof(IEquatable<T>).IsAssignableFrom(typeof(T));
 		T _value;
 

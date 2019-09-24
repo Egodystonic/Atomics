@@ -26,23 +26,23 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#endregion
 
 		#region Benchmark: Tuple Returns
-		AtomicInt64 _atomicInt64;
-		AtomicInt32 _atomicInt32;
+		LockFreeInt64 _atomicInt64;
+		LockFreeInt32 _atomicInt32;
 		LockFreeReference<User> _atomicRef;
-		AtomicVal<Val8> _atomicVal8;
-		AtomicVal<Val16> _atomicVal16;
-		AtomicVal<Val32> _atomicVal32;
-		AtomicVal<Val64> _atomicVal64;
+		OptimisticallyLockedValue<Val8> _atomicVal8;
+		OptimisticallyLockedValue<Val16> _atomicVal16;
+		OptimisticallyLockedValue<Val32> _atomicVal32;
+		OptimisticallyLockedValue<Val64> _atomicVal64;
 
 		[IterationSetup(Target = nameof(WithTupleReturns))]
 		public void CreateTupleReturnsContext() {
-			_atomicInt64 = new AtomicInt64(0L);
-			_atomicInt32 = new AtomicInt32(0);
+			_atomicInt64 = new LockFreeInt64(0L);
+			_atomicInt32 = new LockFreeInt32(0);
 			_atomicRef = new LockFreeReference<User>(new User(0, ""));
-			_atomicVal8 = new AtomicVal<Val8>(new Val8(0L));
-			_atomicVal16 = new AtomicVal<Val16>(new Val16(0L));
-			_atomicVal32 = new AtomicVal<Val32>(new Val32(0L));
-			_atomicVal64 = new AtomicVal<Val64>(new Val64(0L));
+			_atomicVal8 = new OptimisticallyLockedValue<Val8>(new Val8(0L));
+			_atomicVal16 = new OptimisticallyLockedValue<Val16>(new Val16(0L));
+			_atomicVal32 = new OptimisticallyLockedValue<Val32>(new Val32(0L));
+			_atomicVal64 = new OptimisticallyLockedValue<Val64>(new Val64(0L));
 		}
 
 		[Benchmark(Baseline = true)]
@@ -81,23 +81,23 @@ namespace Egodystonic.Atomics.Benchmarks.Internal {
 		#endregion
 
 		#region Benchmark: Single Value Returns
-		AtomicInt64 _fastAtomicInt64;
-		AtomicInt32 _fastAtomicInt32;
+		LockFreeInt64 _fastAtomicInt64;
+		LockFreeInt32 _fastAtomicInt32;
 		LockFreeReference<User> _fastAtomicRef;
-		AtomicVal<Val8> _fastAtomicVal8;
-		AtomicVal<Val16> _fastAtomicVal16;
-		AtomicVal<Val32> _fastAtomicVal32;
-		AtomicVal<Val64> _fastAtomicVal64;
+		OptimisticallyLockedValue<Val8> _fastAtomicVal8;
+		OptimisticallyLockedValue<Val16> _fastAtomicVal16;
+		OptimisticallyLockedValue<Val32> _fastAtomicVal32;
+		OptimisticallyLockedValue<Val64> _fastAtomicVal64;
 
 		[IterationSetup(Target = nameof(WithSingleValueReturns))]
 		public void CreateSingleValueReturnsContext() {
-			_fastAtomicInt64 = new AtomicInt64(0L);
-			_fastAtomicInt32 = new AtomicInt32(0);
+			_fastAtomicInt64 = new LockFreeInt64(0L);
+			_fastAtomicInt32 = new LockFreeInt32(0);
 			_fastAtomicRef = new LockFreeReference<User>(new User(0, ""));
-			_fastAtomicVal8 = new AtomicVal<Val8>(new Val8(0L));
-			_fastAtomicVal16 = new AtomicVal<Val16>(new Val16(0L));
-			_fastAtomicVal32 = new AtomicVal<Val32>(new Val32(0L));
-			_fastAtomicVal64 = new AtomicVal<Val64>(new Val64(0L));
+			_fastAtomicVal8 = new OptimisticallyLockedValue<Val8>(new Val8(0L));
+			_fastAtomicVal16 = new OptimisticallyLockedValue<Val16>(new Val16(0L));
+			_fastAtomicVal32 = new OptimisticallyLockedValue<Val32>(new Val32(0L));
+			_fastAtomicVal64 = new OptimisticallyLockedValue<Val64>(new Val64(0L));
 		}
 
 		[Benchmark]

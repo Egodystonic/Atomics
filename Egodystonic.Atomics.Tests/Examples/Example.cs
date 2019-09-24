@@ -9,7 +9,7 @@ using Egodystonic.Atomics.Numerics;
 namespace Egodystonic.Atomics.Tests.Examples {
 	sealed class Example {
 	// ReSharper disable once UseDeconstruction
-	readonly AtomicVal<Matrix4x4> _atomicMatrix = new AtomicVal<Matrix4x4>();
+	readonly OptimisticallyLockedValue<Matrix4x4> _atomicMatrix = new OptimisticallyLockedValue<Matrix4x4>();
 
 	public void SetUpScene() {
 		// Transpose the matrix if it isn't already the identity matrix; and return the previous value all as an atomic op
@@ -28,7 +28,7 @@ namespace Egodystonic.Atomics.Tests.Examples {
 		public void ApplyCameraFrustum(Matrix4x4 c) { }
 
 
-	readonly AtomicInt64 _index = new AtomicInt64();
+	readonly LockFreeInt64 _index = new LockFreeInt64();
 
 	public void ReduceIndex() {
 		// Halve the current index value if it's at least 100 as an atomic op

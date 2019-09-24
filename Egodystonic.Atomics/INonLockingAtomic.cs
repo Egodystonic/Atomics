@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Egodystonic.Atomics {
-	public interface IScalableAtomic<T> : IAtomic<T> {
+	public interface INonLockingAtomic<T> : IAtomic<T> {
 		T GetUnsafe();
 		void SetUnsafe(T newValue);
 		ref T GetUnsafeRef();

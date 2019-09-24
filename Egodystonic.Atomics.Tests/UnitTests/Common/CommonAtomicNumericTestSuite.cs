@@ -27,7 +27,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			const int NumIterations = 1_000_000;
 			var runner = NewRunner(Zero);
 
-			var atomicInt = new AtomicInt32();
+			var atomicInt = new LockFreeInt32();
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
@@ -129,7 +129,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var runner = NewRunner(Zero);
 
 			// (T)
-			var atomicInt = new AtomicInt32(0);
+			var atomicInt = new LockFreeInt32(0);
 			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
 			runner.AllThreadsTearDown = target => {
 				Assert.AreEqual(Convert(NumIterations), target.Value);
@@ -157,7 +157,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var runner = NewRunner(Zero);
 
 			// (T)
-			var atomicInt = new AtomicInt32(0);
+			var atomicInt = new LockFreeInt32(0);
 			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
 			runner.AllThreadsTearDown = target => {
 				Assert.AreEqual(Convert(NumIterations), target.Value);
@@ -691,7 +691,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			var runner = NewRunner(Zero);
 
-			var ticketProvider = new AtomicInt32();
+			var ticketProvider = new LockFreeInt32();
 
 			runner.GlobalSetUp = (_, __) => ticketProvider.Set(0);
 			runner.AllThreadsTearDown = target => Assert.AreEqual(Convert(TargetValue), target.Value);

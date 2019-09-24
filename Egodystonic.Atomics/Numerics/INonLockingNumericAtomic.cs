@@ -11,12 +11,12 @@ namespace Egodystonic.Atomics.Numerics {
 	// 'faster' API internally to do that).
 	// On the other hand, multiply and divide can be irreversible (multiplication
 	// that overflows and any division that has a remainder > 0). So knowing the
-	// previous value is not always possible for the caller of this API. I'm not
+	// previous value is not always possible for the caller of this API, I'm not
 	// too bothered about offering overloads that provide a single return value
-	// because the multiply/divide op is probably going to shadow the performance
-	// loss from return 2 values anyway. And if they're desperate they can use
-	// GetRefUnsafe and do it themselves.
-	public interface IScalableNumericAtomic<T> : IAtomic<T> {
+	// because the multiply/divide op is probably going to overshadow the performance
+	// loss from returning 2 values anyway. And if they're desperate they can use
+	// GetUnsafeRef and do it themselves.
+	public interface INonLockingNumericAtomic<T> : INonLockingAtomic<T> {
 		T IncrementAndGet();
 		T DecrementAndGet();
 		T AddAndGet(T operand);
@@ -26,32 +26,24 @@ namespace Egodystonic.Atomics.Numerics {
 		ExchangeResult<T> Divide(T operand);
 	}
 
-	// There is a tradeoff here. There may be call for GetAndXYZ variants of these
-	// for extreme performance scenarios at some point. But I think this API
-	// works best in terms of consistency with how IScalableNumericAtomic<T> is
-	// laid out and still giving an option of a fast path and a path that doesn't
-	// lose any information.
-	public interface IScalableIntegerAtomic<T> : IScalableNumericAtomic<T> {
-		T BitwiseAndAndGet(T operand);
+	// I did consider putting BitwiseXyzAndGet() overloads but the actual implementations for
+	// these operations tend to be CAS loops with at least one conditional so the overhead of
+	// returning a slightly larger type tends to be overshadowed anyway.
+	public interface INonLockingIntegerAtomic<T> : INonLockingNumericAtomic<T> {
 		ExchangeResult<T> BitwiseAnd(T operand);
 
-		T BitwiseOrAndGet(T operand);
 		ExchangeResult<T> BitwiseOr(T operand);
 
-		T BitwiseExclusiveOrAndGet(T operand);
 		ExchangeResult<T> BitwiseExclusiveOr(T operand);
 
-		T BitwiseNegateAndGet();
 		ExchangeResult<T> BitwiseNegate();
 
-		T BitwiseLeftShiftAndGet(int operand);
 		ExchangeResult<T> BitwiseLeftShift(int operand);
 
-		T BitwiseRightShiftAndGet(int operand);
 		ExchangeResult<T> BitwiseRightShift(int operand);
 	}
 
-	public interface INonScalableFloatingPointAtomic<T> : IScalableNumericAtomic<T> {
-		T TrySwap(T newValue, T comparand, T maxDelta);
+	public interface INonLockingFloatingPointAtomic<T> : INonLockingNumericAtomic<T> {
+		TryExchangeResult<T> TrySwap(T newValue, T comparand, T maxDelta);
 	}
 }

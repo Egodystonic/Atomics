@@ -128,7 +128,7 @@ namespace Egodystonic.Atomics.Tests.Harness.HarnessTests {
 
 		[Test]
 		public void ShouldInvokeGlobalSetUpBeforeEachTestCase() {
-			var globalSetUpInvocationCount = new AtomicInt32(0);
+			var globalSetUpInvocationCount = new LockFreeInt32(0);
 			_runner.GlobalSetUp = (_, __) => globalSetUpInvocationCount.Increment();
 			var testCase = CreateNewTestCase();
 

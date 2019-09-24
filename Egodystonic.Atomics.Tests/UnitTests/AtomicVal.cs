@@ -11,10 +11,10 @@ using SixteenVal = Egodystonic.Atomics.Tests.DummyObjects.DummySixteenByteVal;
 
 namespace Egodystonic.Atomics.Tests.UnitTests {
 	[TestFixture]
-	class AtomicValTest : CommonAtomicValTestSuite<AtomicVal<ImmutableVal>> {
+	class AtomicValTest : CommonAtomicValTestSuite<OptimisticallyLockedValue<ImmutableVal>> {
 		#region Test Fields
-		RunnerFactory<SixteenVal, AtomicVal<SixteenVal>> _sixteenByteRunnerFactory;
-		RunnerFactory<Dummy128ByteVal, AtomicVal<Dummy128ByteVal>> _oneTwentyEightByteRunnerFactory;
+		RunnerFactory<SixteenVal, OptimisticallyLockedValue<SixteenVal>> _sixteenByteRunnerFactory;
+		RunnerFactory<Dummy128ByteVal, OptimisticallyLockedValue<Dummy128ByteVal>> _oneTwentyEightByteRunnerFactory;
 
 		protected override ImmutableVal Alpha { get; } = new ImmutableVal(1, 1);
 		protected override ImmutableVal Bravo { get; } = new ImmutableVal(2, 2);
@@ -26,8 +26,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#region Test Setup
 		[OneTimeSetUp]
 		public void SetUpClass() {
-			_sixteenByteRunnerFactory = new RunnerFactory<SixteenVal, AtomicVal<SixteenVal>>();
-			_oneTwentyEightByteRunnerFactory = new RunnerFactory<Dummy128ByteVal, AtomicVal<Dummy128ByteVal>>();
+			_sixteenByteRunnerFactory = new RunnerFactory<SixteenVal, OptimisticallyLockedValue<SixteenVal>>();
+			_oneTwentyEightByteRunnerFactory = new RunnerFactory<Dummy128ByteVal, OptimisticallyLockedValue<Dummy128ByteVal>>();
 		}
 
 		[OneTimeTearDown]
@@ -43,7 +43,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		#region Custom Equality Tests
 		[Test]
 		public void API_SpinWaitForValue_CustomEquality() {
-			var target = new AtomicVal<EquatableVal>(new EquatableVal(0, 0));
+			var target = new OptimisticallyLockedValue<EquatableVal>(new EquatableVal(0, 0));
 			var task = Task.Run(() => target.SpinWaitForValue(new EquatableVal(1, 1)));
 			target.Set(new EquatableVal(1, 100));
 			Assert.AreEqual(new EquatableVal(1, 100), task.Result);
@@ -51,7 +51,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		[Test]
 		public void API_SpinWaitForExchange_CustomEquality() {
-			var target = new AtomicVal<EquatableVal>(new EquatableVal(0, 0));
+			var target = new OptimisticallyLockedValue<EquatableVal>(new EquatableVal(0, 0));
 			var task = Task.Run(() => target.SpinWaitForExchange(new EquatableVal(1, 1), new EquatableVal(10, 10)));
 			target.Set(new EquatableVal(10, 100));
 			Assert.AreEqual((new EquatableVal(10, 100), new EquatableVal(1, 1)), task.Result);
@@ -63,7 +63,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 		[Test]
 		public void API_TryExchange_CustomEquality() {
-			var target = new AtomicVal<EquatableVal>(new EquatableVal(0, 0));
+			var target = new OptimisticallyLockedValue<EquatableVal>(new EquatableVal(0, 0));
 			Assert.AreEqual((false, new EquatableVal(0, 0), new EquatableVal(0, 0)), target.TryExchange(new EquatableVal(10, 10), new EquatableVal(1, 1)));
 			target.Set(new EquatableVal(1, 0));
 			Assert.AreEqual((true, new EquatableVal(1, 0), new EquatableVal(10, 10)), target.TryExchange(new EquatableVal(10, 10), new EquatableVal(1, 1)));
@@ -79,7 +79,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[Test]
 		public void GetAndSetAndValue_Oversized() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicInt64(0L);
+			var atomicLong = new LockFreeInt64(0L);
 			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(0, 0));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -193,8 +193,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void Exchange_Oversized() {
 			const int NumIterations = 300_000;
 
-			var atomicIntA = new AtomicInt32(0);
-			var atomicIntB = new AtomicInt32(0);
+			var atomicIntA = new LockFreeInt32(0);
+			var atomicIntB = new LockFreeInt32(0);
 			var runner = _sixteenByteRunnerFactory.NewRunner(new SixteenVal(0, 0));
 
 			// (T)
@@ -735,7 +735,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		[Test]
 		public void GetAndSetAndValue_VeryOversized() {
 			const int NumIterations = 1_000_000;
-			var atomicLong = new AtomicInt64(0L);
+			var atomicLong = new LockFreeInt64(0L);
 			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
@@ -849,8 +849,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 		public void Exchange_VeryOversized() {
 			const int NumIterations = 300_000;
 
-			var atomicIntA = new AtomicInt32(0);
-			var atomicIntB = new AtomicInt32(0);
+			var atomicIntA = new LockFreeInt32(0);
+			var atomicIntB = new LockFreeInt32(0);
 			var runner = _oneTwentyEightByteRunnerFactory.NewRunner(new Dummy128ByteVal(0, 0));
 
 			// (T)

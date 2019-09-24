@@ -33,12 +33,12 @@ namespace Egodystonic.Atomics.Benchmarks.External {
 		#region Benchmark: Atomic Val
 		ManualResetEvent _atomicValBarrier;
 		List<Thread> _atomicValThreads;
-		AtomicVal<Val64> _atomicVal;
+		OptimisticallyLockedValue<Val64> _atomicVal;
 		Barrier _atomicValSyncBarrier;
 
 		[IterationSetup(Target = nameof(WithAtomicVal))]
 		public void CreateAtomicValContext() {
-			_atomicVal = new AtomicVal<Val64>(new Val64(-1L));
+			_atomicVal = new OptimisticallyLockedValue<Val64>(new Val64(-1L));
 			_atomicValBarrier = new ManualResetEvent(false);
 			_atomicValThreads = new List<Thread>();
 			_atomicValSyncBarrier = new Barrier(NumThreads);

@@ -6,8 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Egodystonic.Atomics {
-	// Note: Default impls should be used only where the only difference is out parameters
-	public interface INonScalableAtomic<T> : IAtomic<T> {
+	public interface ILockingAtomic<T> : IAtomic<T> {
 		void Set(T newValue, out T previousValue);
 		T Set(Func<T, T> valueMapFunc);
 		T Set(Func<T, T> valueMapFunc, out T previousValue);

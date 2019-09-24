@@ -262,7 +262,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var initialValue = (long*) 0x12345678;
 
 			var runner = new ConcurrentTestCaseRunner<AtomicPtr<long>>(() => new AtomicPtr<long>(initialValue));
-			var atomicInt = new AtomicInt32(0);
+			var atomicInt = new LockFreeInt32(0);
 
 			// (T)
 			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
