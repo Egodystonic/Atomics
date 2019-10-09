@@ -93,7 +93,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				target => target.Get(),
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -109,7 +109,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				target => target.Value,
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -164,7 +164,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
 					}
 				}
 			);
@@ -183,7 +183,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
 					}
 				}
 			);
@@ -215,8 +215,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					AssertTrue(prev.Alpha <= cur.Alpha);
-					AssertTrue(prev.Bravo <= cur.Bravo);
+					FastAssertTrue(prev.Alpha <= cur.Alpha);
+					FastAssertTrue(prev.Bravo <= cur.Bravo);
 				}
 			);
 			runner.GlobalSetUp = null;
@@ -543,7 +543,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
+				(prev, cur) => FastAssertTrue(cur.Bravo >= prev.Bravo)
 			);
 
 			// (T, Func<T, T, bool>)
@@ -560,7 +560,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<DummySixteenByteVal>(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -585,7 +585,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new SixteenVal(prevValue.Alpha, prevValue.Bravo + 1) : new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<DummySixteenByteVal>(prevValue.Bravo < prevValue.Alpha ? new SixteenVal(prevValue.Alpha, prevValue.Bravo + 1) : new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
 
 					else AssertAreNotEqual(curValue, prevValue);
@@ -605,8 +605,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new SixteenVal(c.Alpha + 1, c.Bravo - 1), (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummySixteenByteVal>(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(prevValue, CurrentValue);
 					}
@@ -635,7 +635,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<DummySixteenByteVal>(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -659,7 +659,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new SixteenVal(prevValue.Alpha, prevValue.Bravo + 1) : new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<DummySixteenByteVal>(prevValue.Bravo < prevValue.Alpha ? new SixteenVal(prevValue.Alpha, prevValue.Bravo + 1) : new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
 					else AssertAreNotEqual(curValue, prevValue);
 				},
@@ -678,8 +678,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new SixteenVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummySixteenByteVal>(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -699,8 +699,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new SixteenVal(c.Alpha + 1, c.Bravo - 1), (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo && c.Alpha < NumIterations, 1);
 						if (wasSet) {
-							AssertAreEqual(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummySixteenByteVal>(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -720,8 +720,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new SixteenVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n, ctx) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < ctx, NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummySixteenByteVal>(new SixteenVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -749,7 +749,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				target => target.Get(),
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -765,7 +765,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				target => target.Value,
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -820,7 +820,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
 					}
 				}
 			);
@@ -839,7 +839,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
 					}
 				}
 			);
@@ -871,8 +871,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					AssertTrue(prev.Alpha <= cur.Alpha);
-					AssertTrue(prev.Bravo <= cur.Bravo);
+					FastAssertTrue(prev.Alpha <= cur.Alpha);
+					FastAssertTrue(prev.Bravo <= cur.Bravo);
 				}
 			);
 			runner.GlobalSetUp = null;
@@ -1199,7 +1199,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
+				(prev, cur) => FastAssertTrue(cur.Bravo >= prev.Bravo)
 			);
 
 			// (T, Func<T, T, bool>)
@@ -1216,7 +1216,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<Dummy128ByteVal>(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -1241,7 +1241,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<Dummy128ByteVal>(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
 
 					else AssertAreNotEqual(curValue, prevValue);
@@ -1261,8 +1261,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<Dummy128ByteVal>(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(prevValue, CurrentValue);
 					}
@@ -1291,7 +1291,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
 						if (wasSet) {
 							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<Dummy128ByteVal>(newValue, setValue);
 						}
 						else {
 							AssertAreNotEqual(curValue, prevValue);
@@ -1315,7 +1315,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 					if (wasSet) {
 						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<Dummy128ByteVal>(prevValue.Bravo < prevValue.Alpha ? new Dummy128ByteVal(prevValue.Alpha, prevValue.Bravo + 1) : new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
 					else AssertAreNotEqual(curValue, prevValue);
 				},
@@ -1334,8 +1334,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new Dummy128ByteVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<Dummy128ByteVal>(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -1355,8 +1355,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new Dummy128ByteVal(c.Alpha + 1, c.Bravo - 1), (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo && c.Alpha < NumIterations, 1);
 						if (wasSet) {
-							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<Dummy128ByteVal>(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -1376,8 +1376,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new Dummy128ByteVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n, ctx) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < ctx, NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<Dummy128ByteVal>(new Dummy128ByteVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}

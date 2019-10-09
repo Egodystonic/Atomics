@@ -38,61 +38,61 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			var runner = new ConcurrentTestCaseRunner<AtomicPtr<long>>(() => new AtomicPtr<long>(initialValue));
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue + NumIterations, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue + NumIterations, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var incRes = target.Increment();
-					AssertAreEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
+					FastAssertEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue - NumIterations, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue - NumIterations, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var decRes = target.Decrement();
-					AssertAreEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
+					FastAssertEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue, target.Value);
 			runner.ExecuteWriterReaderTests(
 				target => {
 					var incRes = target.Increment();
-					AssertAreEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
+					FastAssertEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
 				},
 				target => {
 					var decRes = target.Decrement();
-					AssertAreEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
+					FastAssertEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue + NumIterations, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue + NumIterations, target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var incRes = target.Increment();
-					AssertAreEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
+					FastAssertEqual(((IntPtr) incRes.PreviousValue) + sizeof(long), (IntPtr) incRes.CurrentValue);
 				},
 				NumIterations,
 				target => target.GetAsIntPtr(),
-				(prev, cur) => AssertTrue(cur.ToInt64() >= prev.ToInt64())
+				(prev, cur) => FastAssertTrue(cur.ToInt64() >= prev.ToInt64())
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue - NumIterations, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue - NumIterations, target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var decRes = target.Decrement();
-					AssertAreEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
+					FastAssertEqual(((IntPtr) decRes.PreviousValue) - sizeof(long), (IntPtr) decRes.CurrentValue);
 				},
 				NumIterations,
 				target => target.GetAsIntPtr(),
-				(prev, cur) => AssertTrue(cur.ToInt64() <= prev.ToInt64())
+				(prev, cur) => FastAssertTrue(cur.ToInt64() <= prev.ToInt64())
 			);
 			runner.AllThreadsTearDown = null;
 		}
@@ -104,27 +104,27 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			var runner = new ConcurrentTestCaseRunner<AtomicPtr<long>>(() => new AtomicPtr<long>(initialValue));
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue + NumIterations * 7, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue + NumIterations * 7, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var addRes = target.Add(7);
-					AssertAreEqual((IntPtr) addRes.PreviousValue + sizeof(long) * 7, (IntPtr) addRes.CurrentValue);
+					FastAssertEqual((IntPtr) addRes.PreviousValue + sizeof(long) * 7, (IntPtr) addRes.CurrentValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue - NumIterations * 7, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue - NumIterations * 7, target.Value);
 			runner.ExecuteFreeThreadedTests(
 				target => {
 					var subRes = target.Subtract(7);
-					AssertAreEqual((IntPtr) subRes.PreviousValue - sizeof(long) * 7, (IntPtr) subRes.CurrentValue);
+					FastAssertEqual((IntPtr) subRes.PreviousValue - sizeof(long) * 7, (IntPtr) subRes.CurrentValue);
 				},
 				NumIterations
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue, target.Value);
 			runner.ExecuteWriterReaderTests(
 				target => {
 					var (prevValue, CurrentValue) = target.Add(3L);
@@ -138,7 +138,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue + NumIterations * 9, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue + NumIterations * 9, target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var (prevValue, CurrentValue) = target.Add(new IntPtr(9));
@@ -146,11 +146,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
-				(prev, cur) => AssertTrue(cur.ToInt64() >= prev.ToInt64())
+				(prev, cur) => FastAssertTrue(cur.ToInt64() >= prev.ToInt64())
 			);
 			runner.AllThreadsTearDown = null;
 
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue - NumIterations * 9, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue - NumIterations * 9, target.Value);
 			runner.ExecuteContinuousCoherencyTests(
 				target => {
 					var (prevValue, CurrentValue) = target.Subtract(new IntPtr(9));
@@ -158,7 +158,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
-				(prev, cur) => AssertTrue(cur.ToInt64() <= prev.ToInt64())
+				(prev, cur) => FastAssertTrue(cur.ToInt64() <= prev.ToInt64())
 			);
 			runner.AllThreadsTearDown = null;
 		}
@@ -169,7 +169,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			var initialValue = (long*) 0x12345678;
 
 			var runner = new ConcurrentTestCaseRunner<AtomicPtr<long>>(() => new AtomicPtr<long>(initialValue));
-			runner.AllThreadsTearDown = target => AssertAreEqual(initialValue + NumIterations, target.Value);
+			runner.AllThreadsTearDown = target => FastAssertEqual(initialValue + NumIterations, target.Value);
 
 			// (T)
 			runner.ExecuteSingleWriterSingleReaderTests(
@@ -178,7 +178,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue(curVal + 1));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue(curVal + 1));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -190,7 +190,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0x08) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue(curVal + 1));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue(curVal + 1));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -206,7 +206,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue(c => c  - 1 == curVal));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue(c => c  - 1 == curVal));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -218,7 +218,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0x08) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue(c => c - 1 == curVal));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue(c => c - 1 == curVal));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -234,7 +234,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue((c, ctx) => c == (long*) ctx + 1, (int) curVal));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue((c, ctx) => c == (long*) ctx + 1, (int) curVal));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -246,7 +246,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var curVal = target.Value;
 						if (curVal == initialValue + NumIterations) break;
 						if (((int) curVal & 0x08) == 0x08) {
-							AssertAreEqual(curVal + 1, target.SpinWaitForValue((c, ctx) => c == (long*) ctx + 1, (int) curVal));
+							FastAssertEqual(curVal + 1, target.SpinWaitForValue((c, ctx) => c == (long*) ctx + 1, (int) curVal));
 						}
 						else {
 							target.Value = curVal + 1;
@@ -267,19 +267,19 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			// (T)
 			runner.GlobalSetUp = (_, __) => { atomicInt.Set(0); };
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
 					var newInt = atomicInt.Increment().CurrentValue;
 					var newValue = initialValue + newInt;
 					var prev = target.Exchange(newValue).PreviousValue;
-					AssertAreEqual(prev, newValue - 1);
+					FastAssertEqual(prev, newValue - 1);
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
 				(prev, cur) => {
-					AssertTrue(prev.ToInt64() <= cur.ToInt64());
+					FastAssertTrue(prev.ToInt64() <= cur.ToInt64());
 				}
 			);
 			runner.GlobalSetUp = null;
@@ -287,7 +287,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, T>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -300,7 +300,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TContext, T>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -321,23 +321,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (T, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, initialValue + nextVal);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, initialValue + nextVal);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -345,23 +345,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, T>, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue - NumIterations, target.Value);
+				FastAssertEqual(initialValue - NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c - 1, initialValue - nextVal);
-						AssertAreEqual(initialValue - nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
+						FastAssertEqual(initialValue - nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c - 1, initialValue - nextVal);
-						AssertAreEqual(initialValue - nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
+						FastAssertEqual(initialValue - nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -369,23 +369,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (T, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, (c, n) => n == c + 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, (c, n) => n == c + 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -393,23 +393,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c + 1, (c, n) => n == c + 1 && c == initialValue + nextVal);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c + 1, (c, n) => n == c + 1 && c == initialValue + nextVal);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -425,23 +425,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TContext, T>, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue - NumIterations, target.Value);
+				FastAssertEqual(initialValue - NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c - ctx, initialValue - nextVal, 1);
-						AssertAreEqual(initialValue - nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
+						FastAssertEqual(initialValue - nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c - ctx, initialValue - nextVal, 1);
-						AssertAreEqual(initialValue - nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
+						FastAssertEqual(initialValue - nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue - (nextVal + 1), exchRes.CurrentValue);
 					}
 				}
 			);
@@ -449,23 +449,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (T, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, (c, n, ctx) => n == c + ctx, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(initialValue + nextVal + 1, (c, n, ctx) => n == c + ctx, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -473,23 +473,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n, ctx) => n == c + ctx && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n, ctx) => n == c + ctx && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -497,23 +497,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n, ctx) => n == c + (ctx - 1) && c == initialValue + nextVal, 1, 2);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n, ctx) => n == c + (ctx - 1) && c == initialValue + nextVal, 1, 2);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -521,23 +521,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n) => n == c + 1 && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange((c, ctx) => c + ctx, (c, n) => n == c + 1 && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -545,23 +545,23 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					for (var i = 0; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c + 1, (c, n, ctx) => n == c + ctx && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				},
 				target => {
 					for (var i = 1; i < NumIterations; i += 2) {
 						var nextVal = i;
 						var exchRes = target.SpinWaitForExchange(c => c + 1, (c, n, ctx) => n == c + ctx && c == initialValue + nextVal, 1);
-						AssertAreEqual(initialValue + nextVal, exchRes.PreviousValue);
-						AssertAreEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
+						FastAssertEqual(initialValue + nextVal, exchRes.PreviousValue);
+						FastAssertEqual(initialValue + nextVal + 1, exchRes.CurrentValue);
 					}
 				}
 			);
@@ -584,12 +584,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 				},
 				NumIterations,
 				target => (IntPtr) target.Value,
-				(prev, cur) => AssertTrue(cur.ToInt64() >= prev.ToInt64())
+				(prev, cur) => FastAssertTrue(cur.ToInt64() >= prev.ToInt64())
 			);
 
 			// (T, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -599,11 +599,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c + 1 == n);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -619,17 +619,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => c + 1, curValue);
 
 					if (wasSet) {
-						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(curValue + 1, CurrentValue);
+						FastAssertEqual(curValue, prevValue);
+						FastAssertEqual(curValue + 1, CurrentValue);
 					}
-					else AssertAreNotEqual(curValue, prevValue);
+					else FastAssertNotEqual(curValue, prevValue);
 				},
 				NumIterations
 			);
 
 			// (Func<T, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -639,7 +639,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => c + 1, (c, n) => c + 1 == n && c < initialValue + NumIterations);
 						if (wasSet) {
 							AssertAreEqual(prevValue + 1, CurrentValue);
-							AssertTrue(CurrentValue <= initialValue + NumIterations);
+							FastAssertTrue(CurrentValue <= initialValue + NumIterations);
 						}
 						else AssertAreEqual(prevValue, CurrentValue);
 					}
@@ -657,7 +657,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (T, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -667,11 +667,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c + ctx == n, 1);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -687,17 +687,17 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 					var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => c + ctx, curValue, 1);
 
 					if (wasSet) {
-						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(curValue + 1, CurrentValue);
+						FastAssertEqual(curValue, prevValue);
+						FastAssertEqual(curValue + 1, CurrentValue);
 					}
-					else AssertAreNotEqual(curValue, prevValue);
+					else FastAssertNotEqual(curValue, prevValue);
 				},
 				NumIterations
 			);
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -707,11 +707,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n) => n == newValue, 1);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -721,7 +721,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -731,11 +731,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange(c => c + 1, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, ((IntPtr) newValue).ToInt64());
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -745,7 +745,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TContext, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -755,11 +755,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n, ctx) => n == curValue + ctx, 1);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -769,7 +769,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(initialValue + NumIterations, target.Value);
+				FastAssertEqual(initialValue + NumIterations, target.Value);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -779,11 +779,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						var newValue = curValue + 1;
 						var (wasSet, prevValue, setValue) = target.TryExchange((c, ctx) => c + ctx, (c, n, ctx) => n == (DummySixteenByteVal*) ctx, 1, ((IntPtr) newValue).ToInt64());
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual(curValue, prevValue);
+							FastAssertEqual(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -798,16 +798,16 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 
 			var target = new AtomicPtr<DummySixteenByteVal>(new IntPtr(InitialPtr));
 			var incRes = target.Increment();
-			AssertAreEqual((DummySixteenByteVal*) (InitialPtr + sizeof(DummySixteenByteVal)), incRes.CurrentValue);
-			AssertAreEqual((DummySixteenByteVal*) InitialPtr, incRes.PreviousValue);
-			AssertAreEqual((IntPtr) (InitialPtr + sizeof(DummySixteenByteVal)), incRes.AsUntyped.CurrentValue);
-			AssertAreEqual((IntPtr) InitialPtr, incRes.AsUntyped.PreviousValue);
+			FastAssertEqual((DummySixteenByteVal*) (InitialPtr + sizeof(DummySixteenByteVal)), incRes.CurrentValue);
+			FastAssertEqual((DummySixteenByteVal*) InitialPtr, incRes.PreviousValue);
+			FastAssertEqual<IntPtr>((IntPtr) (InitialPtr + sizeof(DummySixteenByteVal)), incRes.AsUntyped.CurrentValue);
+			FastAssertEqual<IntPtr>((IntPtr) InitialPtr, incRes.AsUntyped.PreviousValue);
 
 			var decRes = target.Decrement();
-			AssertAreEqual((DummySixteenByteVal*) (InitialPtr + sizeof(DummySixteenByteVal)), decRes.PreviousValue);
-			AssertAreEqual((DummySixteenByteVal*) InitialPtr, decRes.CurrentValue);
-			AssertAreEqual((IntPtr) (InitialPtr + sizeof(DummySixteenByteVal)), decRes.AsUntyped.PreviousValue);
-			AssertAreEqual((IntPtr) InitialPtr, decRes.AsUntyped.CurrentValue);
+			FastAssertEqual((DummySixteenByteVal*) (InitialPtr + sizeof(DummySixteenByteVal)), decRes.PreviousValue);
+			FastAssertEqual((DummySixteenByteVal*) InitialPtr, decRes.CurrentValue);
+			FastAssertEqual<IntPtr>((IntPtr) (InitialPtr + sizeof(DummySixteenByteVal)), decRes.AsUntyped.PreviousValue);
+			FastAssertEqual<IntPtr>((IntPtr) InitialPtr, decRes.AsUntyped.CurrentValue);
 		}
 
 		[Test]
@@ -824,10 +824,10 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 			AssertResult(target.Subtract(new IntPtr(10L)), InitialPtr + sizeof(DummySixteenByteVal) * 10, InitialPtr);
 
 			void AssertResult(AtomicPtr<DummySixteenByteVal>.TypedPtrExchangeRes result, int expectedPreviousAddr, int expectedNewAddr) {
-				AssertAreEqual((DummySixteenByteVal*) expectedPreviousAddr, result.PreviousValue);
-				AssertAreEqual((DummySixteenByteVal*) expectedNewAddr, result.CurrentValue);
-				AssertAreEqual((IntPtr) expectedPreviousAddr, result.AsUntyped.PreviousValue);
-				AssertAreEqual((IntPtr) expectedNewAddr, result.AsUntyped.CurrentValue);
+				FastAssertEqual((DummySixteenByteVal*) expectedPreviousAddr, result.PreviousValue);
+				FastAssertEqual((DummySixteenByteVal*) expectedNewAddr, result.CurrentValue);
+				FastAssertEqual<IntPtr>((IntPtr) expectedPreviousAddr, result.AsUntyped.PreviousValue);
+				FastAssertEqual<IntPtr>((IntPtr) expectedNewAddr, result.AsUntyped.CurrentValue);
 			}
 		}
 		#endregion Tests

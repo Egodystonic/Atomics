@@ -11,6 +11,9 @@ namespace Egodystonic.Atomics {
 		T Set(Func<T, T> valueMapFunc);
 		T Set(Func<T, T> valueMapFunc, out T previousValue);
 
+		// May be overkill in some situations, but I think its presence
+		// may help protect against accidental check-then-get mistakes a bit
+		// e.g. if (myAtomic.Value.X) DoStuff(myAtomic.Value)
 		bool TryGet(Func<T, bool> valueComparisonPredicate, out T currentValue);
 
 		bool TrySet(T newValue, Func<T, bool> setPredicate);

@@ -76,42 +76,42 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 							var curCounterValue = counter.Value;
 							var result = target.TryInvoke(ActionInputValue);
 							if (result.DelegateWasInvoked) TestResult(curCounterValue, result.Result);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 						}
 
 						void TestWrappedInvoke() {
 							var curCounterValue = counter.Value;
 							var result = target.TryWrappedInvoke(t => t(ActionInputValue));
 							if (result.DelegateWasInvoked) TestResult(curCounterValue, result.Result);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 
 							curCounterValue = counter.Value;
 							result = target.TryWrappedInvoke((t, ctx) => t(ctx), ActionInputValue);
 							if (result.DelegateWasInvoked) TestResult(curCounterValue, result.Result);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 
 							curCounterValue = counter.Value;
 							var wasInvoked = target.TryWrappedInvoke(t => { t(ActionInputValue); });
 							if (wasInvoked) TestResult(curCounterValue, counter.Value);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 
 							curCounterValue = counter.Value;
 							wasInvoked = target.TryWrappedInvoke((t, ctx) => { t(ctx); }, ActionInputValue);
 							if (wasInvoked) TestResult(curCounterValue, counter.Value);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 						}
 
 						void TestDynamicInvoke() {
 							var curCounterValue = counter.Value;
 							var result = target.TryDynamicInvoke(ActionInputValue);
 							if (result.DelegateWasInvoked) TestResult(curCounterValue, (int) result.Result);
-							else AssertAreEqual(curCounterValue, counter.Value);
+							else FastAssertEqual(curCounterValue, counter.Value);
 						}
 
 						void TestResult(int previousCounterValue, int invocationResult) {
 							var diff = invocationResult - previousCounterValue;
-							AssertTrue(diff >= 0 && diff <= NumCombinesPerIteration * numWriters * ActionInputValue);
-							AssertTrue(invocationResult % ActionInputValue == 0);
+							FastAssertTrue(diff >= 0 && diff <= NumCombinesPerIteration * numWriters * ActionInputValue);
+							FastAssertTrue(invocationResult % ActionInputValue == 0);
 						}
 					}
 				}
@@ -135,12 +135,12 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						target.Combine(action);
 						AssertCount(i + 1, action);
 					}
-					AssertTrue(target.TryInvoke());
-					AssertTrue(invocationCounter.Value >= NumCombinesPerIteration);
+					FastAssertTrue(target.TryInvoke());
+					FastAssertTrue(invocationCounter.Value >= NumCombinesPerIteration);
 
 					for (var i = 0; i < NumCombinesPerIteration; ++i) {
 						var (previousValue, CurrentValue) = target.Remove(action);
-						AssertAreNotEqualObjects(previousValue, CurrentValue);
+						FastAssertNotEqual((object) previousValue, CurrentValue);
 						AssertCount(NumCombinesPerIteration - (i + 1), action);
 					}
 					// Note: I'm 99% sure testing that invocationCounter doesn't change when calling target.TryInvoke() here would be a race condition.
@@ -152,15 +152,15 @@ namespace Egodystonic.Atomics.Tests.UnitTests {
 						AssertCount(i + 1, action);
 					}
 					invocationCounter.Value = 0;
-					AssertTrue(target.TryInvoke());
-					AssertTrue(invocationCounter.Value >= NumCombinesPerIteration);
+					FastAssertTrue(target.TryInvoke());
+					FastAssertTrue(invocationCounter.Value >= NumCombinesPerIteration);
 
 					target.RemoveAll(action);
 					AssertCount(0, action);
 
 					void AssertCount(int count, Action a) {
 						var num = target.Value?.GetInvocationList()?.Count(d => ReferenceEquals(d, a)) ?? 0;
-						AssertAreEqual(count, num);
+						FastAssertEqual(count, num);
 					}
 				},
 				NumIterations

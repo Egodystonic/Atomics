@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
+#nullable disable // Doesn't play well with unconstrained generics at the moment -- T? isn't valid when T could be a class or struct type
+
 namespace Egodystonic.Atomics {
 	public sealed class Atomic<T> : ILockingAtomic<T> {
 		readonly object _instanceMutationLock = new object();

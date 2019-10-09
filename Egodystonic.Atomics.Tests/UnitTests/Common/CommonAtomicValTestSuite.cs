@@ -25,7 +25,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => target.Get(),
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -41,7 +41,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				target => target.Value,
 				(prev, cur) => {
 					unsafe {
-						AssertTrue(*(long*) &prev <= *(long*) &cur);
+						FastAssertTrue(*(long*) &prev <= *(long*) &cur);
 					}
 				}
 			);
@@ -54,7 +54,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			var runner = NewRunner(new DummyImmutableVal(0, 0));
 
 			// (T)
-			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.AllThreadsTearDown = target => FastAssertEqual(NumIterations, target.Value.Alpha);
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
 					while (true) {
@@ -83,7 +83,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			);
 
 			// (Func<T, bool>)
-			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.AllThreadsTearDown = target => FastAssertEqual(NumIterations, target.Value.Alpha);
 			runner.ExecuteWriterReaderTests(
 				target => {
 					while (true) {
@@ -96,13 +96,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue(c => c.Alpha > curVal.Alpha).Alpha >= curVal.Alpha);
 					}
 				}
 			);
 
 			// (Func<T, TContext, bool>, TContext)
-			runner.AllThreadsTearDown = target => AssertAreEqual(NumIterations, target.Value.Alpha);
+			runner.AllThreadsTearDown = target => FastAssertEqual(NumIterations, target.Value.Alpha);
 			runner.ExecuteWriterReaderTests(
 				target => {
 					while (true) {
@@ -115,7 +115,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					while (true) {
 						var curVal = target.Value;
 						if (curVal.Alpha == NumIterations) break;
-						AssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
+						FastAssertTrue(target.SpinWaitForValue((c, ctx) => c.Alpha > ctx.Alpha, curVal).Alpha >= curVal.Alpha);
 					}
 				}
 			);
@@ -132,8 +132,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T)
 			runner.GlobalSetUp = (_, __) => { atomicIntA.Set(0); atomicIntB.Set(0); };
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
@@ -147,8 +147,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					AssertTrue(prev.Alpha <= cur.Alpha);
-					AssertTrue(prev.Bravo <= cur.Bravo);
+					FastAssertTrue(prev.Alpha <= cur.Alpha);
+					FastAssertTrue(prev.Bravo <= cur.Bravo);
 				}
 			);
 			runner.GlobalSetUp = null;
@@ -166,8 +166,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			// (T)
 			runner.GlobalSetUp = (_, __) => { atomicIntA.Set(0); atomicIntB.Set(0); };
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteContinuousSingleWriterCoherencyTests(
 				target => {
@@ -181,8 +181,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				NumIterations,
 				target => target.Value,
 				(prev, cur) => {
-					AssertTrue(prev.Alpha <= cur.Alpha);
-					AssertTrue(prev.Bravo <= cur.Bravo);
+					FastAssertTrue(prev.Alpha <= cur.Alpha);
+					FastAssertTrue(prev.Bravo <= cur.Bravo);
 				}
 			);
 			runner.GlobalSetUp = null;
@@ -190,8 +190,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, T>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -205,8 +205,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, TContext, T>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations * 2, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations * 2, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -227,8 +227,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (T, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -256,8 +256,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, T>, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -285,8 +285,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (T, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -314,8 +314,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -350,8 +350,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, TContext, T>, T)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -379,8 +379,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (T, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -408,8 +408,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -437,8 +437,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -466,8 +466,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteSingleWriterSingleReaderTests(
 				target => {
@@ -509,7 +509,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
+				(prev, cur) => FastAssertTrue(cur.Bravo >= prev.Bravo)
 			);
 		}
 
@@ -528,13 +528,13 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 				},
 				NumIterations,
 				target => target.Value,
-				(prev, cur) => AssertTrue(cur.Bravo >= prev.Bravo)
+				(prev, cur) => FastAssertTrue(cur.Bravo >= prev.Bravo)
 			);
 
 			// (T, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -544,11 +544,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<DummyImmutableVal>(curValue, prevValue);
+							FastAssertEqual<DummyImmutableVal>(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual<DummyImmutableVal>(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -569,19 +569,19 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 					);
 
 					if (wasSet) {
-						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new DummyImmutableVal(prevValue.Alpha, prevValue.Bravo + 1) : new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<DummyImmutableVal>(curValue, prevValue);
+						FastAssertEqual<DummyImmutableVal>(prevValue.Bravo < prevValue.Alpha ? new DummyImmutableVal(prevValue.Alpha, prevValue.Bravo + 1) : new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
 
-					else AssertAreNotEqual(curValue, prevValue);
+					else FastAssertNotEqual<DummyImmutableVal>(curValue, prevValue);
 				},
 				NumIterations
 			);
 
 			// (Func<T, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -590,8 +590,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + 1, c.Bravo - 1), (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummyImmutableVal>(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(prevValue, CurrentValue);
 					}
@@ -608,8 +608,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (T, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -619,11 +619,11 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						var newValue = new DummyImmutableVal(curValue.Alpha + 1, curValue.Bravo - 1);
 						var (wasSet, prevValue, setValue) = target.TryExchange(newValue, (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo, 1);
 						if (wasSet) {
-							AssertAreEqual(curValue, prevValue);
-							AssertAreEqual(newValue, setValue);
+							FastAssertEqual<DummyImmutableVal>(curValue, prevValue);
+							FastAssertEqual<DummyImmutableVal>(newValue, setValue);
 						}
 						else {
-							AssertAreNotEqual(curValue, prevValue);
+							FastAssertNotEqual<DummyImmutableVal>(curValue, prevValue);
 							AssertAreEqual(setValue, prevValue);
 						}
 					}
@@ -643,18 +643,18 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						1, curValue);
 
 					if (wasSet) {
-						AssertAreEqual(curValue, prevValue);
-						AssertAreEqual(prevValue.Bravo < prevValue.Alpha ? new DummyImmutableVal(prevValue.Alpha, prevValue.Bravo + 1) : new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
+						FastAssertEqual<DummyImmutableVal>(curValue, prevValue);
+						FastAssertEqual<DummyImmutableVal>(prevValue.Bravo < prevValue.Alpha ? new DummyImmutableVal(prevValue.Alpha, prevValue.Bravo + 1) : new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo), CurrentValue);
 					}
-					else AssertAreNotEqual(curValue, prevValue);
+					else FastAssertNotEqual<DummyImmutableVal>(curValue, prevValue);
 				},
 				NumIterations
 			);
 
 			// (Func<T, TContext, T>, Func<T, T, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -663,8 +663,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new DummyImmutableVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummyImmutableVal>(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -674,8 +674,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, T>, Func<T, T, TContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -684,8 +684,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange(c => new DummyImmutableVal(c.Alpha + 1, c.Bravo - 1), (c, n, ctx) => c.Alpha + ctx == n.Alpha && c.Bravo - ctx == n.Bravo && c.Alpha < NumIterations, 1);
 						if (wasSet) {
-							AssertAreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummyImmutableVal>(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}
@@ -695,8 +695,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 
 			// (Func<T, TMapContext, T>, Func<T, T, TPredicateContext, bool>)
 			runner.AllThreadsTearDown = target => {
-				AssertAreEqual(NumIterations, target.Value.Alpha);
-				AssertAreEqual(-1 * NumIterations, target.Value.Bravo);
+				FastAssertEqual(NumIterations, target.Value.Alpha);
+				FastAssertEqual(-1 * NumIterations, target.Value.Bravo);
 			};
 			runner.ExecuteFreeThreadedTests(
 				target => {
@@ -705,8 +705,8 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 						if (curValue.Alpha == NumIterations) return;
 						var (wasSet, prevValue, CurrentValue) = target.TryExchange((c, ctx) => new DummyImmutableVal(c.Alpha + ctx, c.Bravo - ctx), 1, (c, n, ctx) => c.Alpha + 1 == n.Alpha && c.Bravo - 1 == n.Bravo && c.Alpha < ctx, NumIterations);
 						if (wasSet) {
-							AssertAreEqual(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
-							AssertTrue(CurrentValue.Alpha <= NumIterations);
+							FastAssertEqual<DummyImmutableVal>(new DummyImmutableVal(prevValue.Alpha + 1, prevValue.Bravo - 1), CurrentValue);
+							FastAssertTrue(CurrentValue.Alpha <= NumIterations);
 						}
 						else AssertAreEqual(CurrentValue, prevValue);
 					}

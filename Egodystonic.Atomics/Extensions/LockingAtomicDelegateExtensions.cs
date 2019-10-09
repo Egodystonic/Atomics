@@ -132,7 +132,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<TOut>(this ILockingAtomic<Func<TOut>> @this, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal();
@@ -142,7 +144,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, TOut>(this ILockingAtomic<Func<T1, T2, TOut>> @this, T1 arg1, T2 arg2, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2);
@@ -152,7 +156,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, TOut>(this ILockingAtomic<Func<T1, T2, T3, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3);
@@ -162,7 +168,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4);
@@ -172,7 +180,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5);
@@ -182,7 +192,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6);
@@ -192,7 +204,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -202,7 +216,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -212,7 +228,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -222,7 +240,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -232,7 +252,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -242,7 +264,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -252,7 +276,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -262,7 +288,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -272,7 +300,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -282,7 +312,9 @@ namespace Egodystonic.Atomics {
 		public static bool TryInvoke<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TOut>(this ILockingAtomic<Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TOut>> @this, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16, out TOut returnValue) {
 			var valueLocal = @this.Value;
 			if (valueLocal is null) {
+#pragma warning disable CS8653 // "A default expression introduces a null value for a type parameter." -- That's fine here, we just can't mark TOut as nullable
 				returnValue = default;
+#pragma warning restore CS8653
 				return false;
 			}
 			returnValue = valueLocal(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
@@ -290,7 +322,7 @@ namespace Egodystonic.Atomics {
 		}
 		#endregion
 
-		public static bool TryDynamicInvoke<T>(this ILockingAtomic<T> @this, object[] args, out object returnValue) where T : MulticastDelegate {
+		public static bool TryDynamicInvoke<T>(this ILockingAtomic<T> @this, object?[] args, out object? returnValue) where T : MulticastDelegate {
 			var valueLocal = @this.Value;
 			if (valueLocal == null) {
 				returnValue = default;
