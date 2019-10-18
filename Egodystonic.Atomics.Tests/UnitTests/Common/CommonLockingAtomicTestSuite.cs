@@ -11,8 +11,9 @@ using NUnit.Framework;
 
 namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 	abstract class CommonLockingAtomicTestSuite<T, TTarget> : CommonAtomicTestSuite<T, TTarget> where TTarget : ILockingAtomic<T>, new() {
-		[Test]
-		public void API_Set() {
+		protected CommonLockingAtomicTestSuite(Func<T, T, bool> equalityFunc, T alpha, T bravo, T charlie, T delta) : base(equalityFunc, alpha, bravo, charlie, delta) { }
+
+		public void Assert_API_Set() {
 			var target = new TTarget();
 			target.Value = Alpha;
 			target.Set(Bravo, out var previousValue);
@@ -29,8 +30,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.AreEqual(previousValue, Bravo);
 		}
 
-		[Test]
-		public void API_TryGet() {
+		public void Assert_API_TryGet() {
 			var target = new TTarget();
 			target.Value = Alpha;
 
@@ -41,8 +41,7 @@ namespace Egodystonic.Atomics.Tests.UnitTests.Common {
 			Assert.AreEqual(Bravo, curVal);
 		}
 
-		[Test]
-		public void API_TrySet() {
+		public void Assert_API_TrySet() {
 			var target = new TTarget();
 			target.Value = Alpha;
 
